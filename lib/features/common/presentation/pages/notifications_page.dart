@@ -8,14 +8,9 @@ import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/core/widgets/section_header.dart';
 import 'package:reziphay_mobile/core/widgets/status_pill.dart';
 import 'package:reziphay_mobile/features/common/presentation/pages/settings_page.dart';
-import 'package:reziphay_mobile/features/discovery/presentation/pages/brand_detail_page.dart';
-import 'package:reziphay_mobile/features/discovery/presentation/pages/provider_detail_page.dart';
-import 'package:reziphay_mobile/features/discovery/presentation/pages/service_detail_page.dart';
+import 'package:reziphay_mobile/features/notifications/data/notification_navigation.dart';
 import 'package:reziphay_mobile/features/notifications/data/notifications_repository.dart';
 import 'package:reziphay_mobile/features/notifications/models/app_notification_models.dart';
-import 'package:reziphay_mobile/features/reviews/presentation/pages/review_create_page.dart';
-import 'package:reziphay_mobile/features/reservations/presentation/pages/customer_reservation_detail_page.dart';
-import 'package:reziphay_mobile/features/reservations/presentation/pages/provider_reservation_detail_page.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -172,28 +167,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       return;
     }
 
-    context.go(_locationForDestination(destination));
-  }
-
-  String _locationForDestination(NotificationDestination destination) {
-    return switch (destination.type) {
-      NotificationDestinationType.customerReservation =>
-        CustomerReservationDetailPage.location(destination.entityId),
-      NotificationDestinationType.providerReservation =>
-        ProviderReservationDetailPage.location(destination.entityId),
-      NotificationDestinationType.service => ServiceDetailPage.location(
-        destination.entityId,
-      ),
-      NotificationDestinationType.provider => ProviderDetailPage.location(
-        destination.entityId,
-      ),
-      NotificationDestinationType.brand => BrandDetailPage.location(
-        destination.entityId,
-      ),
-      NotificationDestinationType.reviewCreate => ReviewCreatePage.location(
-        destination.entityId,
-      ),
-    };
+    context.go(
+      ref
+          .read(notificationNavigationActionsProvider)
+          .locationForDestination(destination),
+    );
   }
 }
 

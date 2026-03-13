@@ -32,57 +32,104 @@ class DiscoveryMedia extends StatelessWidget {
     final radius = borderRadius ?? BorderRadius.circular(AppRadii.lg);
 
     if (media?.hasBytes == true) {
-      return ClipRRect(
-        borderRadius: radius,
-        child: SizedBox(
-          height: height,
-          width: width,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.memory(media!.bytes!, fit: BoxFit.cover),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.black.withValues(alpha: 0.04),
-                      Colors.black.withValues(alpha: 0.56),
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: AppSpacing.md,
-                right: AppSpacing.md,
-                bottom: AppSpacing.md,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Icon(_iconForKind(kind), color: Colors.white, size: 20),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        effectiveLabel,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+      return _buildImageFrame(
+        context,
+        radius: radius,
+        child: Image.memory(media!.bytes!, fit: BoxFit.cover),
+        effectiveLabel: effectiveLabel,
       );
     }
 
+    if (media?.hasRemoteUrl == true) {
+      return _buildImageFrame(
+        context,
+        radius: radius,
+        child: Image.network(
+          media!.remoteUrl!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildFallbackBackground(
+              context,
+              palette: palette,
+              radius: radius,
+              effectiveLabel: effectiveLabel,
+            );
+          },
+        ),
+        effectiveLabel: effectiveLabel,
+      );
+    }
+
+    return _buildFallbackBackground(
+      context,
+      palette: palette,
+      radius: radius,
+      effectiveLabel: effectiveLabel,
+    );
+  }
+
+  Widget _buildImageFrame(
+    BuildContext context, {
+    required BorderRadiusGeometry radius,
+    required Widget child,
+    required String effectiveLabel,
+  }) {
+    return ClipRRect(
+      borderRadius: radius,
+      child: SizedBox(
+        height: height,
+        width: width,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            child,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withValues(alpha: 0.04),
+                    Colors.black.withValues(alpha: 0.56),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+            Positioned(
+              left: AppSpacing.md,
+              right: AppSpacing.md,
+              bottom: AppSpacing.md,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Icon(_iconForKind(kind), color: Colors.white, size: 20),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      effectiveLabel,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackBackground(
+    BuildContext context, {
+    required List<Color> palette,
+    required BorderRadiusGeometry radius,
+    required String effectiveLabel,
+  }) {
     return Container(
       height: height,
       width: width,

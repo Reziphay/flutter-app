@@ -3,26 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:reziphay_mobile/app/theme/app_colors.dart';
 import 'package:reziphay_mobile/app/theme/app_spacing.dart';
 import 'package:reziphay_mobile/core/widgets/app_button.dart';
+import 'package:reziphay_mobile/features/auth/models/email_link_result_status.dart';
 import 'package:reziphay_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:reziphay_mobile/features/auth/presentation/pages/welcome_page.dart';
 
-enum EmailLinkResultStatus { success, expired, invalid, alreadyUsed }
-
-extension EmailLinkResultStatusX on EmailLinkResultStatus {
-  static EmailLinkResultStatus fromQuery(String? rawValue) {
-    switch (rawValue) {
-      case 'expired':
-        return EmailLinkResultStatus.expired;
-      case 'invalid':
-        return EmailLinkResultStatus.invalid;
-      case 'used':
-      case 'already-used':
-        return EmailLinkResultStatus.alreadyUsed;
-      default:
-        return EmailLinkResultStatus.success;
-    }
-  }
-
+extension EmailLinkResultStatusPageX on EmailLinkResultStatus {
   String get title => switch (this) {
     EmailLinkResultStatus.success => 'Email verified',
     EmailLinkResultStatus.expired => 'This link expired',
@@ -60,6 +45,8 @@ class EmailLinkResultPage extends StatelessWidget {
   const EmailLinkResultPage({required this.status, super.key});
 
   static const path = '/auth/email-link-result';
+  static String location(EmailLinkResultStatus status) =>
+      '$path?status=${status.name}';
 
   final EmailLinkResultStatus status;
 

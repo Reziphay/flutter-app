@@ -13,6 +13,32 @@ enum ReservationStatus {
 }
 
 extension ReservationStatusX on ReservationStatus {
+  static ReservationStatus parse(String? rawValue) {
+    switch (rawValue?.trim().toUpperCase()) {
+      case 'PENDING':
+      case 'PENDING_APPROVAL':
+        return ReservationStatus.pendingApproval;
+      case 'CONFIRMED':
+        return ReservationStatus.confirmed;
+      case 'CHANGE_REQUESTED':
+      case 'RESCHEDULE_REQUESTED':
+        return ReservationStatus.changeRequested;
+      case 'CANCELLED':
+        return ReservationStatus.cancelled;
+      case 'COMPLETED':
+        return ReservationStatus.completed;
+      case 'NO_SHOW':
+      case 'NOSHOW':
+        return ReservationStatus.noShow;
+      case 'REJECTED':
+        return ReservationStatus.rejected;
+      case 'EXPIRED':
+        return ReservationStatus.expired;
+      default:
+        return ReservationStatus.pendingApproval;
+    }
+  }
+
   String get label => switch (this) {
     ReservationStatus.pendingApproval => 'Pending approval',
     ReservationStatus.confirmed => 'Confirmed',
@@ -99,9 +125,43 @@ extension ReservationSummaryX on ReservationSummary {
 
 enum ReservationActor { customer, provider }
 
+extension ReservationActorX on ReservationActor {
+  static ReservationActor? parse(String? rawValue) {
+    switch (rawValue?.trim().toUpperCase()) {
+      case 'CUSTOMER':
+      case 'UCR':
+        return ReservationActor.customer;
+      case 'PROVIDER':
+      case 'OWNER':
+      case 'USO':
+        return ReservationActor.provider;
+      default:
+        return null;
+    }
+  }
+
+  String get label => switch (this) {
+    ReservationActor.customer => 'Customer',
+    ReservationActor.provider => 'Provider',
+  };
+}
+
 enum CompletionMethod { qr, manual }
 
 extension CompletionMethodX on CompletionMethod {
+  static CompletionMethod? parse(String? rawValue) {
+    switch (rawValue?.trim().toUpperCase()) {
+      case 'QR':
+      case 'COMPLETE_BY_QR':
+        return CompletionMethod.qr;
+      case 'MANUAL':
+      case 'COMPLETE_MANUALLY':
+        return CompletionMethod.manual;
+      default:
+        return null;
+    }
+  }
+
   String get label => switch (this) {
     CompletionMethod.qr => 'Completed via QR',
     CompletionMethod.manual => 'Completed manually by provider',
@@ -261,6 +321,20 @@ enum NoShowObjectionReason {
 }
 
 extension NoShowObjectionReasonX on NoShowObjectionReason {
+  static NoShowObjectionReason parse(String? rawValue) {
+    switch (rawValue?.trim().toUpperCase()) {
+      case 'ARRIVED_ON_TIME':
+        return NoShowObjectionReason.arrivedOnTime;
+      case 'COMMUNICATION_ISSUE':
+        return NoShowObjectionReason.communicationIssue;
+      case 'PROVIDER_ISSUE':
+        return NoShowObjectionReason.providerIssue;
+      case 'OTHER':
+      default:
+        return NoShowObjectionReason.other;
+    }
+  }
+
   String get label => switch (this) {
     NoShowObjectionReason.arrivedOnTime => 'I arrived on time',
     NoShowObjectionReason.communicationIssue =>
@@ -273,6 +347,19 @@ extension NoShowObjectionReasonX on NoShowObjectionReason {
 enum NoShowObjectionStatus { underReview, accepted, rejected }
 
 extension NoShowObjectionStatusX on NoShowObjectionStatus {
+  static NoShowObjectionStatus parse(String? rawValue) {
+    switch (rawValue?.trim().toUpperCase()) {
+      case 'ACCEPTED':
+        return NoShowObjectionStatus.accepted;
+      case 'REJECTED':
+        return NoShowObjectionStatus.rejected;
+      case 'UNDER_REVIEW':
+      case 'PENDING':
+      default:
+        return NoShowObjectionStatus.underReview;
+    }
+  }
+
   String get label => switch (this) {
     NoShowObjectionStatus.underReview => 'Under review',
     NoShowObjectionStatus.accepted => 'Accepted',

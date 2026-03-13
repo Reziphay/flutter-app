@@ -7,7 +7,6 @@ import 'package:reziphay_mobile/core/widgets/app_button.dart';
 import 'package:reziphay_mobile/core/widgets/app_card.dart';
 import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/features/qr_completion/data/qr_completion_repository.dart';
-import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/widgets/reservation_widgets.dart';
 
 class ProviderQrPage extends ConsumerWidget {
@@ -17,8 +16,7 @@ class ProviderQrPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final providerId = ref.watch(activeProviderContextProvider);
-    final qrAsync = ref.watch(providerQrSessionProvider(providerId));
+    final qrAsync = ref.watch(providerQrSessionProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Provider QR')),
@@ -51,8 +49,7 @@ class ProviderQrPage extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.sm),
                   CountdownPill(
                     deadline: session.expiresAt,
-                    onExpire: () =>
-                        ref.invalidate(providerQrSessionProvider(providerId)),
+                    onExpire: () => ref.invalidate(providerQrSessionProvider),
                   ),
                 ],
               ),
@@ -96,7 +93,7 @@ class ProviderQrPage extends ConsumerWidget {
                   providerId: session.providerId,
                   providerName: session.providerName,
                 );
-                ref.invalidate(providerQrSessionProvider(providerId));
+                ref.invalidate(providerQrSessionProvider);
               },
             ),
           ],

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum AppFlavor { development, staging, production }
@@ -19,6 +20,7 @@ class AppEnvironment {
     required this.flavor,
     required this.apiBaseUrl,
     required this.appName,
+    required this.enableFirebaseMessaging,
   });
 
   factory AppEnvironment.fromDefines() {
@@ -34,7 +36,7 @@ class AppEnvironment {
     final apiBaseUrl = switch (flavor) {
       AppFlavor.development =>
         baseUrlOverride.isEmpty
-            ? 'http://localhost:3000/api/v1'
+            ? _defaultDevelopmentApiBaseUrl()
             : baseUrlOverride,
       AppFlavor.staging =>
         baseUrlOverride.isEmpty
@@ -52,16 +54,23 @@ class AppEnvironment {
       AppFlavor.production => '',
     };
 
+    const enableFirebaseMessaging = bool.fromEnvironment(
+      'ENABLE_FIREBASE_MESSAGING',
+      defaultValue: false,
+    );
+
     return AppEnvironment(
       flavor: flavor,
       apiBaseUrl: apiBaseUrl,
       appName: 'Reziphay$suffix',
+      enableFirebaseMessaging: enableFirebaseMessaging,
     );
   }
 
   final AppFlavor flavor;
   final String apiBaseUrl;
   final String appName;
+  final bool enableFirebaseMessaging;
 
   bool get isProduction => flavor == AppFlavor.production;
 
@@ -75,3 +84,11 @@ class AppEnvironment {
 final appEnvironmentProvider = Provider<AppEnvironment>(
   (ref) => throw UnimplementedError('AppEnvironment must be overridden.'),
 );
+
+String _defaultDevelopmentApiBaseUrl() {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    return 'http://10.0.2.2:3000/api/v1';
+  }
+
+  return 'http://localhost:3000/api/v1';
+}

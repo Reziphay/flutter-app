@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:intl/intl.dart';
 import 'package:reziphay_mobile/core/auth/session_controller.dart';
 import 'package:reziphay_mobile/core/network/api_client.dart';
 import 'package:reziphay_mobile/core/network/app_exception.dart';
+import 'package:reziphay_mobile/features/push/data/push_messaging_service.dart';
 import 'package:reziphay_mobile/features/settings/models/settings_models.dart';
 import 'package:reziphay_mobile/shared/models/app_role.dart';
 import 'package:reziphay_mobile/shared/models/user_session.dart';
@@ -37,6 +37,7 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => BackendSettingsRepository(
     store: ref.watch(settingsStoreProvider),
     apiClient: ref.watch(apiClientProvider),
+    pushMessagingService: ref.watch(pushMessagingServiceProvider),
     readSession: () => ref.read(sessionControllerProvider).session,
   ),
 );
@@ -102,9 +103,14 @@ class SettingsActions {
 }
 
 class LocalSettingsRepository implements SettingsRepository {
-  LocalSettingsRepository({required SettingsStore store}) : _store = store;
+  LocalSettingsRepository({
+    required SettingsStore store,
+    required PushMessagingService pushMessagingService,
+  }) : _store = store,
+       _pushMessagingService = pushMessagingService;
 
   final SettingsStore _store;
+  final PushMessagingService _pushMessagingService;
 
   AppSettings? _cachedSettings;
   PushRegistrationState? _cachedPushState;
@@ -133,15 +139,24 @@ class LocalSettingsRepository implements SettingsRepository {
   @override
   Future<PushRegistrationState> requestPushPermission() async {
     await _delay();
+    await _pushMessagingService.initialize();
     final currentState = await getPushState();
+    final permissionStatus = await _pushMessagingService.requestPermission();
+    final deviceToken = permissionStatus == PushPermissionStatus.granted
+        ? await _pushMessagingService.getDeviceToken() ??
+              currentState.deviceToken
+        : null;
     final updatedState = currentState.copyWith(
-      permissionStatus: PushPermissionStatus.granted,
-      deviceToken: currentState.deviceToken ?? _issueToken(),
-      lastSyncedAt: DateTime.now(),
+      permissionStatus: permissionStatus,
+      deviceToken: deviceToken,
+      clearDeviceToken: permissionStatus != PushPermissionStatus.granted,
+      clearLastSyncedAt:
+          permissionStatus != PushPermissionStatus.granted ||
+          deviceToken == null ||
+          deviceToken.isEmpty,
     );
 
-    _cachedPushState = updatedState;
-    await _store.writePushState(updatedState);
+    await _persistPushState(updatedState);
     return updatedState;
   }
 
@@ -172,6 +187,7 @@ class LocalSettingsRepository implements SettingsRepository {
   @override
   Future<PushRegistrationState> syncPushRegistration() async {
     await _delay();
+    await _pushMessagingService.initialize();
     final pushState = await getPushState();
     if (!pushState.canSync) {
       throw const AppException(
@@ -179,12 +195,19 @@ class LocalSettingsRepository implements SettingsRepository {
       );
     }
 
+    final deviceToken =
+        pushState.deviceToken ?? await _pushMessagingService.getDeviceToken();
+    if (deviceToken == null || deviceToken.isEmpty) {
+      throw const AppException(
+        'Push token is unavailable on this device right now.',
+      );
+    }
+
     final updatedState = pushState.copyWith(
-      deviceToken: pushState.deviceToken ?? _issueToken(),
+      deviceToken: deviceToken,
       lastSyncedAt: DateTime.now(),
     );
-    _cachedPushState = updatedState;
-    await _store.writePushState(updatedState);
+    await _persistPushState(updatedState);
     return updatedState;
   }
 
@@ -194,9 +217,9 @@ class LocalSettingsRepository implements SettingsRepository {
     await _store.writeSettings(settings);
   }
 
-  String _issueToken() {
-    final formatter = DateFormat('yyyyMMddHHmmss');
-    return 'mock_push_${formatter.format(DateTime.now())}';
+  Future<void> _persistPushState(PushRegistrationState state) async {
+    _cachedPushState = state;
+    await _store.writePushState(state);
   }
 
   Future<void> _delay() =>
@@ -207,8 +230,12 @@ class BackendSettingsRepository implements SettingsRepository {
   BackendSettingsRepository({
     required SettingsStore store,
     required ApiClient apiClient,
+    required PushMessagingService pushMessagingService,
     required UserSession? Function() readSession,
-  }) : _local = LocalSettingsRepository(store: store),
+  }) : _local = LocalSettingsRepository(
+         store: store,
+         pushMessagingService: pushMessagingService,
+       ),
        _apiClient = apiClient,
        _readSession = readSession;
 
@@ -243,8 +270,18 @@ class BackendSettingsRepository implements SettingsRepository {
   Future<PushRegistrationState> getPushState() => _local.getPushState();
 
   @override
-  Future<PushRegistrationState> requestPushPermission() =>
-      _local.requestPushPermission();
+  Future<PushRegistrationState> requestPushPermission() async {
+    final localState = await _local.requestPushPermission();
+    if (!_canUseRemotePushRegistration(_readSession()) || !localState.canSync) {
+      return localState;
+    }
+
+    try {
+      return await _syncRemotePushRegistration(localState);
+    } on AppException {
+      return localState;
+    }
+  }
 
   @override
   Future<void> setPushNotificationsEnabled(bool value) =>
@@ -283,13 +320,110 @@ class BackendSettingsRepository implements SettingsRepository {
   }
 
   @override
-  Future<PushRegistrationState> syncPushRegistration() =>
-      _local.syncPushRegistration();
+  Future<PushRegistrationState> syncPushRegistration() async {
+    final localState = await _local.syncPushRegistration();
+    if (!_canUseRemotePushRegistration(_readSession())) {
+      return localState;
+    }
+
+    return _syncRemotePushRegistration(localState);
+  }
 
   bool _canUseRemoteReminderSettings(UserSession? session) {
     return session != null &&
         session.availableRoles.contains(AppRole.customer) &&
         session.user.status == UserStatus.active;
+  }
+
+  bool _canUseRemotePushRegistration(UserSession? session) {
+    return session != null && session.user.status == UserStatus.active;
+  }
+
+  Future<PushRegistrationState> _syncRemotePushRegistration(
+    PushRegistrationState localState,
+  ) async {
+    final token = localState.deviceToken;
+    if (token == null || token.isEmpty) {
+      return localState;
+    }
+
+    final endpoints = [
+      '/users/me/push-tokens',
+      '/users/me/push-token',
+      '/users/me/devices/push-token',
+    ];
+    final errors = <AppException>[];
+
+    for (final endpoint in endpoints) {
+      try {
+        final data = await _apiClient.post<dynamic>(
+          endpoint,
+          data: {
+            'token': token,
+            'pushToken': token,
+            'provider': 'FCM',
+            'platform': 'mobile',
+          },
+          mapper: (payload) => payload,
+        );
+
+        final syncedState = _mergeRemotePushState(localState, data);
+        await _local._persistPushState(syncedState);
+        return syncedState;
+      } on AppException catch (error) {
+        if (_shouldTryNextPushEndpoint(error)) {
+          errors.add(error);
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    final lastError = errors.isEmpty ? null : errors.last;
+    throw AppException(
+      'Push token registration is unavailable right now.',
+      type: AppExceptionType.server,
+      statusCode: lastError?.statusCode,
+      code: lastError?.code,
+      details: lastError?.details,
+      requestId: lastError?.requestId,
+    );
+  }
+
+  PushRegistrationState _mergeRemotePushState(
+    PushRegistrationState localState,
+    dynamic payload,
+  ) {
+    final entity = payload is Map ? asJsonMap(payload) : <String, dynamic>{};
+    final registration = entity['pushRegistration'] is Map
+        ? asJsonMap(entity['pushRegistration'])
+        : entity['device'] is Map
+        ? asJsonMap(entity['device'])
+        : entity['item'] is Map
+        ? asJsonMap(entity['item'])
+        : entity;
+
+    final remoteToken =
+        registration['token'] as String? ??
+        registration['pushToken'] as String? ??
+        localState.deviceToken;
+    final syncedAt = _parseDateTime(
+      registration['lastSyncedAt'] ??
+          registration['registeredAt'] ??
+          registration['createdAt'],
+    );
+
+    return localState.copyWith(
+      deviceToken: remoteToken,
+      lastSyncedAt: syncedAt ?? DateTime.now(),
+    );
+  }
+
+  bool _shouldTryNextPushEndpoint(AppException error) {
+    return switch (error.statusCode) {
+      404 || 405 || 501 => true,
+      _ => false,
+    };
   }
 
   Future<AppSettings> _updateRemoteReminderSettings(AppSettings next) async {
@@ -364,6 +498,18 @@ class BackendSettingsRepository implements SettingsRepository {
       ReminderLeadTime.oneDay => 1440,
     };
   }
+}
+
+DateTime? _parseDateTime(dynamic value) {
+  if (value is DateTime) {
+    return value;
+  }
+
+  if (value is String && value.isNotEmpty) {
+    return DateTime.tryParse(value);
+  }
+
+  return null;
 }
 
 class SecureSettingsStore implements SettingsStore {

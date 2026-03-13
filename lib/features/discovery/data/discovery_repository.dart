@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:reziphay_mobile/core/network/api_client.dart';
 import 'package:reziphay_mobile/core/network/app_exception.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
 import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
@@ -75,13 +77,40 @@ abstract class DiscoveryRepository {
   });
 }
 
-final discoveryRepositoryProvider = Provider<DiscoveryRepository>(
-  (ref) => MockDiscoveryRepository(),
-);
+final _discoveryCategoriesCacheProvider =
+    NotifierProvider<_DiscoveryCategoriesCache, List<DiscoveryCategory>>(
+      _DiscoveryCategoriesCache.new,
+    );
 
-final discoveryCategoriesProvider = Provider<List<DiscoveryCategory>>(
-  (ref) => ref.watch(discoveryRepositoryProvider).categories,
-);
+final discoveryRepositoryProvider = Provider<DiscoveryRepository>((ref) {
+  return BackendDiscoveryRepository(
+    apiClient: ref.watch(apiClientProvider),
+    fallback: MockDiscoveryRepository(),
+    onCategoriesUpdated: (categories) {
+      ref
+          .read(_discoveryCategoriesCacheProvider.notifier)
+          .setCategories(categories);
+    },
+  );
+});
+
+final discoveryCategoriesProvider = Provider<List<DiscoveryCategory>>((ref) {
+  final cachedCategories = ref.watch(_discoveryCategoriesCacheProvider);
+  if (cachedCategories.isNotEmpty) {
+    return cachedCategories;
+  }
+
+  return ref.watch(discoveryRepositoryProvider).categories;
+});
+
+class _DiscoveryCategoriesCache extends Notifier<List<DiscoveryCategory>> {
+  @override
+  List<DiscoveryCategory> build() => const [];
+
+  void setCategories(List<DiscoveryCategory> categories) {
+    state = categories;
+  }
+}
 
 final discoveryCategoryProvider = Provider.family<DiscoveryCategory?, String>(
   (ref, categoryId) =>
@@ -1911,7 +1940,2332 @@ class _ServiceMeta {
   final List<String> exceptionNotes;
 }
 
+class _RequestAttempt {
+  const _RequestAttempt({required this.method, required this.path, this.data});
+
+  factory _RequestAttempt.get(String path) =>
+      _RequestAttempt(method: 'GET', path: path);
+
+  factory _RequestAttempt.post(String path, {Object? data}) =>
+      _RequestAttempt(method: 'POST', path: path, data: data);
+
+  factory _RequestAttempt.patch(String path, {Object? data}) =>
+      _RequestAttempt(method: 'PATCH', path: path, data: data);
+
+  factory _RequestAttempt.put(String path, {Object? data}) =>
+      _RequestAttempt(method: 'PUT', path: path, data: data);
+
+  factory _RequestAttempt.delete(String path, {Object? data}) =>
+      _RequestAttempt(method: 'DELETE', path: path, data: data);
+
+  final String method;
+  final String path;
+  final Object? data;
+}
+
 DateTime _dateAt(int dayOffset, int hour, int minute) {
   final now = DateTime.now();
   return DateTime(now.year, now.month, now.day + dayOffset, hour, minute);
+}
+
+class BackendDiscoveryRepository implements DiscoveryRepository {
+  BackendDiscoveryRepository({
+    required ApiClient apiClient,
+    MockDiscoveryRepository? fallback,
+    void Function(List<DiscoveryCategory> categories)? onCategoriesUpdated,
+  }) : _apiClient = apiClient,
+       _fallback = fallback ?? MockDiscoveryRepository(),
+       _onCategoriesUpdated = onCategoriesUpdated;
+
+  static const _cacheTtl = Duration(seconds: 30);
+
+  final ApiClient _apiClient;
+  final MockDiscoveryRepository _fallback;
+  final void Function(List<DiscoveryCategory> categories)? _onCategoriesUpdated;
+
+  List<DiscoveryCategory>? _categoriesCache;
+  DateTime? _categoriesFetchedAt;
+  List<ServiceSummary>? _servicesCache;
+  DateTime? _servicesFetchedAt;
+  List<BrandSummary>? _brandsCache;
+  DateTime? _brandsFetchedAt;
+  List<ProviderSummary>? _providersCache;
+  DateTime? _providersFetchedAt;
+
+  final Map<String, ServiceSummary> _serviceSummaryCache = {};
+  final Map<String, BrandSummary> _brandSummaryCache = {};
+  final Map<String, ProviderSummary> _providerSummaryCache = {};
+
+  @override
+  List<DiscoveryCategory> get categories =>
+      _categoriesCache != null && _categoriesCache!.isNotEmpty
+      ? List<DiscoveryCategory>.unmodifiable(_categoriesCache!)
+      : _fallback.categories;
+
+  @override
+  DiscoveryCategory? categoryById(String id) {
+    for (final category in categories) {
+      if (category.id == id) {
+        return category;
+      }
+    }
+
+    return _fallback.categoryById(id);
+  }
+
+  @override
+  ServiceSummary? serviceSummaryById(String id) =>
+      _serviceSummaryCache[id] ?? _fallback.serviceSummaryById(id);
+
+  @override
+  Future<BrandDetail> getBrandDetail(String id) async {
+    try {
+      final payload = await _apiClient.get<dynamic>(
+        '/brands/$id',
+        mapper: (data) => data,
+      );
+      final entity = _extractEntity(payload, ['brand', 'item']);
+      final summary = _parseBrandSummary(entity);
+      _rememberBrand(summary);
+
+      final providers = entity['members'] is List
+          ? _parseProviderList(entity['members'])
+          : (await _fetchProviderSummaries())
+                .where((provider) => provider.brandIds.contains(id))
+                .toList(growable: false);
+      final services = (await _fetchServiceSummaries())
+          .where((service) => service.brandId == id)
+          .toList(growable: false);
+
+      return BrandDetail(
+        summary: summary,
+        description:
+            _readString(entity, ['description', 'about', 'headline']) ??
+            summary.headline,
+        mapHint:
+            _readString(entity, ['mapHint', 'locationHint']) ??
+            'Use the saved address in your maps app for directions.',
+        members: providers,
+        services: services,
+        reviews: const [],
+      );
+    } catch (_) {
+      return _fallback.getBrandDetail(id);
+    }
+  }
+
+  @override
+  Future<CustomerHomeData> getCustomerHomeData() async {
+    try {
+      final fetchedCategories = await _fetchCategories();
+      final services = await _fetchServiceSummaries();
+      final brands = await _fetchBrandSummaries();
+      final providers = await _fetchProviderSummaries();
+
+      final nearYou = List<ServiceSummary>.of(services)
+        ..sort((left, right) => left.distanceKm.compareTo(right.distanceKm));
+      final featured = services
+          .where(
+            (service) =>
+                service.visibilityLabels.contains(VisibilityLabel.vip) ||
+                service.visibilityLabels.contains(VisibilityLabel.sponsored),
+          )
+          .toList(growable: false);
+      final bestOfMonth = services
+          .where(
+            (service) =>
+                service.visibilityLabels.contains(VisibilityLabel.bestOfMonth),
+          )
+          .toList(growable: false);
+      final popularBrands = List<BrandSummary>.of(brands)
+        ..sort(
+          (left, right) =>
+              right.popularityScore.compareTo(left.popularityScore),
+        );
+      final popularProviders = List<ProviderSummary>.of(providers)
+        ..sort(
+          (left, right) =>
+              right.popularityScore.compareTo(left.popularityScore),
+        );
+
+      return CustomerHomeData(
+        nearYou: nearYou.take(4).toList(growable: false),
+        featured: featured.take(4).toList(growable: false),
+        bestOfMonth: bestOfMonth.take(4).toList(growable: false),
+        categories: fetchedCategories,
+        popularBrands: popularBrands.take(3).toList(growable: false),
+        popularProviders: popularProviders.take(3).toList(growable: false),
+      );
+    } catch (_) {
+      return _fallback.getCustomerHomeData();
+    }
+  }
+
+  @override
+  Future<ProviderDetail> getProviderDetail(String id) async {
+    try {
+      final providers = await _fetchProviderSummaries();
+      final summary = providers.firstWhere((provider) => provider.id == id);
+      final services = (await _fetchServiceSummaries())
+          .where((service) => service.providerId == id)
+          .toList(growable: false);
+      final brandIds = {
+        ...summary.brandIds,
+        for (final service in services)
+          if (service.brandId != null) service.brandId!,
+      };
+      final brands = (await _fetchBrandSummaries())
+          .where((brand) => brandIds.contains(brand.id))
+          .toList(growable: false);
+
+      return ProviderDetail(
+        summary: summary,
+        associatedBrands: brands,
+        services: services,
+        reviews: const [],
+      );
+    } catch (_) {
+      return _fallback.getProviderDetail(id);
+    }
+  }
+
+  @override
+  Future<DiscoverySearchResponse> search(DiscoverySearchRequest request) async {
+    try {
+      final normalizedQuery = request.query.trim().toLowerCase();
+      final services =
+          List<ServiceSummary>.of(await _fetchServiceSummaries())
+              .where(
+                (service) => _matchesServiceQuery(service, normalizedQuery),
+              )
+              .where(
+                (service) => _matchesServiceFilters(service, request.filters),
+              )
+              .toList()
+            ..sort(
+              (left, right) => _compareServices(left, right, request.sort),
+            );
+      final brands =
+          List<BrandSummary>.of(await _fetchBrandSummaries())
+              .where((brand) => _matchesBrandQuery(brand, normalizedQuery))
+              .where((brand) => _matchesBrandFilters(brand, request.filters))
+              .toList()
+            ..sort((left, right) => _compareBrands(left, right, request.sort));
+      final providers =
+          List<ProviderSummary>.of(await _fetchProviderSummaries())
+              .where(
+                (provider) => _matchesProviderQuery(provider, normalizedQuery),
+              )
+              .where(
+                (provider) =>
+                    _matchesProviderFilters(provider, request.filters),
+              )
+              .toList()
+            ..sort(
+              (left, right) => _compareProviders(left, right, request.sort),
+            );
+
+      return DiscoverySearchResponse(
+        services: services,
+        brands: brands,
+        providers: providers,
+      );
+    } catch (_) {
+      return _fallback.search(request);
+    }
+  }
+
+  @override
+  Future<ServiceDetail> getServiceDetail(String id) async {
+    try {
+      final payload = await _apiClient.get<dynamic>(
+        '/services/$id',
+        mapper: (data) => data,
+      );
+      final entity = _extractEntity(payload, ['service', 'item']);
+      final summary = _parseServiceSummary(entity);
+      _rememberService(summary);
+
+      final provider =
+          _parseNestedProvider(entity) ??
+          await _findProvider(summary.providerId);
+      final brand = summary.brandId == null
+          ? null
+          : _parseNestedBrand(entity) ?? await _findBrand(summary.brandId!);
+      final slots = _parseAvailabilityWindows(entity);
+
+      return ServiceDetail(
+        summary: summary,
+        description:
+            _readString(entity, [
+              'description',
+              'summary',
+              'details',
+              'descriptionSnippet',
+            ]) ??
+            summary.descriptionSnippet ??
+            'Service details are available from the backend record.',
+        about:
+            _readString(entity, ['about', 'provider.bio', 'provider.about']) ??
+            summary.descriptionSnippet ??
+            'Provider-specific notes are available on request.',
+        availabilitySummary:
+            _readString(entity, [
+              'availabilitySummary',
+              'availability.summary',
+              'availability.description',
+            ]) ??
+            _buildAvailabilitySummary(slots),
+        requestableSlots: slots,
+        waitingTimeLabel: _formatDurationLabel(
+          minutes: _readInt(entity, [
+            'waitingTimeMinutes',
+            'waitingTime',
+            'waiting_time',
+          ]),
+          fallback: 'Provider-defined waiting time',
+        ),
+        freeCancellationLabel: _formatCancellationLabel(
+          hours: _readInt(entity, [
+            'freeCancellationHours',
+            'freeCancellationDeadlineHours',
+            'free_cancellation_hours',
+          ]),
+        ),
+        galleryMedia: _parseMediaAssets(entity),
+        provider:
+            provider ??
+            ProviderSummary(
+              id: summary.providerId,
+              name: summary.providerName,
+              headline: 'Provider details',
+              bio:
+                  summary.descriptionSnippet ?? 'Provider details unavailable.',
+              distanceKm: summary.distanceKm,
+              rating: summary.rating,
+              reviewCount: summary.reviewCount,
+              completedReservations: 0,
+              responseReliability: 'Response time unavailable',
+              brandIds: [if (summary.brandId != null) summary.brandId!],
+              categoryIds: [summary.categoryId],
+              visibilityLabels: const [],
+              popularityScore: summary.popularityScore,
+              availableNow: summary.isAvailable,
+            ),
+        brand: brand,
+        reviews: const [],
+      );
+    } catch (_) {
+      return _fallback.getServiceDetail(id);
+    }
+  }
+
+  @override
+  Future<ProviderServicesData> getProviderServices(String providerId) async {
+    try {
+      final payload = await _requestFirstSuccess<dynamic>(
+        _providerServiceCollectionPaths(
+          providerId,
+        ).map(_RequestAttempt.get).toList(growable: false),
+      );
+      final items = _extractItems(payload, ['items', 'services']);
+      final services = <ProviderManagedServiceListItem>[];
+
+      for (final item in items) {
+        final summary = _tryParseServiceSummary(item);
+        if (summary == null) {
+          continue;
+        }
+
+        _rememberService(summary);
+        final entity = asJsonMap(item);
+        services.add(
+          ProviderManagedServiceListItem(
+            summary: summary,
+            serviceType: _parseManagedServiceType(entity),
+            waitingTimeMinutes:
+                _readInt(entity, [
+                  'waitingTimeMinutes',
+                  'waitingTime',
+                  'waiting_time',
+                ]) ??
+                0,
+            leadTimeHours:
+                _readInt(entity, ['leadTimeHours', 'leadTime', 'lead_time']) ??
+                0,
+            exceptionCount: _parseExceptionNotes(entity).length,
+            canArchive:
+                _readBool(entity, [
+                  'canArchive',
+                  'canDelete',
+                  'canRemove',
+                  'permissions.canArchive',
+                ]) ??
+                true,
+          ),
+        );
+      }
+
+      return ProviderServicesData(
+        services: services,
+        activeCount: services
+            .where((service) => service.summary.isAvailable)
+            .length,
+        manualApprovalCount: services
+            .where(
+              (service) => service.summary.approvalMode == ApprovalMode.manual,
+            )
+            .length,
+        brandLinkedCount: services
+            .where((service) => service.summary.brandId != null)
+            .length,
+      );
+    } catch (_) {
+      return _fallback.getProviderServices(providerId);
+    }
+  }
+
+  @override
+  Future<ProviderManagedService> getProviderService({
+    required String serviceId,
+    required String providerId,
+  }) async {
+    try {
+      final payload = await _requestFirstSuccess<dynamic>(
+        _providerServiceDetailPaths(
+          providerId: providerId,
+          serviceId: serviceId,
+        ).map(_RequestAttempt.get).toList(growable: false),
+      );
+      final entity = _extractEntity(payload, ['service', 'item']);
+      final summary = _parseServiceSummary(entity);
+      _rememberService(summary);
+
+      final provider =
+          _parseNestedProvider(entity) ??
+          await _findProvider(summary.providerId);
+      final brand = summary.brandId == null
+          ? null
+          : _parseNestedBrand(entity) ?? await _findBrand(summary.brandId!);
+      final slots = _parseAvailabilityWindows(entity);
+      final draft = _draftFromServiceEntity(
+        summary: summary,
+        entity: entity,
+        slots: slots,
+      );
+
+      return ProviderManagedService(
+        detail: ServiceDetail(
+          summary: summary,
+          description:
+              _readString(entity, [
+                'description',
+                'summary',
+                'details',
+                'descriptionSnippet',
+              ]) ??
+              summary.descriptionSnippet ??
+              'Service details are available from the backend record.',
+          about: _readString(entity, ['about', 'serviceAbout']) ?? draft.about,
+          availabilitySummary:
+              _readString(entity, [
+                'availabilitySummary',
+                'availability.summary',
+                'availability.description',
+              ]) ??
+              _buildAvailabilitySummary(slots),
+          requestableSlots: slots,
+          waitingTimeLabel: _formatDurationLabel(
+            minutes: draft.waitingTimeMinutes,
+            fallback: 'Provider-defined waiting time',
+          ),
+          freeCancellationLabel: _formatCancellationLabel(
+            hours: draft.freeCancellationHours,
+          ),
+          galleryMedia: draft.galleryMedia,
+          provider:
+              provider ??
+              ProviderSummary(
+                id: summary.providerId,
+                name: summary.providerName,
+                headline: 'Provider details',
+                bio:
+                    summary.descriptionSnippet ??
+                    'Provider details unavailable.',
+                distanceKm: summary.distanceKm,
+                rating: summary.rating,
+                reviewCount: summary.reviewCount,
+                completedReservations: 0,
+                responseReliability: 'Response time unavailable',
+                brandIds: [if (summary.brandId != null) summary.brandId!],
+                categoryIds: [summary.categoryId],
+                visibilityLabels: const [],
+                popularityScore: summary.popularityScore,
+                availableNow: summary.isAvailable,
+              ),
+          brand: brand,
+          reviews: const [],
+        ),
+        draft: draft,
+        canArchive:
+            _readBool(entity, [
+              'canArchive',
+              'canDelete',
+              'canRemove',
+              'permissions.canArchive',
+            ]) ??
+            true,
+      );
+    } catch (_) {
+      return _fallback.getProviderService(
+        serviceId: serviceId,
+        providerId: providerId,
+      );
+    }
+  }
+
+  @override
+  Future<String> createProviderService({
+    required String providerId,
+    required ProviderServiceDraft draft,
+  }) async {
+    try {
+      final payload = await _requestFirstSuccess<dynamic>(
+        _providerServiceCollectionPaths(providerId)
+            .map(
+              (path) => _RequestAttempt.post(
+                path,
+                data: _serviceDraftPayload(
+                  providerId: providerId,
+                  draft: draft,
+                ),
+              ),
+            )
+            .toList(growable: false),
+      );
+      final entity =
+          _tryExtractEntity(payload, ['service', 'item']) ?? const {};
+      final serviceId =
+          _readString(entity, ['id', 'serviceId']) ??
+          (payload is Map
+              ? _readString(asJsonMap(payload), ['id', 'serviceId'])
+              : null);
+      if (serviceId == null || serviceId.isEmpty) {
+        throw const AppException(
+          'Service was created but the backend did not return an identifier.',
+          type: AppExceptionType.server,
+        );
+      }
+
+      final summary = entity.isEmpty ? null : _tryParseServiceSummary(entity);
+      if (summary != null) {
+        _rememberService(summary);
+      }
+      _invalidateProviderCatalogCaches(
+        providerId: providerId,
+        serviceId: serviceId,
+        brandId: summary?.brandId ?? draft.brandId,
+      );
+      return serviceId;
+    } on AppException catch (error) {
+      if (_shouldFallbackProviderManagement(error)) {
+        return _fallback.createProviderService(
+          providerId: providerId,
+          draft: draft,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> updateProviderService({
+    required String providerId,
+    required String serviceId,
+    required ProviderServiceDraft draft,
+  }) async {
+    try {
+      final payload = await _requestFirstSuccess<dynamic>([
+        for (final path in _providerServiceDetailPaths(
+          providerId: providerId,
+          serviceId: serviceId,
+        ))
+          _RequestAttempt.patch(
+            path,
+            data: _serviceDraftPayload(providerId: providerId, draft: draft),
+          ),
+        for (final path in _providerServiceDetailPaths(
+          providerId: providerId,
+          serviceId: serviceId,
+        ))
+          _RequestAttempt.put(
+            path,
+            data: _serviceDraftPayload(providerId: providerId, draft: draft),
+          ),
+      ]);
+      final entity = _tryExtractEntity(payload, ['service', 'item']);
+      final summary = entity == null ? null : _tryParseServiceSummary(entity);
+      if (summary != null) {
+        _rememberService(summary);
+      }
+      _invalidateProviderCatalogCaches(
+        providerId: providerId,
+        serviceId: serviceId,
+        brandId: summary?.brandId ?? draft.brandId,
+      );
+    } on AppException catch (error) {
+      if (_shouldFallbackProviderManagement(error)) {
+        return _fallback.updateProviderService(
+          providerId: providerId,
+          serviceId: serviceId,
+          draft: draft,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> archiveProviderService({
+    required String providerId,
+    required String serviceId,
+  }) async {
+    try {
+      await _requestFirstSuccess<dynamic>([
+        for (final path in _providerServiceDetailPaths(
+          providerId: providerId,
+          serviceId: serviceId,
+        ))
+          _RequestAttempt.delete(path),
+        for (final path in _providerServiceDetailPaths(
+          providerId: providerId,
+          serviceId: serviceId,
+        ))
+          _RequestAttempt.post('$path/archive'),
+      ]);
+      _invalidateProviderCatalogCaches(
+        providerId: providerId,
+        serviceId: serviceId,
+      );
+    } on AppException catch (error) {
+      if (_shouldFallbackProviderManagement(error)) {
+        return _fallback.archiveProviderService(
+          providerId: providerId,
+          serviceId: serviceId,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<ProviderBrandsData> getProviderBrands(String providerId) async {
+    try {
+      final payload = await _requestFirstSuccess<dynamic>(
+        _providerBrandCollectionPaths(
+          providerId,
+        ).map(_RequestAttempt.get).toList(growable: false),
+      );
+      final items = _extractItems(payload, ['items', 'brands']);
+      final brands = <ProviderManagedBrandListItem>[];
+
+      for (final item in items) {
+        final summary = _tryParseBrandSummary(item);
+        if (summary == null) {
+          continue;
+        }
+        _rememberBrand(summary);
+        final entity = asJsonMap(item);
+        final joinRequests = _parseBrandJoinRequests(entity);
+        brands.add(
+          ProviderManagedBrandListItem(
+            summary: summary,
+            joinRequestCount:
+                _readInt(entity, [
+                  'pendingJoinRequestCount',
+                  'joinRequestCount',
+                  'membershipRequestCount',
+                ]) ??
+                joinRequests.length,
+          ),
+        );
+      }
+
+      return ProviderBrandsData(
+        brands: brands,
+        totalServiceCount: brands.fold<int>(
+          0,
+          (total, brand) => total + brand.summary.serviceCount,
+        ),
+        pendingJoinRequestCount: brands.fold<int>(
+          0,
+          (total, brand) => total + brand.joinRequestCount,
+        ),
+      );
+    } catch (_) {
+      return _fallback.getProviderBrands(providerId);
+    }
+  }
+
+  @override
+  Future<ProviderManagedBrand> getProviderBrand({
+    required String brandId,
+    required String providerId,
+  }) async {
+    try {
+      final payload = await _requestFirstSuccess<dynamic>(
+        _providerBrandDetailPaths(
+          providerId: providerId,
+          brandId: brandId,
+        ).map(_RequestAttempt.get).toList(growable: false),
+      );
+      final entity = _extractEntity(payload, ['brand', 'item']);
+      final summary = _parseBrandSummary(entity);
+      _rememberBrand(summary);
+
+      final members = entity['members'] is List
+          ? _parseProviderList(entity['members'])
+          : entity['providers'] is List
+          ? _parseProviderList(entity['providers'])
+          : (await _fetchProviderSummaries())
+                .where((provider) => provider.brandIds.contains(brandId))
+                .toList(growable: false);
+      final services = entity['services'] is List
+          ? entity['services'] is List
+                ? asJsonMapList(entity['services'])
+                      .map(_tryParseServiceSummary)
+                      .whereType<ServiceSummary>()
+                      .toList(growable: false)
+                : const <ServiceSummary>[]
+          : (await _fetchServiceSummaries())
+                .where((service) => service.brandId == brandId)
+                .toList(growable: false);
+      for (final service in services) {
+        _rememberService(service);
+      }
+      final joinRequests = _parseBrandJoinRequests(entity);
+      final resolvedJoinRequests = joinRequests.isNotEmpty
+          ? joinRequests
+          : await _fetchProviderBrandJoinRequests(
+              providerId: providerId,
+              brandId: brandId,
+            );
+      final draft = _draftFromBrandEntity(summary: summary, entity: entity);
+
+      return ProviderManagedBrand(
+        detail: BrandDetail(
+          summary: summary,
+          description:
+              _readString(entity, ['description', 'about', 'headline']) ??
+              summary.headline,
+          mapHint:
+              _readString(entity, ['mapHint', 'locationHint']) ?? draft.mapHint,
+          members: members,
+          services: services,
+          reviews: const [],
+        ),
+        draft: draft,
+        joinRequests: resolvedJoinRequests,
+      );
+    } catch (_) {
+      return _fallback.getProviderBrand(
+        brandId: brandId,
+        providerId: providerId,
+      );
+    }
+  }
+
+  @override
+  Future<String> createProviderBrand({
+    required String providerId,
+    required ProviderBrandDraft draft,
+  }) async {
+    try {
+      final payload = await _requestFirstSuccess<dynamic>(
+        _providerBrandCollectionPaths(providerId)
+            .map(
+              (path) => _RequestAttempt.post(
+                path,
+                data: _brandDraftPayload(providerId: providerId, draft: draft),
+              ),
+            )
+            .toList(growable: false),
+      );
+      final entity = _tryExtractEntity(payload, ['brand', 'item']) ?? const {};
+      final brandId =
+          _readString(entity, ['id', 'brandId']) ??
+          (payload is Map
+              ? _readString(asJsonMap(payload), ['id', 'brandId'])
+              : null);
+      if (brandId == null || brandId.isEmpty) {
+        throw const AppException(
+          'Brand was created but the backend did not return an identifier.',
+          type: AppExceptionType.server,
+        );
+      }
+
+      final summary = entity.isEmpty ? null : _tryParseBrandSummary(entity);
+      if (summary != null) {
+        _rememberBrand(summary);
+      }
+      _invalidateProviderCatalogCaches(
+        providerId: providerId,
+        brandId: brandId,
+      );
+      return brandId;
+    } on AppException catch (error) {
+      if (_shouldFallbackProviderManagement(error)) {
+        return _fallback.createProviderBrand(
+          providerId: providerId,
+          draft: draft,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> updateProviderBrand({
+    required String providerId,
+    required String brandId,
+    required ProviderBrandDraft draft,
+  }) async {
+    try {
+      final payload = await _requestFirstSuccess<dynamic>([
+        for (final path in _providerBrandDetailPaths(
+          providerId: providerId,
+          brandId: brandId,
+        ))
+          _RequestAttempt.patch(
+            path,
+            data: _brandDraftPayload(providerId: providerId, draft: draft),
+          ),
+        for (final path in _providerBrandDetailPaths(
+          providerId: providerId,
+          brandId: brandId,
+        ))
+          _RequestAttempt.put(
+            path,
+            data: _brandDraftPayload(providerId: providerId, draft: draft),
+          ),
+      ]);
+      final entity = _tryExtractEntity(payload, ['brand', 'item']);
+      final summary = entity == null ? null : _tryParseBrandSummary(entity);
+      if (summary != null) {
+        _rememberBrand(summary);
+      }
+      _invalidateProviderCatalogCaches(
+        providerId: providerId,
+        brandId: brandId,
+      );
+    } on AppException catch (error) {
+      if (_shouldFallbackProviderManagement(error)) {
+        return _fallback.updateProviderBrand(
+          providerId: providerId,
+          brandId: brandId,
+          draft: draft,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> acceptBrandJoinRequest({
+    required String providerId,
+    required String brandId,
+    required String requestId,
+  }) async {
+    try {
+      await _requestFirstSuccess<dynamic>(
+        _acceptJoinRequestPaths(
+          brandId: brandId,
+          providerId: providerId,
+          requestId: requestId,
+        ).map(_RequestAttempt.post).toList(growable: false),
+      );
+      _invalidateProviderCatalogCaches(
+        providerId: providerId,
+        brandId: brandId,
+      );
+    } on AppException catch (error) {
+      if (_shouldFallbackProviderManagement(error)) {
+        return _fallback.acceptBrandJoinRequest(
+          providerId: providerId,
+          brandId: brandId,
+          requestId: requestId,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> rejectBrandJoinRequest({
+    required String providerId,
+    required String brandId,
+    required String requestId,
+  }) async {
+    try {
+      await _requestFirstSuccess<dynamic>(
+        _rejectJoinRequestPaths(
+          brandId: brandId,
+          providerId: providerId,
+          requestId: requestId,
+        ).map(_RequestAttempt.post).toList(growable: false),
+      );
+      _invalidateProviderCatalogCaches(
+        providerId: providerId,
+        brandId: brandId,
+      );
+    } on AppException catch (error) {
+      if (_shouldFallbackProviderManagement(error)) {
+        return _fallback.rejectBrandJoinRequest(
+          providerId: providerId,
+          brandId: brandId,
+          requestId: requestId,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  ProviderServiceDraft _draftFromServiceEntity({
+    required ServiceSummary summary,
+    required JsonMap entity,
+    required List<AvailabilityWindow> slots,
+  }) {
+    final galleryMedia = _parseMediaAssets(entity);
+    return ProviderServiceDraft(
+      name: summary.name,
+      categoryId: summary.categoryId,
+      categoryName: summary.categoryName,
+      addressLine: summary.addressLine,
+      descriptionSnippet:
+          _readString(entity, [
+            'descriptionSnippet',
+            'description',
+            'summary',
+          ]) ??
+          summary.descriptionSnippet ??
+          '',
+      about:
+          _readString(entity, ['about', 'details', 'serviceAbout']) ??
+          summary.descriptionSnippet ??
+          '',
+      approvalMode: summary.approvalMode,
+      isAvailable: summary.isAvailable,
+      serviceType: _parseManagedServiceType(entity),
+      waitingTimeMinutes:
+          _readInt(entity, [
+            'waitingTimeMinutes',
+            'waitingTime',
+            'waiting_time',
+          ]) ??
+          0,
+      leadTimeHours:
+          _readInt(entity, ['leadTimeHours', 'leadTime', 'lead_time']) ?? 0,
+      freeCancellationHours:
+          _readInt(entity, [
+            'freeCancellationHours',
+            'freeCancellationDeadlineHours',
+            'free_cancellation_hours',
+          ]) ??
+          0,
+      visibilityLabels: summary.visibilityLabels,
+      requestableSlots: slots,
+      exceptionNotes: _parseExceptionNotes(entity),
+      galleryMedia: galleryMedia,
+      brandId: summary.brandId,
+      brandName: summary.brandName,
+      price: summary.price,
+    );
+  }
+
+  ProviderBrandDraft _draftFromBrandEntity({
+    required BrandSummary summary,
+    required JsonMap entity,
+  }) {
+    return ProviderBrandDraft(
+      name: summary.name,
+      headline: summary.headline,
+      addressLine: summary.addressLine,
+      description:
+          _readString(entity, ['description', 'about', 'headline']) ??
+          summary.headline,
+      mapHint:
+          _readString(entity, ['mapHint', 'locationHint']) ??
+          'Use the saved address in your maps app for directions.',
+      visibilityLabels: summary.visibilityLabels,
+      openNow: summary.openNow,
+      logoMedia:
+          _parsePrimaryMediaAsset(entity, ['logoMedia', 'logo', 'brandLogo']) ??
+          summary.logoMedia,
+    );
+  }
+
+  List<String> _providerServiceCollectionPaths(String providerId) => [
+    '/service-owners/me/services',
+    '/providers/me/services',
+    '/providers/$providerId/services',
+    '/service-owners/$providerId/services',
+  ];
+
+  List<String> _providerServiceDetailPaths({
+    required String providerId,
+    required String serviceId,
+  }) => [
+    '/service-owners/me/services/$serviceId',
+    '/providers/me/services/$serviceId',
+    '/providers/$providerId/services/$serviceId',
+    '/service-owners/$providerId/services/$serviceId',
+  ];
+
+  List<String> _providerBrandCollectionPaths(String providerId) => [
+    '/service-owners/me/brands',
+    '/providers/me/brands',
+    '/providers/$providerId/brands',
+    '/service-owners/$providerId/brands',
+  ];
+
+  List<String> _providerBrandDetailPaths({
+    required String providerId,
+    required String brandId,
+  }) => [
+    '/service-owners/me/brands/$brandId',
+    '/providers/me/brands/$brandId',
+    '/providers/$providerId/brands/$brandId',
+    '/service-owners/$providerId/brands/$brandId',
+  ];
+
+  List<String> _acceptJoinRequestPaths({
+    required String brandId,
+    required String providerId,
+    required String requestId,
+  }) => [
+    '/brands/$brandId/join-requests/$requestId/accept',
+    '/service-owners/me/brands/$brandId/join-requests/$requestId/accept',
+    '/providers/me/brands/$brandId/join-requests/$requestId/accept',
+    '/providers/$providerId/brands/$brandId/join-requests/$requestId/accept',
+  ];
+
+  List<String> _rejectJoinRequestPaths({
+    required String brandId,
+    required String providerId,
+    required String requestId,
+  }) => [
+    '/brands/$brandId/join-requests/$requestId/reject',
+    '/service-owners/me/brands/$brandId/join-requests/$requestId/reject',
+    '/providers/me/brands/$brandId/join-requests/$requestId/reject',
+    '/providers/$providerId/brands/$brandId/join-requests/$requestId/reject',
+  ];
+
+  Future<List<BrandJoinRequest>> _fetchProviderBrandJoinRequests({
+    required String providerId,
+    required String brandId,
+  }) async {
+    try {
+      final payload = await _requestFirstSuccess<dynamic>([
+        for (final path in [
+          '/brands/$brandId/join-requests',
+          '/service-owners/me/brands/$brandId/join-requests',
+          '/providers/me/brands/$brandId/join-requests',
+          '/providers/$providerId/brands/$brandId/join-requests',
+        ])
+          _RequestAttempt.get(path),
+      ]);
+      final items = _extractItems(payload, [
+        'items',
+        'joinRequests',
+        'pendingJoinRequests',
+        'membershipRequests',
+      ]);
+      return items
+          .map(_tryParseBrandJoinRequest)
+          .whereType<BrandJoinRequest>()
+          .toList(growable: false);
+    } on AppException catch (error) {
+      if (_shouldFallbackProviderManagement(error)) {
+        return const [];
+      }
+      rethrow;
+    }
+  }
+
+  Future<T> _requestFirstSuccess<T>(List<_RequestAttempt> attempts) async {
+    final errors = <AppException>[];
+
+    for (final attempt in attempts) {
+      try {
+        switch (attempt.method) {
+          case 'GET':
+            return await _apiClient.get<T>(
+              attempt.path,
+              mapper: (data) => data as T,
+            );
+          case 'POST':
+            return await _apiClient.post<T>(
+              attempt.path,
+              data: attempt.data,
+              mapper: (data) => data as T,
+            );
+          case 'PATCH':
+            return await _apiClient.patch<T>(
+              attempt.path,
+              data: attempt.data,
+              mapper: (data) => data as T,
+            );
+          case 'PUT':
+            return await _apiClient.put<T>(
+              attempt.path,
+              data: attempt.data,
+              mapper: (data) => data as T,
+            );
+          case 'DELETE':
+            return await _apiClient.delete<T>(
+              attempt.path,
+              data: attempt.data,
+              mapper: (data) => data as T,
+            );
+        }
+      } on AppException catch (error) {
+        if (_shouldTryNextProviderEndpoint(error)) {
+          errors.add(error);
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    final lastError = errors.isEmpty ? null : errors.last;
+    throw AppException(
+      'The provider management endpoint is unavailable right now.',
+      type: AppExceptionType.server,
+      statusCode: lastError?.statusCode,
+      code: lastError?.code,
+      details: lastError?.details,
+      requestId: lastError?.requestId,
+    );
+  }
+
+  bool _shouldTryNextProviderEndpoint(AppException error) {
+    return switch (error.statusCode) {
+      404 || 405 || 501 => true,
+      _ => false,
+    };
+  }
+
+  bool _shouldFallbackProviderManagement(AppException error) {
+    return _shouldTryNextProviderEndpoint(error);
+  }
+
+  void _invalidateProviderCatalogCaches({
+    required String providerId,
+    String? serviceId,
+    String? brandId,
+  }) {
+    _servicesCache = null;
+    _servicesFetchedAt = null;
+    _brandsCache = null;
+    _brandsFetchedAt = null;
+    _providersCache = null;
+    _providersFetchedAt = null;
+    if (serviceId != null) {
+      _serviceSummaryCache.remove(serviceId);
+    }
+    if (brandId != null) {
+      _brandSummaryCache.remove(brandId);
+    }
+    _providerSummaryCache.remove(providerId);
+  }
+
+  Map<String, dynamic> _serviceDraftPayload({
+    required String providerId,
+    required ProviderServiceDraft draft,
+  }) {
+    return {
+      'providerId': providerId,
+      'name': draft.name.trim(),
+      'categoryId': draft.categoryId,
+      'categoryName': draft.categoryName,
+      'brandId': draft.brandId,
+      'addressLine': draft.addressLine.trim(),
+      'description': draft.descriptionSnippet.trim(),
+      'descriptionSnippet': draft.descriptionSnippet.trim(),
+      'about': draft.about.trim(),
+      'approvalMode': _approvalModeValue(draft.approvalMode),
+      'isAvailable': draft.isAvailable,
+      'serviceType': _serviceTypeValue(draft.serviceType),
+      'waitingTimeMinutes': draft.waitingTimeMinutes,
+      'leadTimeHours': draft.leadTimeHours,
+      'freeCancellationHours': draft.freeCancellationHours,
+      'visibilityLabels': draft.visibilityLabels
+          .map(_visibilityLabelValue)
+          .toList(growable: false),
+      'requestableSlots': draft.requestableSlots
+          .map(
+            (slot) => {
+              'startsAt': slot.startsAt.toUtc().toIso8601String(),
+              'label': slot.label,
+              'available': slot.available,
+              if (slot.note != null && slot.note!.trim().isNotEmpty)
+                'note': slot.note!.trim(),
+            },
+          )
+          .toList(growable: false),
+      'exceptionNotes': draft.exceptionNotes
+          .map((note) => note.trim())
+          .where((note) => note.isNotEmpty)
+          .toList(growable: false),
+      'gallery': _serializeMediaAssets(draft.galleryMedia),
+      if (draft.price != null) 'price': draft.price,
+    };
+  }
+
+  Map<String, dynamic> _brandDraftPayload({
+    required String providerId,
+    required ProviderBrandDraft draft,
+  }) {
+    return {
+      'providerId': providerId,
+      'name': draft.name.trim(),
+      'headline': draft.headline.trim(),
+      'addressLine': draft.addressLine.trim(),
+      'description': draft.description.trim(),
+      'mapHint': draft.mapHint.trim(),
+      'visibilityLabels': draft.visibilityLabels
+          .map(_visibilityLabelValue)
+          .toList(growable: false),
+      'openNow': draft.openNow,
+      if (draft.logoMedia != null)
+        'logo': _serializeMediaAsset(draft.logoMedia!),
+    };
+  }
+
+  ManagedServiceType _parseManagedServiceType(JsonMap item) {
+    final explicit = _readString(item, ['serviceType', 'service_type', 'mode']);
+    if (explicit != null && explicit.toLowerCase().contains('multi')) {
+      return ManagedServiceType.multi;
+    }
+    final providerCount = _readInt(item, ['providerCount', 'teamSize']);
+    if (providerCount != null && providerCount > 1) {
+      return ManagedServiceType.multi;
+    }
+    return ManagedServiceType.solo;
+  }
+
+  List<String> _parseExceptionNotes(JsonMap item) {
+    final values = _readList(item, [
+      'exceptionNotes',
+      'availabilityExceptions',
+      'exceptions',
+    ]);
+    if (values == null) {
+      return const [];
+    }
+
+    final notes = <String>[];
+    for (final value in values) {
+      if (value is String && value.trim().isNotEmpty) {
+        notes.add(value.trim());
+        continue;
+      }
+      if (value is Map) {
+        final note = _readString(asJsonMap(value), [
+          'note',
+          'label',
+          'message',
+          'reason',
+          'summary',
+        ]);
+        if (note != null && note.isNotEmpty) {
+          notes.add(note);
+        }
+      }
+    }
+
+    return notes;
+  }
+
+  List<BrandJoinRequest> _parseBrandJoinRequests(JsonMap item) {
+    final values = _readList(item, [
+      'joinRequests',
+      'pendingJoinRequests',
+      'membershipRequests',
+    ]);
+    if (values == null) {
+      return const [];
+    }
+
+    return values
+        .map(_tryParseBrandJoinRequest)
+        .whereType<BrandJoinRequest>()
+        .toList(growable: false);
+  }
+
+  BrandJoinRequest? _tryParseBrandJoinRequest(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+    final item = asJsonMap(raw);
+    final id = _readString(item, ['id', 'requestId']);
+    final applicantName = _readString(item, [
+      'applicantName',
+      'provider.fullName',
+      'provider.name',
+      'fullName',
+      'name',
+    ]);
+    if (id == null || applicantName == null) {
+      return null;
+    }
+
+    final requestedAt = _readDateTime(item, ['requestedAt', 'createdAt']);
+    final requestedAtLabel =
+        _readString(item, ['requestedAtLabel', 'createdAtLabel']) ??
+        (requestedAt == null
+            ? 'Pending review'
+            : DateFormat('MMM d, HH:mm').format(requestedAt.toLocal()));
+
+    return BrandJoinRequest(
+      id: id,
+      applicantName: applicantName,
+      note:
+          _readString(item, ['note', 'message', 'reason']) ??
+          'No note provided.',
+      requestedAtLabel: requestedAtLabel,
+    );
+  }
+
+  JsonMap? _tryExtractEntity(dynamic payload, List<String> keys) {
+    if (payload is! Map) {
+      return null;
+    }
+    return _extractEntity(payload, keys);
+  }
+
+  List<Map<String, dynamic>> _serializeMediaAssets(List<AppMediaAsset> assets) {
+    return assets.map(_serializeMediaAsset).toList(growable: false);
+  }
+
+  Map<String, dynamic> _serializeMediaAsset(AppMediaAsset asset) {
+    return {
+      'id': asset.id,
+      'label': asset.label,
+      if (asset.remoteUrl != null) 'url': asset.remoteUrl,
+    };
+  }
+
+  String _approvalModeValue(ApprovalMode mode) {
+    return switch (mode) {
+      ApprovalMode.manual => 'MANUAL',
+      ApprovalMode.automatic => 'AUTOMATIC',
+    };
+  }
+
+  String _serviceTypeValue(ManagedServiceType type) {
+    return switch (type) {
+      ManagedServiceType.solo => 'SOLO',
+      ManagedServiceType.multi => 'MULTI',
+    };
+  }
+
+  String _visibilityLabelValue(VisibilityLabel label) {
+    return switch (label) {
+      VisibilityLabel.common => 'COMMON',
+      VisibilityLabel.vip => 'VIP',
+      VisibilityLabel.bestOfMonth => 'BEST_OF_MONTH',
+      VisibilityLabel.sponsored => 'SPONSORED',
+    };
+  }
+
+  Future<List<DiscoveryCategory>> _fetchCategories({bool force = false}) async {
+    if (!force &&
+        _categoriesCache != null &&
+        _isCacheFresh(_categoriesFetchedAt)) {
+      return _categoriesCache!;
+    }
+
+    final payload = await _apiClient.get<dynamic>(
+      '/categories',
+      mapper: (data) => data,
+    );
+    final items = _extractItems(payload, ['items', 'categories']);
+    final categories = items
+        .map(_tryParseCategory)
+        .whereType<DiscoveryCategory>()
+        .toList(growable: false);
+
+    if (categories.isNotEmpty) {
+      _categoriesCache = categories;
+      _categoriesFetchedAt = DateTime.now();
+      _onCategoriesUpdated?.call(categories);
+    }
+
+    return categories.isNotEmpty ? categories : _fallback.categories;
+  }
+
+  Future<List<ServiceSummary>> _fetchServiceSummaries({
+    bool force = false,
+  }) async {
+    if (!force && _servicesCache != null && _isCacheFresh(_servicesFetchedAt)) {
+      return _servicesCache!;
+    }
+
+    final payload = await _apiClient.get<dynamic>(
+      '/services',
+      mapper: (data) => data,
+    );
+    final items = _extractItems(payload, ['items', 'services']);
+    final services = items
+        .map(_tryParseServiceSummary)
+        .whereType<ServiceSummary>()
+        .toList(growable: false);
+
+    _servicesCache = services;
+    _servicesFetchedAt = DateTime.now();
+    for (final service in services) {
+      _rememberService(service);
+    }
+    return services;
+  }
+
+  Future<List<BrandSummary>> _fetchBrandSummaries({bool force = false}) async {
+    if (!force && _brandsCache != null && _isCacheFresh(_brandsFetchedAt)) {
+      return _brandsCache!;
+    }
+
+    final payload = await _apiClient.get<dynamic>(
+      '/brands',
+      mapper: (data) => data,
+    );
+    final items = _extractItems(payload, ['items', 'brands']);
+    final brands = items
+        .map(_tryParseBrandSummary)
+        .whereType<BrandSummary>()
+        .toList(growable: false);
+
+    _brandsCache = brands;
+    _brandsFetchedAt = DateTime.now();
+    for (final brand in brands) {
+      _rememberBrand(brand);
+    }
+    return brands;
+  }
+
+  Future<List<ProviderSummary>> _fetchProviderSummaries({
+    bool force = false,
+  }) async {
+    if (!force &&
+        _providersCache != null &&
+        _isCacheFresh(_providersFetchedAt)) {
+      return _providersCache!;
+    }
+
+    final payload = await _apiClient.get<dynamic>(
+      '/service-owners',
+      mapper: (data) => data,
+    );
+    final items = _extractItems(payload, [
+      'items',
+      'providers',
+      'serviceOwners',
+      'owners',
+    ]);
+    final providers = items
+        .map(_tryParseProviderSummary)
+        .whereType<ProviderSummary>()
+        .toList(growable: false);
+
+    _providersCache = providers;
+    _providersFetchedAt = DateTime.now();
+    for (final provider in providers) {
+      _rememberProvider(provider);
+    }
+    return providers;
+  }
+
+  Future<BrandSummary?> _findBrand(String id) async {
+    if (_brandSummaryCache.containsKey(id)) {
+      return _brandSummaryCache[id];
+    }
+
+    final brands = await _fetchBrandSummaries();
+    for (final brand in brands) {
+      if (brand.id == id) {
+        return brand;
+      }
+    }
+
+    return null;
+  }
+
+  Future<ProviderSummary?> _findProvider(String id) async {
+    if (_providerSummaryCache.containsKey(id)) {
+      return _providerSummaryCache[id];
+    }
+
+    final providers = await _fetchProviderSummaries();
+    for (final provider in providers) {
+      if (provider.id == id) {
+        return provider;
+      }
+    }
+
+    return null;
+  }
+
+  List<ProviderSummary> _parseProviderList(dynamic value) {
+    if (value is! List) {
+      return const [];
+    }
+
+    return value
+        .map(_tryParseProviderSummary)
+        .whereType<ProviderSummary>()
+        .toList(growable: false);
+  }
+
+  DiscoveryCategory? _tryParseCategory(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+
+    final item = asJsonMap(raw);
+    final id =
+        _readString(item, ['id', 'slug', 'key']) ??
+        _slugify(_readString(item, ['name']) ?? '');
+    final name = _readString(item, ['name', 'title']);
+    if (id.isEmpty || name == null || name.isEmpty) {
+      return null;
+    }
+
+    return DiscoveryCategory(
+      id: id,
+      name: name,
+      description:
+          _readString(item, ['description', 'summary']) ??
+          '$name services on Reziphay.',
+    );
+  }
+
+  ServiceSummary? _tryParseServiceSummary(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+
+    final item = asJsonMap(raw);
+    final id = _readString(item, ['id']);
+    final name = _readString(item, ['name', 'title']);
+    if (id == null || name == null) {
+      return null;
+    }
+
+    return _parseServiceSummary(item);
+  }
+
+  ServiceSummary _parseServiceSummary(JsonMap item) {
+    final categoryId =
+        _readString(item, ['category.id', 'categoryId', 'category_id']) ??
+        'general';
+    final categoryName =
+        _readString(item, ['category.name', 'categoryName', 'category']) ??
+        categoryById(categoryId)?.name ??
+        'General';
+    final providerId =
+        _readString(item, ['owner.id', 'provider.id', 'providerId']) ??
+        'provider';
+    final providerName =
+        _readString(item, [
+          'owner.fullName',
+          'provider.fullName',
+          'provider.name',
+          'providerName',
+        ]) ??
+        'Provider';
+    final brandId = _readString(item, ['brand.id', 'brandId', 'brand_id']);
+    final brandName = _readString(item, ['brand.name', 'brandName']);
+
+    return ServiceSummary(
+      id: _readString(item, ['id'])!,
+      name: _readString(item, ['name', 'title'])!,
+      categoryId: categoryId,
+      categoryName: categoryName,
+      providerId: providerId,
+      providerName: providerName,
+      addressLine:
+          _readString(item, [
+            'addressLine',
+            'address.addressLine',
+            'serviceAddress.addressLine',
+            'brand.addressLine',
+          ]) ??
+          'Address not specified',
+      distanceKm:
+          _readDouble(item, ['distanceKm', 'distance_km']) ??
+          _metersToKm(
+            _readDouble(item, ['distanceMeters', 'distance_meters']),
+          ) ??
+          0,
+      rating:
+          _readDouble(item, [
+            'rating',
+            'ratingStats.averageRating',
+            'stats.averageRating',
+          ]) ??
+          0,
+      reviewCount:
+          _readInt(item, [
+            'reviewCount',
+            'ratingStats.reviewCount',
+            'stats.reviewCount',
+          ]) ??
+          0,
+      visibilityLabels: _parseVisibilityLabels(
+        _readList(item, [
+          'visibilityLabels',
+          'activeVisibilityLabels',
+          'visibility.labels',
+        ]),
+      ),
+      approvalMode: _parseApprovalMode(item),
+      isAvailable:
+          _readBool(item, ['isAvailable', 'available', 'openNow', 'isOpen']) ??
+          true,
+      popularityScore:
+          _readInt(item, ['popularityScore', 'stats.popularityScore']) ?? 0,
+      nextAvailabilityLabel:
+          _readString(item, [
+            'nextAvailabilityLabel',
+            'nextAvailability',
+            'availability.nextLabel',
+          ]) ??
+          (_readBool(item, ['isAvailable', 'available']) == true
+              ? 'Availability from backend'
+              : 'Check availability'),
+      brandId: brandId,
+      brandName: brandName,
+      price: _readDouble(item, ['price', 'price.amount']),
+      descriptionSnippet: _readString(item, [
+        'descriptionSnippet',
+        'description',
+        'summary',
+      ]),
+      coverMedia:
+          _parsePrimaryMediaAsset(item, ['coverMedia', 'cover', 'heroMedia']) ??
+          _parseMediaAssets(item).firstOrNull,
+    );
+  }
+
+  BrandSummary? _tryParseBrandSummary(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+
+    final item = asJsonMap(raw);
+    final id = _readString(item, ['id']);
+    final name = _readString(item, ['name', 'title']);
+    if (id == null || name == null) {
+      return null;
+    }
+
+    return _parseBrandSummary(item);
+  }
+
+  BrandSummary _parseBrandSummary(JsonMap item) {
+    return BrandSummary(
+      id: _readString(item, ['id'])!,
+      name: _readString(item, ['name', 'title'])!,
+      headline:
+          _readString(item, ['headline', 'description', 'summary']) ??
+          'Brand profile',
+      addressLine:
+          _readString(item, ['addressLine', 'address.addressLine']) ??
+          'Address not specified',
+      distanceKm:
+          _readDouble(item, ['distanceKm']) ??
+          _metersToKm(_readDouble(item, ['distanceMeters'])) ??
+          0,
+      rating:
+          _readDouble(item, [
+            'rating',
+            'ratingStats.averageRating',
+            'stats.averageRating',
+          ]) ??
+          0,
+      reviewCount:
+          _readInt(item, [
+            'reviewCount',
+            'ratingStats.reviewCount',
+            'stats.reviewCount',
+          ]) ??
+          0,
+      serviceCount:
+          _readInt(item, ['serviceCount', 'servicesCount', 'services.count']) ??
+          0,
+      memberCount:
+          _readInt(item, ['memberCount', 'membersCount', 'members.count']) ?? 0,
+      categoryIds: _parseCategoryIds(
+        _readList(item, ['categories', 'categoryIds']),
+      ),
+      visibilityLabels: _parseVisibilityLabels(
+        _readList(item, [
+          'visibilityLabels',
+          'activeVisibilityLabels',
+          'visibility.labels',
+        ]),
+      ),
+      popularityScore:
+          _readInt(item, ['popularityScore', 'stats.popularityScore']) ?? 0,
+      openNow: _readBool(item, ['openNow', 'isOpen', 'availableNow']) ?? false,
+      logoMedia: _parsePrimaryMediaAsset(item, [
+        'logoMedia',
+        'logo',
+        'brandLogo',
+      ]),
+    );
+  }
+
+  ProviderSummary? _tryParseProviderSummary(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+
+    final item = asJsonMap(raw);
+    final id = _readString(item, ['id']);
+    final name = _readString(item, ['fullName', 'name']);
+    if (id == null || name == null) {
+      return null;
+    }
+
+    return _parseProviderSummary(item);
+  }
+
+  ProviderSummary _parseProviderSummary(JsonMap item) {
+    final brandIds = _parseIds(_readList(item, ['brands', 'brandIds']));
+    final categoryIds = _parseCategoryIds(
+      _readList(item, ['categories', 'categoryIds']),
+    );
+    final responseMinutes = _readInt(item, [
+      'avgResponseMinutes',
+      'responseTimeMinutes',
+    ]);
+
+    return ProviderSummary(
+      id: _readString(item, ['id'])!,
+      name: _readString(item, ['fullName', 'name'])!,
+      headline:
+          _readString(item, ['headline', 'description', 'title']) ??
+          'Service provider',
+      bio:
+          _readString(item, ['bio', 'about', 'description']) ??
+          'Provider profile',
+      distanceKm:
+          _readDouble(item, ['distanceKm']) ??
+          _metersToKm(_readDouble(item, ['distanceMeters'])) ??
+          0,
+      rating:
+          _readDouble(item, [
+            'rating',
+            'ratingStats.averageRating',
+            'stats.averageRating',
+          ]) ??
+          0,
+      reviewCount:
+          _readInt(item, [
+            'reviewCount',
+            'ratingStats.reviewCount',
+            'stats.reviewCount',
+          ]) ??
+          0,
+      completedReservations:
+          _readInt(item, [
+            'completedReservations',
+            'completedReservationCount',
+            'stats.completedReservations',
+          ]) ??
+          0,
+      responseReliability:
+          _readString(item, ['responseReliability']) ??
+          (responseMinutes == null
+              ? 'Response time unavailable'
+              : 'Usually replies in about $responseMinutes minutes'),
+      brandIds: brandIds,
+      categoryIds: categoryIds,
+      visibilityLabels: _parseVisibilityLabels(
+        _readList(item, [
+          'visibilityLabels',
+          'activeVisibilityLabels',
+          'visibility.labels',
+        ]),
+      ),
+      popularityScore:
+          _readInt(item, ['popularityScore', 'stats.popularityScore']) ?? 0,
+      availableNow:
+          _readBool(item, ['availableNow', 'isAvailable', 'openNow']) ?? false,
+    );
+  }
+
+  ProviderSummary? _parseNestedProvider(JsonMap item) {
+    final rawProvider = _readMap(item, ['owner', 'provider', 'serviceOwner']);
+    return rawProvider == null ? null : _tryParseProviderSummary(rawProvider);
+  }
+
+  BrandSummary? _parseNestedBrand(JsonMap item) {
+    final rawBrand = _readMap(item, ['brand']);
+    return rawBrand == null ? null : _tryParseBrandSummary(rawBrand);
+  }
+
+  List<AvailabilityWindow> _parseAvailabilityWindows(JsonMap item) {
+    final rawSlots = _readList(item, [
+      'requestableSlots',
+      'availability.items',
+      'availability.slots',
+      'availability',
+    ]);
+    if (rawSlots == null) {
+      return const [];
+    }
+
+    final formatter = DateFormat('EEE, MMM d · HH:mm');
+    final slots = <AvailabilityWindow>[];
+    for (final rawSlot in rawSlots) {
+      if (rawSlot is! Map) {
+        continue;
+      }
+
+      final slot = asJsonMap(rawSlot);
+      final startsAt = _readDateTime(slot, [
+        'startsAt',
+        'startAt',
+        'start',
+        'from',
+      ]);
+      if (startsAt == null) {
+        continue;
+      }
+
+      slots.add(
+        AvailabilityWindow(
+          startsAt: startsAt,
+          label:
+              _readString(slot, ['label', 'displayLabel']) ??
+              formatter.format(startsAt.toLocal()),
+          available:
+              _readBool(slot, ['available', 'isAvailable', 'open']) ?? true,
+          note: _readString(slot, ['note', 'status', 'summary']),
+        ),
+      );
+    }
+
+    return slots;
+  }
+
+  List<AppMediaAsset> _parseMediaAssets(JsonMap item) {
+    final rawMedia = _readList(item, ['photos', 'media', 'gallery']);
+    if (rawMedia == null) {
+      return const [];
+    }
+
+    final assets = <AppMediaAsset>[];
+    for (final rawAsset in rawMedia) {
+      final asset = _parseMediaAsset(rawAsset);
+      if (asset != null) {
+        assets.add(asset);
+      }
+    }
+
+    return assets;
+  }
+
+  AppMediaAsset? _parsePrimaryMediaAsset(JsonMap item, List<String> keys) {
+    for (final key in keys) {
+      final value = _readPath(item, key);
+      final asset = _parseMediaAsset(value);
+      if (asset != null) {
+        return asset;
+      }
+    }
+
+    return null;
+  }
+
+  AppMediaAsset? _parseMediaAsset(dynamic rawAsset) {
+    if (rawAsset is String && rawAsset.trim().isNotEmpty) {
+      final remoteUrl = rawAsset.trim();
+      return AppMediaAsset.uploaded(
+        id: remoteUrl,
+        label: 'Photo',
+        remoteUrl: remoteUrl,
+      );
+    }
+
+    if (rawAsset is! Map) {
+      return null;
+    }
+
+    final asset = asJsonMap(rawAsset);
+    final id =
+        _readString(asset, ['id', 'fileId', 'mediaId', 'key']) ??
+        _readString(asset, ['url', 'publicUrl', 'downloadUrl', 'cdnUrl']);
+    if (id == null || id.isEmpty) {
+      return null;
+    }
+
+    final label = _readString(asset, ['label', 'name', 'fileName']) ?? 'Photo';
+    final remoteUrl = _readString(asset, [
+      'url',
+      'publicUrl',
+      'downloadUrl',
+      'cdnUrl',
+    ]);
+
+    if (remoteUrl != null && remoteUrl.isNotEmpty) {
+      return AppMediaAsset.uploaded(id: id, label: label, remoteUrl: remoteUrl);
+    }
+
+    return AppMediaAsset.generated(id: id, label: label);
+  }
+
+  String _buildAvailabilitySummary(List<AvailabilityWindow> slots) {
+    if (slots.isEmpty) {
+      return 'Availability is provided by the backend for this service.';
+    }
+
+    return '${slots.length} requestable times are currently available.';
+  }
+
+  String _formatDurationLabel({
+    required int? minutes,
+    required String fallback,
+  }) {
+    if (minutes == null || minutes <= 0) {
+      return fallback;
+    }
+
+    return minutes == 1 ? '1 minute' : '$minutes minutes';
+  }
+
+  String _formatCancellationLabel({required int? hours}) {
+    if (hours == null || hours <= 0) {
+      return 'Provider-defined cancellation policy';
+    }
+
+    return hours == 1 ? '1 hour before' : '$hours hours before';
+  }
+
+  void _rememberService(ServiceSummary service) {
+    _serviceSummaryCache[service.id] = service;
+  }
+
+  void _rememberBrand(BrandSummary brand) {
+    _brandSummaryCache[brand.id] = brand;
+  }
+
+  void _rememberProvider(ProviderSummary provider) {
+    _providerSummaryCache[provider.id] = provider;
+  }
+
+  bool _isCacheFresh(DateTime? fetchedAt) {
+    if (fetchedAt == null) {
+      return false;
+    }
+
+    return DateTime.now().difference(fetchedAt) < _cacheTtl;
+  }
+
+  int _compareBrands(BrandSummary left, BrandSummary right, SearchSort sort) {
+    return switch (sort) {
+      SearchSort.proximity => left.distanceKm.compareTo(right.distanceKm),
+      SearchSort.rating => right.rating.compareTo(left.rating),
+      SearchSort.price => 0,
+      SearchSort.popularity => right.popularityScore.compareTo(
+        left.popularityScore,
+      ),
+      SearchSort.availability => _boolScore(
+        right.openNow,
+      ).compareTo(_boolScore(left.openNow)),
+    };
+  }
+
+  int _compareProviders(
+    ProviderSummary left,
+    ProviderSummary right,
+    SearchSort sort,
+  ) {
+    return switch (sort) {
+      SearchSort.proximity => left.distanceKm.compareTo(right.distanceKm),
+      SearchSort.rating => right.rating.compareTo(left.rating),
+      SearchSort.price => 0,
+      SearchSort.popularity => right.popularityScore.compareTo(
+        left.popularityScore,
+      ),
+      SearchSort.availability => _boolScore(
+        right.availableNow,
+      ).compareTo(_boolScore(left.availableNow)),
+    };
+  }
+
+  int _compareServices(
+    ServiceSummary left,
+    ServiceSummary right,
+    SearchSort sort,
+  ) {
+    return switch (sort) {
+      SearchSort.proximity => left.distanceKm.compareTo(right.distanceKm),
+      SearchSort.rating => right.rating.compareTo(left.rating),
+      SearchSort.price => _priceForSort(left).compareTo(_priceForSort(right)),
+      SearchSort.popularity => right.popularityScore.compareTo(
+        left.popularityScore,
+      ),
+      SearchSort.availability => _boolScore(
+        right.isAvailable,
+      ).compareTo(_boolScore(left.isAvailable)),
+    };
+  }
+
+  int _boolScore(bool value) => value ? 1 : 0;
+
+  double _priceForSort(ServiceSummary service) =>
+      service.price ?? double.maxFinite;
+
+  bool _matchesBrandFilters(BrandSummary brand, SearchFilters filters) {
+    if (filters.categoryId != null &&
+        !brand.categoryIds.contains(filters.categoryId)) {
+      return false;
+    }
+    if (filters.maxDistanceKm != null &&
+        brand.distanceKm > filters.maxDistanceKm!) {
+      return false;
+    }
+    if (filters.minRating != null && brand.rating < filters.minRating!) {
+      return false;
+    }
+    if (filters.availableOnly && !brand.openNow) {
+      return false;
+    }
+    return true;
+  }
+
+  bool _matchesBrandQuery(BrandSummary brand, String query) {
+    if (query.isEmpty) {
+      return true;
+    }
+    final haystack = [
+      brand.name,
+      brand.headline,
+      brand.addressLine,
+      ...brand.categoryIds,
+    ].join(' ').toLowerCase();
+    return haystack.contains(query);
+  }
+
+  bool _matchesProviderFilters(
+    ProviderSummary provider,
+    SearchFilters filters,
+  ) {
+    if (filters.categoryId != null &&
+        !provider.categoryIds.contains(filters.categoryId)) {
+      return false;
+    }
+    if (filters.maxDistanceKm != null &&
+        provider.distanceKm > filters.maxDistanceKm!) {
+      return false;
+    }
+    if (filters.minRating != null && provider.rating < filters.minRating!) {
+      return false;
+    }
+    if (filters.availableOnly && !provider.availableNow) {
+      return false;
+    }
+    return true;
+  }
+
+  bool _matchesProviderQuery(ProviderSummary provider, String query) {
+    if (query.isEmpty) {
+      return true;
+    }
+    final haystack = [
+      provider.name,
+      provider.headline,
+      provider.bio,
+      ...provider.categoryIds,
+    ].join(' ').toLowerCase();
+    return haystack.contains(query);
+  }
+
+  bool _matchesServiceFilters(ServiceSummary service, SearchFilters filters) {
+    if (filters.categoryId != null &&
+        service.categoryId != filters.categoryId) {
+      return false;
+    }
+    if (filters.maxPrice != null &&
+        (service.price == null || service.price! > filters.maxPrice!)) {
+      return false;
+    }
+    if (filters.maxDistanceKm != null &&
+        service.distanceKm > filters.maxDistanceKm!) {
+      return false;
+    }
+    if (filters.minRating != null && service.rating < filters.minRating!) {
+      return false;
+    }
+    if (filters.availableOnly && !service.isAvailable) {
+      return false;
+    }
+    return true;
+  }
+
+  bool _matchesServiceQuery(ServiceSummary service, String query) {
+    if (query.isEmpty) {
+      return true;
+    }
+    final haystack = [
+      service.name,
+      service.categoryName,
+      service.providerName,
+      service.brandName ?? '',
+      service.addressLine,
+      service.descriptionSnippet ?? '',
+    ].join(' ').toLowerCase();
+    return haystack.contains(query);
+  }
+
+  List<VisibilityLabel> _parseVisibilityLabels(dynamic raw) {
+    final values = raw is List ? raw : const [];
+    final labels = <VisibilityLabel>[];
+    for (final value in values) {
+      final normalized = value is String
+          ? value.toLowerCase().replaceAll(RegExp(r'[\s_-]+'), '')
+          : value is Map
+          ? (_readString(asJsonMap(value), ['name', 'label', 'code']) ?? '')
+                .toLowerCase()
+                .replaceAll(RegExp(r'[\s_-]+'), '')
+          : '';
+      switch (normalized) {
+        case 'vip':
+          labels.add(VisibilityLabel.vip);
+        case 'bestofmonth':
+          labels.add(VisibilityLabel.bestOfMonth);
+        case 'sponsored':
+          labels.add(VisibilityLabel.sponsored);
+        case 'common':
+          labels.add(VisibilityLabel.common);
+      }
+    }
+
+    return labels.isEmpty ? const [VisibilityLabel.common] : labels;
+  }
+
+  ApprovalMode _parseApprovalMode(JsonMap item) {
+    final explicit = _readString(item, [
+      'approvalMode',
+      'approval_mode',
+      'approvalType',
+    ]);
+    if (explicit != null) {
+      final normalized = explicit.toLowerCase();
+      if (normalized.contains('manual')) {
+        return ApprovalMode.manual;
+      }
+      if (normalized.contains('auto')) {
+        return ApprovalMode.automatic;
+      }
+    }
+
+    final requiresManual = _readBool(item, [
+      'requiresManualApproval',
+      'manualApproval',
+      'isManualApproval',
+    ]);
+
+    return requiresManual == true
+        ? ApprovalMode.manual
+        : ApprovalMode.automatic;
+  }
+
+  List<String> _parseCategoryIds(dynamic raw) {
+    final ids = _parseIds(raw);
+    return ids;
+  }
+
+  List<String> _parseIds(dynamic raw) {
+    final values = raw is List ? raw : const [];
+    final ids = <String>[];
+    for (final value in values) {
+      if (value is String && value.isNotEmpty) {
+        ids.add(value);
+      } else if (value is Map) {
+        final map = asJsonMap(value);
+        final id = _readString(map, ['id']);
+        if (id != null && id.isNotEmpty) {
+          ids.add(id);
+        }
+      }
+    }
+    return ids;
+  }
+
+  List<JsonMap> _extractItems(dynamic payload, List<String> keys) {
+    if (payload is List) {
+      return asJsonMapList(payload);
+    }
+    if (payload is Map) {
+      final map = asJsonMap(payload);
+      for (final key in keys) {
+        final value = _readPath(map, key);
+        if (value is List) {
+          return asJsonMapList(value);
+        }
+      }
+    }
+    return const [];
+  }
+
+  JsonMap _extractEntity(dynamic payload, List<String> keys) {
+    if (payload is Map) {
+      final map = asJsonMap(payload);
+      for (final key in keys) {
+        final value = _readPath(map, key);
+        if (value is Map) {
+          return asJsonMap(value);
+        }
+      }
+      return map;
+    }
+
+    throw const AppException(
+      'Unexpected discovery payload returned by the server.',
+      type: AppExceptionType.server,
+    );
+  }
+
+  JsonMap? _readMap(JsonMap source, List<String> keys) {
+    for (final key in keys) {
+      final value = _readPath(source, key);
+      if (value is Map) {
+        return asJsonMap(value);
+      }
+    }
+    return null;
+  }
+
+  List<dynamic>? _readList(JsonMap source, List<String> keys) {
+    for (final key in keys) {
+      final value = _readPath(source, key);
+      if (value is List) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  String? _readString(JsonMap source, List<String> keys) {
+    for (final key in keys) {
+      final value = _readPath(source, key);
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    return null;
+  }
+
+  bool? _readBool(JsonMap source, List<String> keys) {
+    for (final key in keys) {
+      final value = _readPath(source, key);
+      if (value is bool) {
+        return value;
+      }
+      if (value is num) {
+        return value != 0;
+      }
+      if (value is String) {
+        final normalized = value.trim().toLowerCase();
+        if (normalized == 'true' || normalized == '1') {
+          return true;
+        }
+        if (normalized == 'false' || normalized == '0') {
+          return false;
+        }
+      }
+    }
+    return null;
+  }
+
+  int? _readInt(JsonMap source, List<String> keys) {
+    for (final key in keys) {
+      final value = _readPath(source, key);
+      if (value is int) {
+        return value;
+      }
+      if (value is num) {
+        return value.toInt();
+      }
+      if (value is String) {
+        final parsed = int.tryParse(value.trim());
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+    }
+    return null;
+  }
+
+  double? _readDouble(JsonMap source, List<String> keys) {
+    for (final key in keys) {
+      final value = _readPath(source, key);
+      if (value is double) {
+        return value;
+      }
+      if (value is num) {
+        return value.toDouble();
+      }
+      if (value is String) {
+        final parsed = double.tryParse(value.trim());
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+    }
+    return null;
+  }
+
+  DateTime? _readDateTime(JsonMap source, List<String> keys) {
+    for (final key in keys) {
+      final value = _readPath(source, key);
+      if (value is DateTime) {
+        return value;
+      }
+      if (value is String && value.trim().isNotEmpty) {
+        final parsed = DateTime.tryParse(value.trim());
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+    }
+    return null;
+  }
+
+  dynamic _readPath(dynamic source, String path) {
+    final segments = path.split('.');
+    dynamic current = source;
+    for (final segment in segments) {
+      if (current is Map) {
+        current = current[segment];
+      } else {
+        return null;
+      }
+    }
+    return current;
+  }
+
+  double? _metersToKm(double? meters) => meters == null ? null : meters / 1000;
+
+  String _slugify(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+  }
 }

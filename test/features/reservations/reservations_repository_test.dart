@@ -1,10 +1,17 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reziphay_mobile/core/network/api_client.dart';
 import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
 import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 import 'package:reziphay_mobile/features/reservations/models/reservation_models.dart';
+import 'package:reziphay_mobile/shared/models/app_role.dart';
+import 'package:reziphay_mobile/shared/models/auth_tokens.dart';
+import 'package:reziphay_mobile/shared/models/session_user.dart';
+import 'package:reziphay_mobile/shared/models/user_session.dart';
+import 'package:reziphay_mobile/shared/models/user_status.dart';
 
 void main() {
   group('MockReservationsRepository', () {
@@ -339,4 +346,163 @@ void main() {
       },
     );
   });
+
+  group('BackendReservationsRepository', () {
+    test(
+      'provider reservations map backend pending change requests into mobile summaries',
+      () async {
+        final repository = BackendReservationsRepository(
+          apiClient: _FakeReservationsApiClient(
+            onGet: ({required path, queryParameters}) {
+              if (path == '/reservations/incoming') {
+                return {
+                  'items': [
+                    {
+                      'id': 'res_change',
+                      'status': 'CONFIRMED',
+                      'createdAt': '2026-03-12T09:00:00.000Z',
+                      'requestedStartAt': '2026-03-13T10:00:00.000Z',
+                      'customerUser': {'fullName': 'Amina Hasanli'},
+                      'service': {
+                        'id': 'classic-haircut',
+                        'name': 'Classic haircut',
+                        'price': 28,
+                        'addressLine': '14 Fountain Sq',
+                        'approvalMode': 'MANUAL',
+                        'brand': {'id': 'studio-north', 'name': 'Studio North'},
+                        'owner': {
+                          'id': 'rauf-mammadov',
+                          'fullName': 'Rauf Mammadov',
+                        },
+                      },
+                      'changeRequests': [
+                        {
+                          'id': 'chg_1',
+                          'status': 'PENDING',
+                          'requestedBy': 'CUSTOMER',
+                          'proposedStartAt': '2026-03-13T11:00:00.000Z',
+                          'createdAt': '2026-03-12T09:05:00.000Z',
+                          'reason': 'Need a later slot.',
+                        },
+                      ],
+                    },
+                  ],
+                };
+              }
+
+              throw StateError('Unexpected GET path $path');
+            },
+          ),
+          discoveryRepository: MockDiscoveryRepository(),
+          readSession: _buildProviderSession,
+        );
+
+        final reservations = await repository.getProviderReservations(
+          'ignored-provider-id',
+        );
+        final summary = reservations.single;
+
+        expect(summary.status, ReservationStatus.changeRequested);
+        expect(summary.latestChangeRequestedBy, ReservationActor.customer);
+        expect(
+          summary.latestChangeProposedTime,
+          DateTime.parse('2026-03-13T11:00:00.000Z'),
+        );
+        expect(summary.isAwaitingProviderAction, isTrue);
+      },
+    );
+
+    test(
+      'completeReservationViaQr sends the signed payload to backend',
+      () async {
+        Object? capturedBody;
+
+        final repository = BackendReservationsRepository(
+          apiClient: _FakeReservationsApiClient(
+            onPost: ({required path, data, queryParameters}) {
+              capturedBody = data;
+              return <String, dynamic>{};
+            },
+          ),
+          discoveryRepository: MockDiscoveryRepository(),
+          readSession: _buildProviderSession,
+        );
+
+        await repository.completeReservationViaQr(
+          'res_qr',
+          payload: 'signed-qr-payload',
+        );
+
+        expect(capturedBody, {
+          'payload': 'signed-qr-payload',
+          'signedPayload': 'signed-qr-payload',
+          'qrPayload': 'signed-qr-payload',
+        });
+      },
+    );
+  });
+}
+
+UserSession _buildProviderSession() {
+  return UserSession(
+    user: const SessionUser(
+      id: 'uso_remote',
+      fullName: 'Rauf Mammadov',
+      email: 'rauf@reziphay.com',
+      phoneNumber: '+994500000333',
+      roles: [AppRole.provider],
+      status: UserStatus.active,
+    ),
+    activeRole: AppRole.provider,
+    tokens: AuthTokens(
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      accessTokenExpiresAt: DateTime(2099),
+    ),
+  );
+}
+
+class _FakeReservationsApiClient extends ApiClient {
+  _FakeReservationsApiClient({this.onGet, this.onPost}) : super(Dio());
+
+  final dynamic Function({
+    required String path,
+    Map<String, dynamic>? queryParameters,
+  })?
+  onGet;
+  final dynamic Function({
+    required String path,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+  })?
+  onPost;
+
+  @override
+  Future<T> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    required T Function(dynamic data) mapper,
+  }) async {
+    return mapper(
+      onGet?.call(path: path, queryParameters: queryParameters) ??
+          <String, dynamic>{},
+    );
+  }
+
+  @override
+  Future<T> post<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    required T Function(dynamic data) mapper,
+  }) async {
+    return mapper(
+      onPost?.call(path: path, data: data, queryParameters: queryParameters) ??
+          <String, dynamic>{},
+    );
+  }
 }

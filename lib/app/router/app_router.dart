@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:reziphay_mobile/core/auth/session_controller.dart';
 import 'package:reziphay_mobile/core/auth/session_state.dart';
 import 'package:reziphay_mobile/core/widgets/app_shell.dart';
+import 'package:reziphay_mobile/features/auth/models/email_link_result_status.dart';
 import 'package:reziphay_mobile/features/auth/presentation/pages/email_link_result_page.dart';
 import 'package:reziphay_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:reziphay_mobile/features/auth/presentation/pages/otp_verification_page.dart';

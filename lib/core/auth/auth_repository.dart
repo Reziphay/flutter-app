@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reziphay_mobile/core/network/api_client.dart';
 import 'package:reziphay_mobile/core/network/app_exception.dart';
+import 'package:reziphay_mobile/features/auth/models/email_link_result_status.dart';
 import 'package:reziphay_mobile/shared/models/app_role.dart';
 import 'package:reziphay_mobile/shared/models/auth_tokens.dart';
 import 'package:reziphay_mobile/shared/models/pending_auth_context.dart';
@@ -32,6 +33,8 @@ abstract class AuthRepository {
     required PendingAuthContext context,
   });
 
+  Future<EmailLinkResultStatus> verifyEmailMagicLink(Uri uri);
+
   Future<UserSession> refreshSession(UserSession currentSession);
 
   Future<UserSession> activateProviderRole(UserSession session);
@@ -58,6 +61,31 @@ class BackendAuthRepository implements AuthRepository {
       mapper: asJsonMap,
     );
     return _parseSessionPayload(data);
+  }
+
+  @override
+  Future<EmailLinkResultStatus> verifyEmailMagicLink(Uri uri) async {
+    try {
+      final data = await _publicApiClient.get<dynamic>(
+        '/auth/verify-email-magic-link',
+        queryParameters: _magicLinkQueryParameters(uri),
+        extra: const {'skipAuth': true},
+        mapper: (payload) => payload,
+      );
+
+      if (data is Map) {
+        final map = asJsonMap(data);
+        return EmailLinkResultStatusX.fromBackendValue(
+          map['status'] as String? ??
+              map['result'] as String? ??
+              map['code'] as String?,
+        );
+      }
+
+      return EmailLinkResultStatus.success;
+    } on AppException catch (error) {
+      return _mapEmailLinkError(error, uri);
+    }
   }
 
   @override
@@ -145,6 +173,32 @@ class BackendAuthRepository implements AuthRepository {
     return switch (context.mode) {
       AuthFlowMode.login => 'LOGIN',
       AuthFlowMode.register => 'REGISTER',
+    };
+  }
+
+  Map<String, dynamic> _magicLinkQueryParameters(Uri uri) {
+    final query = <String, dynamic>{...uri.queryParameters};
+    if (query.isEmpty && uri.fragment.isNotEmpty) {
+      query.addAll(Uri.splitQueryString(uri.fragment));
+    }
+    return query;
+  }
+
+  EmailLinkResultStatus _mapEmailLinkError(AppException error, Uri uri) {
+    final fromQuery = EmailLinkResultStatusX.fromQuery(
+      uri.queryParameters['status'] ??
+          (uri.fragment.isEmpty
+              ? null
+              : Uri.splitQueryString(uri.fragment)['status']),
+    );
+    if (fromQuery != EmailLinkResultStatus.success) {
+      return fromQuery;
+    }
+
+    return switch (error.statusCode) {
+      409 => EmailLinkResultStatus.alreadyUsed,
+      410 => EmailLinkResultStatus.expired,
+      _ => EmailLinkResultStatus.invalid,
     };
   }
 
@@ -240,6 +294,12 @@ class FakeAuthRepository implements AuthRepository {
     }
 
     return currentSession.copyWith(tokens: _issueTokens());
+  }
+
+  @override
+  Future<EmailLinkResultStatus> verifyEmailMagicLink(Uri uri) async {
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    return EmailLinkResultStatusX.fromQuery(uri.queryParameters['status']);
   }
 
   @override

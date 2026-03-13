@@ -13,6 +13,40 @@ enum AppNotificationType {
 }
 
 extension AppNotificationTypeX on AppNotificationType {
+  static AppNotificationType? parse(String? rawValue) {
+    switch (rawValue?.trim().toUpperCase()) {
+      case 'RESERVATION_RECEIVED':
+      case 'RESERVATION_REQUESTED':
+      case 'BOOKING_RECEIVED':
+        return AppNotificationType.reservationReceived;
+      case 'RESERVATION_CONFIRMED':
+      case 'BOOKING_CONFIRMED':
+        return AppNotificationType.reservationConfirmed;
+      case 'RESERVATION_REJECTED':
+      case 'BOOKING_REJECTED':
+        return AppNotificationType.reservationRejected;
+      case 'RESERVATION_CANCELLED':
+      case 'BOOKING_CANCELLED':
+        return AppNotificationType.reservationCancelled;
+      case 'CHANGE_REQUESTED':
+      case 'RESCHEDULE_REQUESTED':
+        return AppNotificationType.changeRequested;
+      case 'UPCOMING_APPOINTMENT':
+      case 'UPCOMING_RESERVATION':
+      case 'REMINDER':
+        return AppNotificationType.upcomingAppointment;
+      case 'DELAY_STATUS':
+      case 'DELAY_UPDATED':
+        return AppNotificationType.delayStatus;
+      case 'REVIEW_REMINDER':
+      case 'LEAVE_REVIEW':
+      case 'REVIEW_CREATED':
+        return AppNotificationType.reviewReminder;
+      default:
+        return null;
+    }
+  }
+
   String get label => switch (this) {
     AppNotificationType.reservationReceived => 'Reservation received',
     AppNotificationType.reservationConfirmed => 'Reservation confirmed',
@@ -32,6 +66,36 @@ enum NotificationDestinationType {
   provider,
   brand,
   reviewCreate,
+}
+
+extension NotificationDestinationTypeX on NotificationDestinationType {
+  static NotificationDestinationType? parse(String? rawValue) {
+    switch (rawValue?.trim().toUpperCase()) {
+      case 'CUSTOMER_RESERVATION':
+      case 'RESERVATION':
+      case 'BOOKING':
+        return NotificationDestinationType.customerReservation;
+      case 'PROVIDER_RESERVATION':
+      case 'INCOMING_RESERVATION':
+      case 'OWNER_RESERVATION':
+        return NotificationDestinationType.providerReservation;
+      case 'SERVICE':
+        return NotificationDestinationType.service;
+      case 'PROVIDER':
+      case 'OWNER':
+      case 'SERVICE_OWNER':
+      case 'USO':
+        return NotificationDestinationType.provider;
+      case 'BRAND':
+        return NotificationDestinationType.brand;
+      case 'REVIEW_CREATE':
+      case 'REVIEW':
+      case 'LEAVE_REVIEW':
+        return NotificationDestinationType.reviewCreate;
+      default:
+        return null;
+    }
+  }
 }
 
 class NotificationDestination {

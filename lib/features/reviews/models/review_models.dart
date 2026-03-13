@@ -4,10 +4,32 @@ import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart'
 enum ReviewTargetType { service, provider, brand }
 
 extension ReviewTargetTypeX on ReviewTargetType {
+  static ReviewTargetType? parse(String? rawValue) {
+    switch (rawValue?.trim().toUpperCase()) {
+      case 'SERVICE':
+        return ReviewTargetType.service;
+      case 'PROVIDER':
+      case 'OWNER':
+      case 'SERVICE_OWNER':
+      case 'USO':
+        return ReviewTargetType.provider;
+      case 'BRAND':
+        return ReviewTargetType.brand;
+      default:
+        return null;
+    }
+  }
+
   String get label => switch (this) {
     ReviewTargetType.service => 'Service',
     ReviewTargetType.provider => 'Provider',
     ReviewTargetType.brand => 'Brand',
+  };
+
+  String get backendValue => switch (this) {
+    ReviewTargetType.service => 'SERVICE',
+    ReviewTargetType.provider => 'PROVIDER',
+    ReviewTargetType.brand => 'BRAND',
   };
 }
 
