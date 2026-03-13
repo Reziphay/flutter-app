@@ -34,8 +34,24 @@ Refresh the checked-in files from the mobile package root with:
 dart run tool/sync_app_links_files.dart --android-sha256=AA:BB:CC:DD
 ```
 
+Or derive the Android SHA-256 fingerprint from a release keystore:
+
+```bash
+dart run tool/sync_app_links_files.dart \
+  --android-keystore=/absolute/path/to/release.keystore \
+  --android-alias=reziphay-release \
+  --android-storepass=secret \
+  --android-keypass=secret
+```
+
 Run the local setup check with:
 
 ```bash
 dart run tool/release_preflight.dart
+```
+
+Verify the live domains after deployment with:
+
+```bash
+dart run tool/verify_hosted_app_links.dart
 ```

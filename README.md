@@ -54,6 +54,16 @@ Real FCM requires native Firebase setup in this app before the flag is usable:
 - `android/app/google-services.json`
 - matching Firebase project configuration for the Reziphay bundle/package IDs
 
+Install those local files with:
+
+```bash
+dart run tool/install_firebase_configs.dart \
+  --ios-plist=/absolute/path/to/GoogleService-Info.plist \
+  --android-json=/absolute/path/to/google-services.json
+```
+
+Reference docs for that flow live in `deployment/firebase/README.md`.
+
 The Android Gradle build is wired to apply Google Services only when `android/app/google-services.json` exists, so local builds continue to work before the real Firebase file is added.
 
 Canonical app identifiers:
@@ -94,10 +104,26 @@ dart run tool/sync_app_links_files.dart \
   --android-sha256=AA:BB:CC:DD
 ```
 
+Or derive the Android SHA-256 fingerprint directly from a release keystore:
+
+```bash
+dart run tool/sync_app_links_files.dart \
+  --android-keystore=/absolute/path/to/release.keystore \
+  --android-alias=reziphay-release \
+  --android-storepass=secret \
+  --android-keypass=secret
+```
+
 Run a local release readiness check with:
 
 ```bash
 dart run tool/release_preflight.dart
+```
+
+Verify the live hosted `.well-known` files after deployment with:
+
+```bash
+dart run tool/verify_hosted_app_links.dart
 ```
 
 What is still missing for production-grade link handling:

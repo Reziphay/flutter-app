@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:reziphay_mobile/app/config/deep_link_config.dart';
 import 'package:reziphay_mobile/devops/app_links_manifest_builder.dart';
+import 'package:reziphay_mobile/devops/firebase_config_inspector.dart';
 
 Future<void> main() async {
   final checks = <_CheckResult>[
@@ -33,12 +34,12 @@ Future<_CheckResult> _checkIosFirebaseConfig() async {
     return _CheckResult.fail(
       'iOS Firebase config',
       'Missing ${file.path}. Add the real Firebase plist for '
-          '$iOSBundleId.',
+          '$iOSBundleId with tool/install_firebase_configs.dart.',
     );
   }
 
   final content = await file.readAsString();
-  final bundleId = _extractPlistValue(content, 'BUNDLE_ID');
+  final bundleId = extractIosFirebaseBundleId(content);
   if (bundleId != iOSBundleId) {
     return _CheckResult.fail(
       'iOS Firebase config',
@@ -58,24 +59,12 @@ Future<_CheckResult> _checkAndroidFirebaseConfig() async {
     return _CheckResult.fail(
       'Android Firebase config',
       'Missing ${file.path}. Add the real Firebase config for '
-          '$androidApplicationId.',
+          '$androidApplicationId with tool/install_firebase_configs.dart.',
     );
   }
 
   final content = await file.readAsString();
-  final parsed = jsonDecode(content);
-  if (parsed is! Map<String, dynamic>) {
-    return _CheckResult.fail(
-      'Android Firebase config',
-      '${file.path} is not a valid Firebase JSON object.',
-    );
-  }
-
-  final packageNames = <String>{
-    for (final client
-        in parsed['client'] as List<dynamic>? ?? const <dynamic>[])
-      if (client is Map<String, dynamic>) _extractAndroidPackageName(client),
-  }..removeWhere((value) => value.isEmpty);
+  final packageNames = extractAndroidFirebasePackageNames(content);
 
   if (!packageNames.contains(androidApplicationId)) {
     final found = packageNames.isEmpty ? 'none' : packageNames.join(', ');
@@ -176,26 +165,6 @@ Future<_CheckResult> _checkAndroidAssetLinksFile() async {
     'Android asset links',
     'Found ${file.path} with package $androidApplicationId.',
   );
-}
-
-String? _extractPlistValue(String content, String key) {
-  final pattern = RegExp(
-    '<key>${RegExp.escape(key)}</key>\\s*<string>([^<]+)</string>',
-    multiLine: true,
-  );
-  return pattern.firstMatch(content)?.group(1);
-}
-
-String _extractAndroidPackageName(Map<String, dynamic> client) {
-  final clientInfo = client['client_info'];
-  if (clientInfo is! Map<String, dynamic>) {
-    return '';
-  }
-  final androidInfo = clientInfo['android_client_info'];
-  if (androidInfo is! Map<String, dynamic>) {
-    return '';
-  }
-  return androidInfo['package_name'] as String? ?? '';
 }
 
 enum _CheckLevel {
