@@ -2,12 +2,25 @@ enum AppRole { customer, provider }
 
 extension AppRoleX on AppRole {
   static AppRole fromQuery(String? rawValue) {
-    return rawValue == 'provider' ? AppRole.provider : AppRole.customer;
+    switch (rawValue?.trim().toUpperCase()) {
+      case 'PROVIDER':
+      case 'USO':
+        return AppRole.provider;
+      case 'CUSTOMER':
+      case 'UCR':
+      default:
+        return AppRole.customer;
+    }
   }
 
   String get queryValue => switch (this) {
     AppRole.customer => 'customer',
     AppRole.provider => 'provider',
+  };
+
+  String get backendValue => switch (this) {
+    AppRole.customer => 'UCR',
+    AppRole.provider => 'USO',
   };
 
   String get label => switch (this) {

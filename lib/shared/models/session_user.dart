@@ -56,7 +56,7 @@ class SessionUser {
       roles: (json['roles'] as List<dynamic>)
           .map((role) => AppRoleX.fromQuery(role as String))
           .toList(),
-      status: UserStatus.values.byName(json['status'] as String),
+      status: UserStatusX.parse(json['status'] as String?),
     );
   }
 }

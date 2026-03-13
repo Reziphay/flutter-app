@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reziphay_mobile/core/auth/auth_repository.dart';
 import 'package:reziphay_mobile/core/auth/session_controller.dart';
 import 'package:reziphay_mobile/core/storage/session_store.dart';
 import 'package:reziphay_mobile/features/notifications/data/notifications_repository.dart';
@@ -44,6 +45,7 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             sessionStoreProvider.overrideWithValue(sessionStore),
+            authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
             notificationsRepositoryProvider.overrideWithValue(repository),
           ],
         );

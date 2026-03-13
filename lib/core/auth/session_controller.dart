@@ -11,6 +11,8 @@ final sessionControllerProvider =
     NotifierProvider<SessionController, SessionState>(SessionController.new);
 
 class SessionController extends Notifier<SessionState> {
+  Future<UserSession?>? _refreshInFlight;
+
   @override
   SessionState build() => SessionState.initial();
 
@@ -143,9 +145,21 @@ class SessionController extends Notifier<SessionState> {
       return;
     }
 
-    final updatedSession = currentSession.copyWith(activeRole: role);
-    await _persistSession(updatedSession);
-    state = state.copyWith(session: updatedSession);
+    state = state.copyWith(isBusy: true, clearError: true);
+
+    try {
+      final updatedSession = await ref
+          .read(authRepositoryProvider)
+          .switchRole(currentSession, role);
+      await _persistSession(updatedSession);
+      state = state.copyWith(
+        isBusy: false,
+        session: updatedSession,
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(isBusy: false, errorMessage: _mapError(error));
+    }
   }
 
   Future<bool> verifyOtp(String otpCode) async {
@@ -197,11 +211,14 @@ class SessionController extends Notifier<SessionState> {
     state = state.copyWith(isBusy: true, clearError: true);
 
     try {
-      await ref.read(authRepositoryProvider).requestOtp(context);
+      final result = await ref.read(authRepositoryProvider).requestOtp(context);
 
       state = state.copyWith(
         isBusy: false,
-        pendingAuth: context,
+        pendingAuth: context.copyWith(
+          debugOtpCode: result.debugCode,
+          otpExpiresAt: result.expiresAt,
+        ),
         clearError: true,
       );
 
@@ -209,6 +226,46 @@ class SessionController extends Notifier<SessionState> {
     } catch (error) {
       state = state.copyWith(isBusy: false, errorMessage: _mapError(error));
       return false;
+    }
+  }
+
+  Future<UserSession?> ensureFreshSession({bool force = false}) {
+    final currentSession = state.session;
+    if (currentSession == null) {
+      return Future<UserSession?>.value(null);
+    }
+
+    if (!force &&
+        !currentSession.tokens.isAccessTokenExpired &&
+        !currentSession.tokens.shouldRefreshSoon) {
+      return Future<UserSession?>.value(currentSession);
+    }
+
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final refreshFuture = _performSilentRefresh(currentSession);
+    _refreshInFlight = refreshFuture;
+    return refreshFuture.whenComplete(() => _refreshInFlight = null);
+  }
+
+  Future<UserSession?> _performSilentRefresh(UserSession currentSession) async {
+    try {
+      final refreshedSession = await ref
+          .read(authRepositoryProvider)
+          .refreshSession(currentSession);
+      await _persistSession(refreshedSession);
+      state = state.copyWith(session: refreshedSession, clearError: true);
+      return refreshedSession;
+    } catch (error) {
+      await ref.read(sessionStoreProvider).clearSession();
+      state = state.copyWith(
+        clearSession: true,
+        errorMessage: _mapError(error),
+      );
+      rethrow;
     }
   }
 }

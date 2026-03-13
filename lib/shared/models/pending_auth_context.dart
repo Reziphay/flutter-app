@@ -16,6 +16,8 @@ class PendingAuthContext {
     required this.intendedRole,
     this.fullName,
     this.email,
+    this.debugOtpCode,
+    this.otpExpiresAt,
   });
 
   final String phoneNumber;
@@ -23,4 +25,32 @@ class PendingAuthContext {
   final AppRole intendedRole;
   final String? fullName;
   final String? email;
+  final String? debugOtpCode;
+  final DateTime? otpExpiresAt;
+
+  PendingAuthContext copyWith({
+    String? phoneNumber,
+    AuthFlowMode? mode,
+    AppRole? intendedRole,
+    String? fullName,
+    String? email,
+    String? debugOtpCode,
+    DateTime? otpExpiresAt,
+    bool clearDebugOtpCode = false,
+    bool clearOtpExpiresAt = false,
+  }) {
+    return PendingAuthContext(
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      mode: mode ?? this.mode,
+      intendedRole: intendedRole ?? this.intendedRole,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      debugOtpCode: clearDebugOtpCode
+          ? null
+          : debugOtpCode ?? this.debugOtpCode,
+      otpExpiresAt: clearOtpExpiresAt
+          ? null
+          : otpExpiresAt ?? this.otpExpiresAt,
+    );
+  }
 }

@@ -74,6 +74,32 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
               ),
               const SizedBox(height: AppSpacing.lg),
             ],
+            if (pendingAuth.debugOtpCode != null) ...[
+              AppCard(
+                color: AppColors.surfaceSoft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Development OTP', style: textTheme.titleSmall),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(
+                      pendingAuth.debugOtpCode!,
+                      style: textTheme.headlineSmall,
+                    ),
+                    if (pendingAuth.otpExpiresAt != null) ...[
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        'Expires at ${TimeOfDay.fromDateTime(pendingAuth.otpExpiresAt!.toLocal()).format(context)}',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
             Form(
               key: _formKey,
               child: AppTextField(
@@ -108,7 +134,7 @@ class _OtpVerificationPageState extends ConsumerState<OtpVerificationPage> {
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
-              'Invalid, expired, and rate-limited OTP states will be handled through backend responses once the live auth API is connected.',
+              'Invalid, expired, and rate-limited OTP states now come directly from backend auth responses.',
               style: textTheme.bodySmall,
             ),
           ],

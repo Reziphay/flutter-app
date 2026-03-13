@@ -54,6 +54,37 @@ void main() {
         expect(updatedSession?.activeRole, AppRole.provider);
       },
     );
+
+    test(
+      'requestOtp stores the pending auth context with dev metadata',
+      () async {
+        final ok = await container
+            .read(sessionControllerProvider.notifier)
+            .requestOtpForLogin('+994500000000');
+
+        final state = container.read(sessionControllerProvider);
+        expect(ok, isTrue);
+        expect(state.pendingAuth?.phoneNumber, '+994500000000');
+        expect(state.pendingAuth?.debugOtpCode, '123456');
+        expect(state.pendingAuth?.otpExpiresAt, isNotNull);
+      },
+    );
+
+    test('switchRole reissues the session through the repository', () async {
+      await sessionStore.writeSession(_buildSession());
+      await container.read(sessionControllerProvider.notifier).bootstrap();
+      await container
+          .read(sessionControllerProvider.notifier)
+          .activateProviderRole();
+
+      await container
+          .read(sessionControllerProvider.notifier)
+          .switchRole(AppRole.customer);
+
+      final updatedSession = container.read(sessionControllerProvider).session;
+      expect(updatedSession?.activeRole, AppRole.customer);
+      expect(updatedSession?.tokens.accessToken, isNot('access'));
+    });
   });
 }
 

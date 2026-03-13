@@ -3,8 +3,13 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
+import 'package:reziphay_mobile/core/auth/session_controller.dart';
+import 'package:reziphay_mobile/core/network/api_client.dart';
 import 'package:reziphay_mobile/core/network/app_exception.dart';
 import 'package:reziphay_mobile/features/settings/models/settings_models.dart';
+import 'package:reziphay_mobile/shared/models/app_role.dart';
+import 'package:reziphay_mobile/shared/models/user_session.dart';
+import 'package:reziphay_mobile/shared/models/user_status.dart';
 
 abstract class SettingsStore {
   Future<AppSettings?> readSettings();
@@ -29,7 +34,11 @@ abstract class SettingsRepository {
 }
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
-  (ref) => LocalSettingsRepository(store: ref.watch(settingsStoreProvider)),
+  (ref) => BackendSettingsRepository(
+    store: ref.watch(settingsStoreProvider),
+    apiClient: ref.watch(apiClientProvider),
+    readSession: () => ref.read(sessionControllerProvider).session,
+  ),
 );
 
 final appSettingsProvider = FutureProvider.autoDispose<AppSettings>(
@@ -192,6 +201,169 @@ class LocalSettingsRepository implements SettingsRepository {
 
   Future<void> _delay() =>
       Future<void>.delayed(const Duration(milliseconds: 120));
+}
+
+class BackendSettingsRepository implements SettingsRepository {
+  BackendSettingsRepository({
+    required SettingsStore store,
+    required ApiClient apiClient,
+    required UserSession? Function() readSession,
+  }) : _local = LocalSettingsRepository(store: store),
+       _apiClient = apiClient,
+       _readSession = readSession;
+
+  final LocalSettingsRepository _local;
+  final ApiClient _apiClient;
+  final UserSession? Function() _readSession;
+
+  @override
+  Future<AppSettings> getSettings() async {
+    final localSettings = await _local.getSettings();
+    if (!_canUseRemoteReminderSettings(_readSession())) {
+      return localSettings;
+    }
+
+    try {
+      final data = await _apiClient.get<JsonMap>(
+        '/users/me/notification-settings',
+        mapper: asJsonMap,
+      );
+      final merged = _mergeRemoteNotificationSettings(
+        localSettings,
+        asJsonMap(data['notificationSettings']),
+      );
+      await _local._persistSettings(merged);
+      return merged;
+    } on AppException {
+      return localSettings;
+    }
+  }
+
+  @override
+  Future<PushRegistrationState> getPushState() => _local.getPushState();
+
+  @override
+  Future<PushRegistrationState> requestPushPermission() =>
+      _local.requestPushPermission();
+
+  @override
+  Future<void> setPushNotificationsEnabled(bool value) =>
+      _local.setPushNotificationsEnabled(value);
+
+  @override
+  Future<void> setReminderLeadTime(ReminderLeadTime value) async {
+    final current = await _local.getSettings();
+    final next = current.copyWith(reminderLeadTime: value);
+
+    if (_canUseRemoteReminderSettings(_readSession())) {
+      final synced = await _updateRemoteReminderSettings(next);
+      await _local._persistSettings(synced);
+      return;
+    }
+
+    await _local._persistSettings(next);
+  }
+
+  @override
+  Future<void> setReservationUpdatesEnabled(bool value) =>
+      _local.setReservationUpdatesEnabled(value);
+
+  @override
+  Future<void> setUpcomingRemindersEnabled(bool value) async {
+    final current = await _local.getSettings();
+    final next = current.copyWith(upcomingRemindersEnabled: value);
+
+    if (_canUseRemoteReminderSettings(_readSession())) {
+      final synced = await _updateRemoteReminderSettings(next);
+      await _local._persistSettings(synced);
+      return;
+    }
+
+    await _local._persistSettings(next);
+  }
+
+  @override
+  Future<PushRegistrationState> syncPushRegistration() =>
+      _local.syncPushRegistration();
+
+  bool _canUseRemoteReminderSettings(UserSession? session) {
+    return session != null &&
+        session.availableRoles.contains(AppRole.customer) &&
+        session.user.status == UserStatus.active;
+  }
+
+  Future<AppSettings> _updateRemoteReminderSettings(AppSettings next) async {
+    final data = await _apiClient.patch<JsonMap>(
+      '/users/me/notification-settings',
+      data: {
+        'upcomingAppointmentReminders': {
+          'enabled': next.upcomingRemindersEnabled,
+          'leadMinutes': [_leadMinutesFor(next.reminderLeadTime)],
+        },
+      },
+      mapper: asJsonMap,
+    );
+
+    return _mergeRemoteNotificationSettings(
+      next,
+      asJsonMap(data['notificationSettings']),
+    );
+  }
+
+  AppSettings _mergeRemoteNotificationSettings(
+    AppSettings local,
+    JsonMap notificationSettings,
+  ) {
+    final reminderSettings =
+        notificationSettings['upcomingAppointmentReminders'] == null
+        ? <String, dynamic>{}
+        : asJsonMap(notificationSettings['upcomingAppointmentReminders']);
+    final leadMinutes =
+        (reminderSettings['leadMinutes'] as List<dynamic>? ?? const [])
+            .map((value) => value as int)
+            .toList(growable: false);
+
+    return local.copyWith(
+      upcomingRemindersEnabled:
+          reminderSettings['enabled'] as bool? ??
+          local.upcomingRemindersEnabled,
+      reminderLeadTime: _leadTimeFromRemote(leadMinutes),
+    );
+  }
+
+  ReminderLeadTime _leadTimeFromRemote(List<int> leadMinutes) {
+    if (leadMinutes.isEmpty) {
+      return ReminderLeadTime.sixHours;
+    }
+
+    const supported = <ReminderLeadTime, int>{
+      ReminderLeadTime.twoHours: 120,
+      ReminderLeadTime.sixHours: 360,
+      ReminderLeadTime.oneDay: 1440,
+    };
+
+    final primary = leadMinutes.first;
+    ReminderLeadTime bestMatch = ReminderLeadTime.sixHours;
+    var bestDifference = 1 << 30;
+
+    for (final entry in supported.entries) {
+      final difference = (entry.value - primary).abs();
+      if (difference < bestDifference) {
+        bestDifference = difference;
+        bestMatch = entry.key;
+      }
+    }
+
+    return bestMatch;
+  }
+
+  int _leadMinutesFor(ReminderLeadTime leadTime) {
+    return switch (leadTime) {
+      ReminderLeadTime.twoHours => 120,
+      ReminderLeadTime.sixHours => 360,
+      ReminderLeadTime.oneDay => 1440,
+    };
+  }
 }
 
 class SecureSettingsStore implements SettingsStore {

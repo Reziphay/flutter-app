@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:reziphay_mobile/core/network/api_client.dart';
 import 'package:reziphay_mobile/core/network/app_exception.dart';
 import 'package:reziphay_mobile/shared/models/app_role.dart';
 import 'package:reziphay_mobile/shared/models/auth_tokens.dart';
@@ -10,11 +11,21 @@ import 'package:reziphay_mobile/shared/models/user_session.dart';
 import 'package:reziphay_mobile/shared/models/user_status.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => FakeAuthRepository(),
+  (ref) => BackendAuthRepository(
+    publicApiClient: ref.watch(publicApiClientProvider),
+    apiClient: ref.watch(apiClientProvider),
+  ),
 );
 
+class OtpRequestResult {
+  const OtpRequestResult({this.debugCode, this.expiresAt});
+
+  final String? debugCode;
+  final DateTime? expiresAt;
+}
+
 abstract class AuthRepository {
-  Future<void> requestOtp(PendingAuthContext context);
+  Future<OtpRequestResult> requestOtp(PendingAuthContext context);
 
   Future<UserSession> verifyOtp({
     required String otpCode,
@@ -25,7 +36,147 @@ abstract class AuthRepository {
 
   Future<UserSession> activateProviderRole(UserSession session);
 
+  Future<UserSession> switchRole(UserSession session, AppRole role);
+
   Future<void> logout(UserSession? session);
+}
+
+class BackendAuthRepository implements AuthRepository {
+  BackendAuthRepository({
+    required ApiClient publicApiClient,
+    required ApiClient apiClient,
+  }) : _publicApiClient = publicApiClient,
+       _apiClient = apiClient;
+
+  final ApiClient _publicApiClient;
+  final ApiClient _apiClient;
+
+  @override
+  Future<UserSession> activateProviderRole(UserSession session) async {
+    final data = await _apiClient.post<JsonMap>(
+      '/users/me/activate-uso',
+      mapper: asJsonMap,
+    );
+    return _parseSessionPayload(data);
+  }
+
+  @override
+  Future<void> logout(UserSession? session) async {
+    if (session == null) {
+      return;
+    }
+
+    await _apiClient.post<void>('/auth/logout', mapper: (_) {});
+  }
+
+  @override
+  Future<OtpRequestResult> requestOtp(PendingAuthContext context) async {
+    final data = await _publicApiClient.post<JsonMap>(
+      '/auth/request-phone-otp',
+      data: {
+        'phone': context.phoneNumber.trim(),
+        'purpose': _otpPurposeForContext(context),
+        if (context.mode == AuthFlowMode.register) ...{
+          'fullName': context.fullName?.trim(),
+          'email': context.email?.trim(),
+        },
+      },
+      extra: const {'skipAuth': true},
+      mapper: asJsonMap,
+    );
+
+    return OtpRequestResult(
+      debugCode: data['debugCode'] as String?,
+      expiresAt: _parseDateTime(data['expiresAt']),
+    );
+  }
+
+  @override
+  Future<UserSession> refreshSession(UserSession currentSession) async {
+    final data = await _publicApiClient.post<JsonMap>(
+      '/auth/refresh',
+      data: {'refreshToken': currentSession.tokens.refreshToken},
+      extra: const {'skipAuth': true},
+      mapper: asJsonMap,
+    );
+
+    return _parseSessionPayload(data);
+  }
+
+  @override
+  Future<UserSession> switchRole(UserSession session, AppRole role) async {
+    final data = await _apiClient.post<JsonMap>(
+      '/users/me/switch-role',
+      data: {'role': role.backendValue},
+      mapper: asJsonMap,
+    );
+    return _parseSessionPayload(data);
+  }
+
+  @override
+  Future<UserSession> verifyOtp({
+    required String otpCode,
+    required PendingAuthContext context,
+  }) async {
+    final digits = otpCode.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 6) {
+      throw const AppException('Enter the 6-digit code from the OTP message.');
+    }
+
+    final data = await _publicApiClient.post<JsonMap>(
+      '/auth/verify-phone-otp',
+      data: {
+        'phone': context.phoneNumber.trim(),
+        'code': digits,
+        'purpose': _otpPurposeForContext(context),
+        if (context.mode == AuthFlowMode.register) ...{
+          'fullName': context.fullName?.trim(),
+          'email': context.email?.trim(),
+        },
+      },
+      extra: const {'skipAuth': true},
+      mapper: asJsonMap,
+    );
+
+    return _parseSessionPayload(data);
+  }
+
+  String _otpPurposeForContext(PendingAuthContext context) {
+    return switch (context.mode) {
+      AuthFlowMode.login => 'LOGIN',
+      AuthFlowMode.register => 'REGISTER',
+    };
+  }
+
+  UserSession _parseSessionPayload(JsonMap data) {
+    final userJson = asJsonMap(data['user']);
+    final tokensJson = asJsonMap(data['tokens']);
+    final activeRole = AppRoleX.fromQuery(userJson['activeRole'] as String?);
+
+    return UserSession(
+      user: SessionUser(
+        id: userJson['id'] as String,
+        fullName: userJson['fullName'] as String? ?? 'Reziphay User',
+        email: userJson['email'] as String? ?? '',
+        phoneNumber:
+            userJson['phone'] as String? ??
+            userJson['phoneNumber'] as String? ??
+            '',
+        roles: (userJson['roles'] as List<dynamic>? ?? const <dynamic>[])
+            .map((role) => AppRoleX.fromQuery(role as String?))
+            .toList(growable: false),
+        status: UserStatusX.parse(userJson['status'] as String?),
+      ),
+      activeRole: activeRole,
+      tokens: AuthTokens(
+        accessToken: tokensJson['accessToken'] as String,
+        refreshToken: tokensJson['refreshToken'] as String,
+        accessTokenExpiresAt: _parseDateTime(
+          tokensJson['accessTokenExpiresAt'],
+        ),
+      ),
+    );
+  }
 }
 
 class FakeAuthRepository implements AuthRepository {
@@ -38,7 +189,10 @@ class FakeAuthRepository implements AuthRepository {
     await Future<void>.delayed(const Duration(milliseconds: 350));
 
     if (session.availableRoles.contains(AppRole.provider)) {
-      return session.copyWith(activeRole: AppRole.provider);
+      return session.copyWith(
+        activeRole: AppRole.provider,
+        tokens: _issueTokens(),
+      );
     }
 
     final updatedUser = session.user.copyWith(
@@ -58,18 +212,7 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserSession> refreshSession(UserSession currentSession) async {
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-
-    if (currentSession.tokens.refreshToken.isEmpty) {
-      throw const AppException('Your session expired. Please sign in again.');
-    }
-
-    return currentSession.copyWith(tokens: _issueTokens());
-  }
-
-  @override
-  Future<void> requestOtp(PendingAuthContext context) async {
+  Future<OtpRequestResult> requestOtp(PendingAuthContext context) async {
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
     final digits = context.phoneNumber.replaceAll(RegExp(r'\D'), '');
@@ -78,6 +221,39 @@ class FakeAuthRepository implements AuthRepository {
         'Enter a valid phone number to receive the OTP.',
       );
     }
+
+    return OtpRequestResult(
+      debugCode: '123456',
+      expiresAt: DateTime.now().add(const Duration(minutes: 5)),
+    );
+  }
+
+  @override
+  Future<UserSession> refreshSession(UserSession currentSession) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+
+    if (currentSession.tokens.refreshToken.isEmpty) {
+      throw const AppException(
+        'Your session expired. Please sign in again.',
+        type: AppExceptionType.unauthorized,
+      );
+    }
+
+    return currentSession.copyWith(tokens: _issueTokens());
+  }
+
+  @override
+  Future<UserSession> switchRole(UserSession session, AppRole role) async {
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+
+    if (!session.availableRoles.contains(role)) {
+      throw const AppException(
+        'This account does not have access to that role.',
+        type: AppExceptionType.forbidden,
+      );
+    }
+
+    return session.copyWith(activeRole: role, tokens: _issueTokens());
   }
 
   @override
@@ -126,4 +302,19 @@ class FakeAuthRepository implements AuthRepository {
       accessTokenExpiresAt: now.add(const Duration(minutes: 45)),
     );
   }
+}
+
+DateTime _parseDateTime(dynamic value) {
+  if (value is DateTime) {
+    return value;
+  }
+
+  if (value is String && value.isNotEmpty) {
+    return DateTime.parse(value);
+  }
+
+  throw const AppException(
+    'Unexpected date value returned by the server.',
+    type: AppExceptionType.server,
+  );
 }
