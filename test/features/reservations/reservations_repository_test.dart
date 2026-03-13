@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reziphay_mobile/core/network/api_client.dart';
-import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
 import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
@@ -12,6 +11,8 @@ import 'package:reziphay_mobile/shared/models/auth_tokens.dart';
 import 'package:reziphay_mobile/shared/models/session_user.dart';
 import 'package:reziphay_mobile/shared/models/user_session.dart';
 import 'package:reziphay_mobile/shared/models/user_status.dart';
+import '../../helpers/mock_discovery_repository.dart';
+import '../../helpers/mock_reservations_repository.dart';
 
 void main() {
   group('MockReservationsRepository', () {

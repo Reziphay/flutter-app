@@ -69,12 +69,14 @@ class AppShell extends ConsumerWidget {
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         destinations: items
             .map(
               (item) => NavigationDestination(
                 icon: Icon(item.icon),
                 selectedIcon: Icon(item.selectedIcon),
                 label: item.label,
+                tooltip: item.label,
               ),
             )
             .toList(),

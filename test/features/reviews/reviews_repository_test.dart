@@ -2,12 +2,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reziphay_mobile/core/network/api_client.dart';
 import 'package:reziphay_mobile/core/network/app_exception.dart';
-import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
 import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
 import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
 import 'package:reziphay_mobile/features/reservations/models/reservation_models.dart';
-import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
+import '../../helpers/mock_discovery_repository.dart';
+import '../../helpers/mock_reservations_repository.dart';
+import '../../helpers/mock_reviews_repository.dart';
 
 void main() {
   group('MockReviewsRepository', () {

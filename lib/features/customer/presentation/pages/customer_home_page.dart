@@ -99,6 +99,7 @@ class CustomerHomePage extends ConsumerWidget {
           const SectionHeader(title: 'Near you'),
           const SizedBox(height: AppSpacing.md),
           _HorizontalSection(
+            height: 380,
             children: home.nearYou
                 .map(
                   (service) => ServiceCard(
@@ -113,6 +114,7 @@ class CustomerHomePage extends ConsumerWidget {
           const SectionHeader(title: 'Featured'),
           const SizedBox(height: AppSpacing.md),
           _HorizontalSection(
+            height: 380,
             children: home.featured
                 .map(
                   (service) => ServiceCard(
@@ -143,6 +145,7 @@ class CustomerHomePage extends ConsumerWidget {
           const SectionHeader(title: 'Best of month'),
           const SizedBox(height: AppSpacing.md),
           _HorizontalSection(
+            height: 380,
             children: home.bestOfMonth
                 .map(
                   (service) => ServiceCard(
@@ -157,6 +160,7 @@ class CustomerHomePage extends ConsumerWidget {
           const SectionHeader(title: 'Popular brands'),
           const SizedBox(height: AppSpacing.md),
           _HorizontalSection(
+            height: 360,
             children: home.popularBrands
                 .map(
                   (brand) => BrandCard(
@@ -170,6 +174,7 @@ class CustomerHomePage extends ConsumerWidget {
           const SectionHeader(title: 'Popular providers'),
           const SizedBox(height: AppSpacing.md),
           _HorizontalSection(
+            height: 280,
             children: home.popularProviders
                 .map(
                   (provider) => ProviderCard(
@@ -195,9 +200,10 @@ class CustomerHomePage extends ConsumerWidget {
 }
 
 class _HorizontalSection extends StatelessWidget {
-  const _HorizontalSection({required this.children});
+  const _HorizontalSection({required this.children, required this.height});
 
   final List<Widget> children;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +216,7 @@ class _HorizontalSection extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 308,
+      height: height,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: children.length,

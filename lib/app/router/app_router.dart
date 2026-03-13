@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reziphay_mobile/core/auth/session_controller.dart';
@@ -46,11 +47,26 @@ const _providerReservationsPath = '/provider/reservations';
 const _providerServicesPath = '/provider/services';
 const _providerBrandsPath = '/provider/brands';
 
+class RouterNotifier extends ChangeNotifier {
+  RouterNotifier(this._ref) {
+    _ref.listen<SessionState>(sessionControllerProvider, (_, __) {
+      notifyListeners();
+    });
+  }
+
+  final Ref _ref;
+}
+
+final routerNotifierProvider = Provider<RouterNotifier>((ref) {
+  return RouterNotifier(ref);
+});
+
 final goRouterProvider = Provider<GoRouter>((ref) {
-  final sessionState = ref.watch(sessionControllerProvider);
+  final notifier = ref.watch(routerNotifierProvider);
 
   return GoRouter(
     initialLocation: SplashPage.path,
+    refreshListenable: notifier,
     routes: [
       GoRoute(
         path: SplashPage.path,
@@ -232,6 +248,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
+      final sessionState = ref.read(sessionControllerProvider);
       return _redirectForState(
         location: state.matchedLocation,
         sessionState: sessionState,

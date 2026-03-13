@@ -8,6 +8,7 @@ import 'package:reziphay_mobile/shared/models/auth_tokens.dart';
 import 'package:reziphay_mobile/shared/models/session_user.dart';
 import 'package:reziphay_mobile/shared/models/user_session.dart';
 import 'package:reziphay_mobile/shared/models/user_status.dart';
+import 'helpers/fake_auth_repository.dart';
 
 void main() {
   group('SessionController', () {

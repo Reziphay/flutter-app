@@ -7,6 +7,7 @@ import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart'
 import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 import 'package:reziphay_mobile/features/provider_management/data/provider_management_repository.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
+import '../../helpers/mock_discovery_repository.dart';
 
 void main() {
   group('ProviderManagementActions', () {

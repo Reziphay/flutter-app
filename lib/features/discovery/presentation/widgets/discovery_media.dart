@@ -141,8 +141,11 @@ class DiscoveryMedia extends StatelessWidget {
         ),
         borderRadius: radius,
       ),
-      child: Stack(
-        children: [
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
           Positioned(
             right: -16,
             bottom: -18,
@@ -152,26 +155,28 @@ class DiscoveryMedia extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.22),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(_iconForKind(kind), color: Colors.white, size: 20),
-                const Spacer(),
-                Text(
-                  effectiveLabel,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
+          if (height >= 100)
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(_iconForKind(kind), color: Colors.white, size: 20),
+                  const Spacer(),
+                  Text(
+                    effectiveLabel,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
+        ),
       ),
     );
   }
