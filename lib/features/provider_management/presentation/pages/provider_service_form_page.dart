@@ -77,7 +77,9 @@ class _ProviderServiceFormPageState
 
   @override
   Widget build(BuildContext context) {
-    final categories = ref.watch(discoveryCategoriesProvider);
+    final categoriesAsync = ref.watch(discoveryCategoriesProvider);
+    final categories =
+        categoriesAsync.asData?.value ?? const <DiscoveryCategory>[];
     final brandsAsync = ref.watch(providerManagedBrandsProvider);
     final serviceAsync = widget.isEditing
         ? ref.watch(providerManagedServiceProvider(widget.serviceId!))
@@ -87,56 +89,69 @@ class _ProviderServiceFormPageState
       appBar: AppBar(
         title: Text(widget.isEditing ? 'Edit service' : 'Create service'),
       ),
-      body: brandsAsync.when(
-        data: (brandData) {
-          if (widget.isEditing) {
-            return serviceAsync!.when(
-              data: (managedService) {
-                _hydrateIfNeeded(
-                  key: managedService.detail.summary.id,
-                  draft: managedService.draft,
-                  categories: categories,
-                  availableBrands: brandData.brands,
-                  canArchive: managedService.canArchive,
+      body: categoriesAsync.when(
+        data: (categories) {
+          return brandsAsync.when(
+            data: (brandData) {
+              if (widget.isEditing) {
+                return serviceAsync!.when(
+                  data: (managedService) {
+                    _hydrateIfNeeded(
+                      key: managedService.detail.summary.id,
+                      draft: managedService.draft,
+                      categories: categories,
+                      availableBrands: brandData.brands,
+                      canArchive: managedService.canArchive,
+                    );
+                    return _buildForm(
+                      context,
+                      categories: categories,
+                      availableBrands: brandData.brands,
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stackTrace) => Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: EmptyState(
+                      title: 'Could not load service',
+                      description: error.toString(),
+                    ),
+                  ),
                 );
-                return _buildForm(
-                  context,
-                  categories: categories,
-                  availableBrands: brandData.brands,
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stackTrace) => Padding(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: EmptyState(
-                  title: 'Could not load service',
-                  description: error.toString(),
-                ),
-              ),
-            );
-          }
+              }
 
-          _hydrateIfNeeded(
-            key: 'create',
-            draft: _defaultDraft(
-              categories: categories,
-              availableBrands: brandData.brands,
+              _hydrateIfNeeded(
+                key: 'create',
+                draft: _defaultDraft(
+                  categories: categories,
+                  availableBrands: brandData.brands,
+                ),
+                categories: categories,
+                availableBrands: brandData.brands,
+                canArchive: false,
+              );
+              return _buildForm(
+                context,
+                categories: categories,
+                availableBrands: brandData.brands,
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stackTrace) => Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: EmptyState(
+                title: 'Could not load service form',
+                description: error.toString(),
+              ),
             ),
-            categories: categories,
-            availableBrands: brandData.brands,
-            canArchive: false,
-          );
-          return _buildForm(
-            context,
-            categories: categories,
-            availableBrands: brandData.brands,
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => Padding(
           padding: const EdgeInsets.all(AppSpacing.xl),
           child: EmptyState(
-            title: 'Could not load service form',
+            title: 'Could not load categories',
             description: error.toString(),
           ),
         ),
@@ -252,15 +267,13 @@ class _ProviderServiceFormPageState
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Visible in discovery'),
                   subtitle: Text(
-                    _isAvailable
-                        ? 'Customers can request current availability.'
-                        : 'The service stays hidden from availability-driven ranking.',
+                    'Service visibility follows active/archive state. Delete the service to remove it from discovery.',
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
                   ),
                   value: _isAvailable,
-                  onChanged: (value) => setState(() => _isAvailable = value),
+                  onChanged: null,
                 ),
               ],
             ),
@@ -331,10 +344,20 @@ class _ProviderServiceFormPageState
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
+                const SizedBox(height: AppSpacing.xxs),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Assigned by Reziphay ranking and promotion systems, not by provider edits.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 VisibilityLabelSelector(
                   selected: _visibilityLabels,
-                  onChanged: (next) => setState(() => _visibilityLabels = next),
+                  onChanged: (_) {},
                 ),
               ],
             ),

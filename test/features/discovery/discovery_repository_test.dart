@@ -1,9 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reziphay_mobile/core/network/api_client.dart';
-import 'package:reziphay_mobile/core/network/app_exception.dart';
 import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 
 void main() {
@@ -32,47 +34,6 @@ void main() {
       );
     });
 
-    test('search query surfaces brand and provider results', () async {
-      final response = await repository.search(
-        const DiscoverySearchRequest(
-          query: 'dental',
-          filters: SearchFilters(),
-          sort: SearchSort.rating,
-        ),
-      );
-
-      expect(
-        response.services.any((service) => service.id == 'dental-consultation'),
-        isTrue,
-      );
-      expect(response.brands.any((brand) => brand.id == 'luna-dental'), isTrue);
-      expect(
-        response.providers.any((provider) => provider.id == 'kamala-aliyeva'),
-        isTrue,
-      );
-    });
-
-    test('price sorting orders services from lowest to highest', () async {
-      final response = await repository.search(
-        const DiscoverySearchRequest(
-          query: '',
-          filters: SearchFilters(),
-          sort: SearchSort.price,
-        ),
-      );
-
-      final pricedServices = response.services
-          .where((service) => service.price != null)
-          .toList();
-
-      for (var index = 0; index < pricedServices.length - 1; index += 1) {
-        expect(
-          pricedServices[index].price!,
-          lessThanOrEqualTo(pricedServices[index + 1].price!),
-        );
-      }
-    });
-
     test(
       'service detail includes linked provider and optional brand',
       () async {
@@ -96,7 +57,7 @@ void main() {
               '/categories': {
                 'items': [
                   {
-                    'id': 'wellness',
+                    'id': '550e8400-e29b-41d4-a716-446655440001',
                     'name': 'Wellness',
                     'description': 'Recovery and body care',
                   },
@@ -107,25 +68,22 @@ void main() {
                   {
                     'id': 'svc_remote',
                     'name': 'Sports massage',
-                    'category': {'id': 'wellness', 'name': 'Wellness'},
+                    'category': {
+                      'id': '550e8400-e29b-41d4-a716-446655440001',
+                      'name': 'Wellness',
+                    },
                     'owner': {'id': 'uso_remote', 'fullName': 'Nigar Rahimova'},
                     'brand': {'id': 'brand_remote', 'name': 'Flow House'},
-                    'addressLine': '12 Seaside Ave',
+                    'address': {'fullAddress': '12 Seaside Ave, Baku'},
                     'distanceKm': 1.1,
-                    'rating': 4.9,
-                    'reviewCount': 32,
+                    'ratingStats': {'avgRating': 4.9, 'reviewCount': 32},
                     'visibilityLabels': ['VIP'],
                     'approvalMode': 'MANUAL',
                     'isAvailable': true,
                     'popularityScore': 91,
                     'nextAvailabilityLabel': 'Today · 18:00',
-                    'price': 45,
+                    'priceAmount': 45,
                     'description': 'Recovery-focused session',
-                    'coverMedia': {
-                      'id': 'svc_remote_cover',
-                      'label': 'Recovery room',
-                      'url': 'https://cdn.reziphay.test/svc_remote_cover.jpg',
-                    },
                   },
                 ],
               },
@@ -134,22 +92,10 @@ void main() {
                   {
                     'id': 'brand_remote',
                     'name': 'Flow House',
-                    'headline': 'Bodywork studio',
-                    'addressLine': '12 Seaside Ave',
-                    'distanceKm': 1.1,
-                    'rating': 4.8,
-                    'reviewCount': 18,
-                    'serviceCount': 1,
-                    'memberCount': 1,
-                    'categoryIds': ['wellness'],
+                    'description': 'Bodywork studio',
+                    'primaryAddress': {'fullAddress': '12 Seaside Ave, Baku'},
+                    'ratingStats': {'avgRating': 4.8, 'reviewCount': 18},
                     'visibilityLabels': ['COMMON'],
-                    'popularityScore': 88,
-                    'openNow': true,
-                    'logo': {
-                      'id': 'brand_remote_logo',
-                      'label': 'Flow House mark',
-                      'url': 'https://cdn.reziphay.test/brand_remote_logo.png',
-                    },
                   },
                 ],
               },
@@ -158,20 +104,13 @@ void main() {
                   {
                     'id': 'uso_remote',
                     'fullName': 'Nigar Rahimova',
-                    'headline': 'Sports recovery specialist',
-                    'bio': 'Manual recovery sessions.',
-                    'distanceKm': 1.1,
-                    'rating': 4.9,
-                    'reviewCount': 28,
-                    'completedReservations': 120,
-                    'avgResponseMinutes': 4,
+                    'description': 'Sports recovery specialist',
+                    'ratingStats': {'avgRating': 4.9, 'reviewCount': 28},
                     'brands': [
                       {'id': 'brand_remote'},
                     ],
-                    'categoryIds': ['wellness'],
                     'visibilityLabels': ['VIP'],
                     'popularityScore': 90,
-                    'availableNow': true,
                   },
                 ],
               },
@@ -181,86 +120,149 @@ void main() {
 
         final home = await repository.getCustomerHomeData();
 
-        expect(home.categories.first.id, 'wellness');
+        expect(home.categories.first.name, 'Wellness');
         expect(home.nearYou.first.id, 'svc_remote');
-        expect(
-          home.nearYou.first.coverMedia?.remoteUrl,
-          'https://cdn.reziphay.test/svc_remote_cover.jpg',
-        );
+        expect(home.nearYou.first.price, 45);
         expect(home.popularBrands.first.id, 'brand_remote');
-        expect(
-          home.popularBrands.first.logoMedia?.remoteUrl,
-          'https://cdn.reziphay.test/brand_remote_logo.png',
-        );
         expect(home.popularProviders.first.id, 'uso_remote');
       },
     );
 
     test(
-      'service detail maps backend payload into the mobile detail model',
+      'search uses backend search endpoint and preserves sort/filter mapping',
+      () async {
+        Map<String, dynamic>? capturedQuery;
+        final repository = BackendDiscoveryRepository(
+          apiClient: _FakeDiscoveryApiClient(
+            onGet: ({required path, queryParameters}) {
+              if (path == '/search') {
+                capturedQuery = queryParameters;
+                return {
+                  'services': [
+                    {
+                      'id': 'svc_search',
+                      'name': 'Sports massage',
+                      'category': {
+                        'id': '550e8400-e29b-41d4-a716-446655440001',
+                        'name': 'Wellness',
+                      },
+                      'owner': {
+                        'id': 'uso_remote',
+                        'fullName': 'Nigar Rahimova',
+                      },
+                      'address': {'fullAddress': '12 Seaside Ave, Baku'},
+                      'ratingStats': {'avgRating': 4.9, 'reviewCount': 28},
+                      'approvalMode': 'MANUAL',
+                      'isAvailable': true,
+                      'priceAmount': 55,
+                      'description': 'Deep tissue recovery',
+                    },
+                  ],
+                  'brands': [
+                    {
+                      'id': 'brand_remote',
+                      'name': 'Flow House',
+                      'description': 'Bodywork studio',
+                      'primaryAddress': {'fullAddress': '12 Seaside Ave, Baku'},
+                      'categoryIds': ['550e8400-e29b-41d4-a716-446655440001'],
+                      'openNow': true,
+                    },
+                  ],
+                  'providers': [
+                    {
+                      'id': 'uso_remote',
+                      'fullName': 'Nigar Rahimova',
+                      'description': 'Sports recovery specialist',
+                      'categoryIds': ['550e8400-e29b-41d4-a716-446655440001'],
+                      'availableNow': true,
+                      'brands': [
+                        {'id': 'brand_remote'},
+                      ],
+                    },
+                  ],
+                };
+              }
+              throw StateError('Unexpected GET path $path');
+            },
+          ),
+        );
+
+        final response = await repository.search(
+          const DiscoverySearchRequest(
+            query: 'massage',
+            filters: SearchFilters(
+              categoryId: '550e8400-e29b-41d4-a716-446655440001',
+              maxPrice: 60,
+              maxDistanceKm: 5,
+              availableOnly: true,
+            ),
+            sort: SearchSort.price,
+          ),
+        );
+
+        expect(capturedQuery, {
+          'q': 'massage',
+          'categoryId': '550e8400-e29b-41d4-a716-446655440001',
+          'maxPriceAmount': 60.0,
+          'radiusKm': 5.0,
+          'availableOnly': true,
+          'sortBy': 'PRICE_LOW',
+          'limit': 25,
+        });
+        expect(response.services.single.id, 'svc_search');
+        expect(response.brands.single.id, 'brand_remote');
+        expect(response.providers.single.id, 'uso_remote');
+      },
+    );
+
+    test(
+      'service detail derives requestable slots from backend availability payload',
       () async {
         final repository = BackendDiscoveryRepository(
           apiClient: _FakeDiscoveryApiClient(
             responses: {
               '/services/svc_remote': {
-                'id': 'svc_remote',
-                'name': 'Sports massage',
-                'category': {'id': 'wellness', 'name': 'Wellness'},
-                'owner': {
-                  'id': 'uso_remote',
-                  'fullName': 'Nigar Rahimova',
-                  'headline': 'Sports recovery specialist',
-                  'bio': 'Manual recovery sessions.',
-                  'rating': 4.9,
-                  'reviewCount': 28,
-                  'completedReservations': 120,
-                  'avgResponseMinutes': 4,
-                  'brands': [
-                    {'id': 'brand_remote'},
-                  ],
-                  'categoryIds': ['wellness'],
-                  'visibilityLabels': ['VIP'],
-                  'availableNow': true,
-                },
-                'brand': {
-                  'id': 'brand_remote',
-                  'name': 'Flow House',
-                  'headline': 'Bodywork studio',
-                  'addressLine': '12 Seaside Ave',
-                  'rating': 4.8,
-                  'reviewCount': 18,
-                  'serviceCount': 1,
-                  'memberCount': 1,
-                  'categoryIds': ['wellness'],
-                  'visibilityLabels': ['COMMON'],
-                  'openNow': true,
-                },
-                'addressLine': '12 Seaside Ave',
-                'distanceKm': 1.1,
-                'rating': 4.9,
-                'reviewCount': 32,
-                'visibilityLabels': ['VIP'],
-                'approvalMode': 'MANUAL',
-                'isAvailable': true,
-                'popularityScore': 91,
-                'nextAvailabilityLabel': 'Today · 18:00',
-                'price': 45,
-                'description': 'Recovery-focused session',
-                'about': 'Deep tissue recovery with manual approval.',
-                'waitingTimeMinutes': 15,
-                'freeCancellationHours': 6,
-                'availabilitySummary': 'Backend availability summary',
-                'availability': {
-                  'items': [
+                'service': {
+                  'id': 'svc_remote',
+                  'name': 'Sports massage',
+                  'category': {
+                    'id': '550e8400-e29b-41d4-a716-446655440001',
+                    'name': 'Wellness',
+                  },
+                  'owner': {
+                    'id': 'uso_remote',
+                    'fullName': 'Nigar Rahimova',
+                    'description': 'Sports recovery specialist',
+                  },
+                  'brand': {
+                    'id': 'brand_remote',
+                    'name': 'Flow House',
+                    'description': 'Bodywork studio',
+                    'primaryAddress': {'fullAddress': '12 Seaside Ave, Baku'},
+                  },
+                  'address': {'fullAddress': '12 Seaside Ave, Baku'},
+                  'ratingStats': {'avgRating': 4.9, 'reviewCount': 32},
+                  'approvalMode': 'MANUAL',
+                  'waitingTimeMinutes': 15,
+                  'freeCancellationDeadlineMinutes': 360,
+                  'description':
+                      'Recovery-focused session\n\nDeep tissue recovery with manual approval.',
+                  'photos': [
                     {
-                      'startsAt': '2026-03-13T18:00:00.000Z',
-                      'label': 'Today · 18:00',
-                      'available': true,
+                      'id': 'photo_1',
+                      'file': {'id': 'file_1', 'originalFilename': 'room.jpg'},
                     },
                   ],
                 },
-                'photos': [
-                  {'id': 'photo_1', 'name': 'Room'},
+              },
+              '/services/svc_remote/availability': {
+                'exceptions': [
+                  {
+                    'date': '2026-03-20T00:00:00.000Z',
+                    'startTime': '18:00',
+                    'endTime': '18:59',
+                    'note': 'Manual approval',
+                  },
                 ],
               },
             },
@@ -270,50 +272,340 @@ void main() {
         final detail = await repository.getServiceDetail('svc_remote');
 
         expect(detail.summary.name, 'Sports massage');
-        expect(detail.summary.approvalMode, ApprovalMode.manual);
-        expect(detail.provider.id, 'uso_remote');
-        expect(detail.brand?.id, 'brand_remote');
         expect(detail.requestableSlots, isNotEmpty);
-        expect(detail.galleryMedia, isNotEmpty);
+        expect(detail.requestableSlots.first.note, 'Manual approval');
+        expect(detail.galleryMedia.single.id, 'photo_1');
+        expect(detail.freeCancellationLabel, '6 hours before');
       },
     );
 
-    test(
-      'provider services and create service use backend-scoped endpoints',
-      () async {
-        String? capturedPath;
-        Object? capturedData;
-        final repository = BackendDiscoveryRepository(
-          apiClient: _FakeDiscoveryApiClient(
-            onGet: ({required path, queryParameters}) {
-              if (path == '/service-owners/me/services') {
+    test('provider service CRUD uses services endpoints and photo sync', () async {
+      Object? createPayload;
+      Object? updatePayload;
+      Object? exceptionPayload;
+      final photoDeletePaths = <String>[];
+      final photoUploadPaths = <String>[];
+
+      final repository = BackendDiscoveryRepository(
+        apiClient: _FakeDiscoveryApiClient(
+          onGet: ({required path, queryParameters}) {
+            if (path == '/services') {
+              final ownerId = queryParameters?['ownerUserId'];
+              final brandId = queryParameters?['brandId'];
+              if (ownerId == 'uso_remote' && brandId == null) {
                 return {
                   'items': [
                     {
                       'id': 'svc_provider_1',
                       'name': 'Executive cleanup',
-                      'category': {'id': 'barber', 'name': 'Barber'},
+                      'category': {
+                        'id': '550e8400-e29b-41d4-a716-446655440002',
+                        'name': 'Barber',
+                      },
                       'owner': {
                         'id': 'uso_remote',
                         'fullName': 'Rauf Mammadov',
                       },
                       'brand': {'id': 'brand_remote', 'name': 'Studio North'},
-                      'addressLine': '42 Central Ave',
-                      'distanceKm': 1.2,
-                      'rating': 4.8,
-                      'reviewCount': 12,
-                      'visibilityLabels': ['VIP'],
+                      'address': {'fullAddress': '42 Central Ave, Baku'},
                       'approvalMode': 'MANUAL',
                       'isAvailable': true,
-                      'popularityScore': 91,
-                      'nextAvailabilityLabel': 'Tomorrow · 14:00',
-                      'price': 55,
-                      'descriptionSnippet':
-                          'Premium cleanup with manual approval.',
-                      'serviceType': 'MULTI',
                       'waitingTimeMinutes': 15,
-                      'leadTimeHours': 2,
-                      'exceptionNotes': ['Closed on Sundays.'],
+                      'minAdvanceMinutes': 120,
+                      'description':
+                          'Premium cleanup\n\nLonger session with extra finishing time.',
+                      'photos': [
+                        {
+                          'id': 'photo_keep',
+                          'file': {
+                            'id': 'file_keep',
+                            'originalFilename': 'keep.jpg',
+                          },
+                        },
+                        {
+                          'id': 'photo_remove',
+                          'file': {
+                            'id': 'file_remove',
+                            'originalFilename': 'remove.jpg',
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                };
+              }
+              throw StateError('Unexpected services query: $queryParameters');
+            }
+            if (path == '/services/svc_provider_1') {
+              return {
+                'service': {
+                  'id': 'svc_provider_1',
+                  'name': 'Executive cleanup',
+                  'category': {
+                    'id': '550e8400-e29b-41d4-a716-446655440002',
+                    'name': 'Barber',
+                  },
+                  'owner': {'id': 'uso_remote', 'fullName': 'Rauf Mammadov'},
+                  'brand': {'id': 'brand_remote', 'name': 'Studio North'},
+                  'address': {'fullAddress': '42 Central Ave, Baku'},
+                  'approvalMode': 'MANUAL',
+                  'isAvailable': true,
+                  'waitingTimeMinutes': 15,
+                  'minAdvanceMinutes': 120,
+                  'description':
+                      'Premium cleanup\n\nLonger session with extra finishing time.',
+                  'photos': [
+                    {
+                      'id': 'photo_keep',
+                      'file': {
+                        'id': 'file_keep',
+                        'originalFilename': 'keep.jpg',
+                      },
+                    },
+                    {
+                      'id': 'photo_remove',
+                      'file': {
+                        'id': 'file_remove',
+                        'originalFilename': 'remove.jpg',
+                      },
+                    },
+                  ],
+                },
+              };
+            }
+            if (path == '/services/svc_provider_1/availability') {
+              return {
+                'exceptions': [
+                  {
+                    'date': '2026-03-20T00:00:00.000Z',
+                    'startTime': '14:00',
+                    'endTime': '14:59',
+                  },
+                ],
+              };
+            }
+            throw StateError('Unexpected GET path $path');
+          },
+          onPost: ({required path, data, queryParameters}) {
+            if (path == '/services') {
+              createPayload = data;
+              return {
+                'service': {
+                  'id': 'svc_created',
+                  'name': 'Executive cleanup',
+                  'category': {
+                    'id': '550e8400-e29b-41d4-a716-446655440002',
+                    'name': 'Barber',
+                  },
+                  'owner': {'id': 'uso_remote', 'fullName': 'Rauf Mammadov'},
+                  'address': {'fullAddress': '42 Central Ave, Baku'},
+                },
+              };
+            }
+            if (path == '/services/svc_created/photos' ||
+                path == '/services/svc_provider_1/photos') {
+              photoUploadPaths.add(path);
+              return {
+                'photo': {'id': 'photo_uploaded'},
+              };
+            }
+            throw StateError('Unexpected POST path $path');
+          },
+          onPatch: ({required path, data, queryParameters}) {
+            updatePayload = data;
+            return {
+              'service': {
+                'id': 'svc_provider_1',
+                'name': 'Executive cleanup',
+                'category': {
+                  'id': '550e8400-e29b-41d4-a716-446655440002',
+                  'name': 'Barber',
+                },
+                'owner': {'id': 'uso_remote', 'fullName': 'Rauf Mammadov'},
+                'address': {'fullAddress': '42 Central Ave, Baku'},
+              },
+            };
+          },
+          onPut: ({required path, data, queryParameters}) {
+            if (path == '/services/svc_provider_1/availability-exceptions') {
+              exceptionPayload = data;
+              return <String, dynamic>{};
+            }
+            throw StateError('Unexpected PUT path $path');
+          },
+          onDelete: ({required path, data, queryParameters}) {
+            photoDeletePaths.add(path);
+            return <String, dynamic>{};
+          },
+        ),
+      );
+
+      final providerServices = await repository.getProviderServices(
+        'uso_remote',
+      );
+      final createdId = await repository.createProviderService(
+        providerId: 'uso_remote',
+        draft: ProviderServiceDraft(
+          name: 'Executive cleanup',
+          categoryId: '550e8400-e29b-41d4-a716-446655440002',
+          categoryName: 'Barber',
+          addressLine: '42 Central Ave, Baku',
+          descriptionSnippet: 'Premium cleanup',
+          about: 'Longer session with extra finishing time.',
+          approvalMode: ApprovalMode.manual,
+          isAvailable: true,
+          serviceType: ManagedServiceType.multi,
+          waitingTimeMinutes: 15,
+          leadTimeHours: 2,
+          freeCancellationHours: 4,
+          visibilityLabels: const [VisibilityLabel.vip],
+          requestableSlots: [
+            AvailabilityWindow(
+              startsAt: DateTime.utc(2026, 3, 20, 14),
+              label: 'Fri · 14:00',
+              available: true,
+            ),
+          ],
+          exceptionNotes: const ['Closed on Sundays.'],
+          galleryMedia: [
+            AppMediaAsset(
+              id: 'picked_1',
+              label: 'Premium chair',
+              source: AppMediaSource.pickedImage,
+              bytes: Uint8List.fromList(const [1, 2, 3]),
+            ),
+          ],
+          brandId: 'brand_remote',
+          brandName: 'Studio North',
+          price: 55,
+        ),
+      );
+
+      await repository.updateProviderService(
+        providerId: 'uso_remote',
+        serviceId: 'svc_provider_1',
+        draft: ProviderServiceDraft(
+          name: 'Executive cleanup',
+          categoryId: '550e8400-e29b-41d4-a716-446655440002',
+          categoryName: 'Barber',
+          addressLine: '42 Central Ave, Baku',
+          descriptionSnippet: 'Premium cleanup',
+          about: 'Updated notes.',
+          approvalMode: ApprovalMode.automatic,
+          isAvailable: true,
+          serviceType: ManagedServiceType.solo,
+          waitingTimeMinutes: 10,
+          leadTimeHours: 1,
+          freeCancellationHours: 2,
+          visibilityLabels: const [VisibilityLabel.common],
+          requestableSlots: [
+            AvailabilityWindow(
+              startsAt: DateTime.utc(2026, 3, 21, 11),
+              label: 'Sat · 11:00',
+              available: true,
+            ),
+          ],
+          exceptionNotes: const [],
+          galleryMedia: [
+            const AppMediaAsset.generated(id: 'photo_keep', label: 'keep.jpg'),
+            AppMediaAsset(
+              id: 'picked_2',
+              label: 'New setup',
+              source: AppMediaSource.pickedImage,
+              bytes: Uint8List.fromList(const [4, 5, 6]),
+            ),
+          ],
+          brandId: 'brand_remote',
+          brandName: 'Studio North',
+          price: 60,
+        ),
+      );
+
+      expect(providerServices.services.single.summary.id, 'svc_provider_1');
+      expect(createdId, 'svc_created');
+      expect(createPayload, isA<Map<String, dynamic>>());
+      final createdMap = createPayload! as Map<String, dynamic>;
+      expect(
+        createdMap['address'],
+        containsPair('fullAddress', '42 Central Ave, Baku'),
+      );
+      expect(createdMap['priceAmount'], 55.0);
+      expect(createdMap['priceCurrency'], 'AZN');
+      expect(photoUploadPaths, contains('/services/svc_created/photos'));
+      expect(updatePayload, isA<Map<String, dynamic>>());
+      expect(exceptionPayload, isA<Map<String, dynamic>>());
+      expect(
+        photoDeletePaths,
+        contains('/services/svc_provider_1/photos/photo_remove'),
+      );
+      expect(photoUploadPaths, contains('/services/svc_provider_1/photos'));
+    });
+
+    test(
+      'provider brand detail and brand mutations use brand endpoints',
+      () async {
+        Object? createPayload;
+        Object? updatePayload;
+        final postPaths = <String>[];
+        final repository = BackendDiscoveryRepository(
+          apiClient: _FakeDiscoveryApiClient(
+            onGet: ({required path, queryParameters}) {
+              if (path == '/service-owners' &&
+                  queryParameters?['ownerUserId'] == 'uso_remote') {
+                return {
+                  'items': [
+                    {
+                      'id': 'uso_remote',
+                      'fullName': 'Rauf Mammadov',
+                      'brands': [
+                        {'id': 'brand_remote'},
+                      ],
+                    },
+                  ],
+                };
+              }
+              if (path == '/brands/brand_remote') {
+                return {
+                  'brand': {
+                    'id': 'brand_remote',
+                    'name': 'Studio North',
+                    'description':
+                        'Minimal grooming studio\n\nPremium appointment room.\n\nMap note: Second floor above the corner cafe.',
+                    'primaryAddress': {'fullAddress': '42 Central Ave, Baku'},
+                  },
+                };
+              }
+              if (path == '/brands/brand_remote/members') {
+                return {
+                  'items': [
+                    {'id': 'uso_remote', 'fullName': 'Rauf Mammadov'},
+                  ],
+                };
+              }
+              if (path == '/brands/brand_remote/join-requests') {
+                return {
+                  'items': [
+                    {
+                      'id': 'jr_1',
+                      'applicantName': 'Aysel Karimova',
+                      'note': 'Ready to join the brand roster.',
+                      'requestedAt': '2026-03-13T09:00:00.000Z',
+                    },
+                  ],
+                };
+              }
+              if (path == '/services' &&
+                  queryParameters?['brandId'] == 'brand_remote') {
+                return {'items': const []};
+              }
+              if (path == '/brands') {
+                return {
+                  'items': [
+                    {
+                      'id': 'brand_remote',
+                      'name': 'Studio North',
+                      'description': 'Minimal grooming studio',
+                      'primaryAddress': {'fullAddress': '42 Central Ave, Baku'},
                     },
                   ],
                 };
@@ -321,166 +613,25 @@ void main() {
               throw StateError('Unexpected GET path $path');
             },
             onPost: ({required path, data, queryParameters}) {
-              capturedPath = path;
-              capturedData = data;
-              if (path == '/service-owners/me/services') {
+              postPaths.add(path);
+              if (path == '/brands') {
+                createPayload = data;
                 return {
-                  'service': {
-                    'id': 'svc_provider_created',
-                    'name': 'Executive cleanup',
-                    'category': {'id': 'barber', 'name': 'Barber'},
-                    'owner': {'id': 'uso_remote', 'fullName': 'Rauf Mammadov'},
-                    'brand': {'id': 'brand_remote', 'name': 'Studio North'},
-                    'addressLine': '42 Central Ave',
-                    'distanceKm': 1.2,
-                    'rating': 4.8,
-                    'reviewCount': 0,
-                    'visibilityLabels': ['VIP'],
-                    'approvalMode': 'MANUAL',
-                    'isAvailable': true,
-                    'popularityScore': 90,
-                    'nextAvailabilityLabel': 'Tomorrow · 14:00',
-                    'price': 55,
-                    'descriptionSnippet':
-                        'Premium cleanup with manual approval.',
-                  },
+                  'brand': {'id': 'brand_created', 'name': 'North Atelier'},
                 };
               }
-              throw StateError('Unexpected POST path $path');
-            },
-          ),
-        );
-
-        final providerServices = await repository.getProviderServices(
-          'uso_remote',
-        );
-        final createdId = await repository.createProviderService(
-          providerId: 'uso_remote',
-          draft: ProviderServiceDraft(
-            name: 'Executive cleanup',
-            categoryId: 'barber',
-            categoryName: 'Barber',
-            addressLine: '42 Central Ave',
-            descriptionSnippet: 'Premium cleanup with manual approval.',
-            about: 'Longer session with extra finishing time.',
-            approvalMode: ApprovalMode.manual,
-            isAvailable: true,
-            serviceType: ManagedServiceType.multi,
-            waitingTimeMinutes: 15,
-            leadTimeHours: 2,
-            freeCancellationHours: 4,
-            visibilityLabels: const [VisibilityLabel.vip],
-            requestableSlots: [
-              AvailabilityWindow(
-                startsAt: DateTime.parse('2026-03-14T14:00:00.000Z'),
-                label: 'Tomorrow · 14:00',
-                available: true,
-                note: 'Manual approval',
-              ),
-            ],
-            exceptionNotes: const ['Closed on Sundays.'],
-            galleryMedia: const [],
-            brandId: 'brand_remote',
-            brandName: 'Studio North',
-            price: 55,
-          ),
-        );
-
-        expect(providerServices.services.single.summary.id, 'svc_provider_1');
-        expect(
-          providerServices.services.single.serviceType,
-          ManagedServiceType.multi,
-        );
-        expect(providerServices.services.single.exceptionCount, 1);
-        expect(createdId, 'svc_provider_created');
-        expect(capturedPath, '/service-owners/me/services');
-        expect(capturedData, isA<Map<String, dynamic>>());
-        final payload = capturedData! as Map<String, dynamic>;
-        expect(payload['approvalMode'], 'MANUAL');
-        expect(payload['serviceType'], 'MULTI');
-        expect(payload['providerId'], 'uso_remote');
-      },
-    );
-
-    test(
-      'provider brand detail and join request actions use backend endpoints',
-      () async {
-        String? capturedActionPath;
-        final repository = BackendDiscoveryRepository(
-          apiClient: _FakeDiscoveryApiClient(
-            onGet: ({required path, queryParameters}) {
-              if (path == '/service-owners/me/brands/brand_remote') {
-                return {
-                  'brand': {
-                    'id': 'brand_remote',
-                    'name': 'Studio North',
-                    'headline': 'Minimal grooming studio',
-                    'addressLine': '42 Central Ave',
-                    'distanceKm': 1.2,
-                    'rating': 4.8,
-                    'reviewCount': 18,
-                    'serviceCount': 2,
-                    'memberCount': 1,
-                    'categoryIds': ['barber'],
-                    'visibilityLabels': ['VIP'],
-                    'popularityScore': 88,
-                    'openNow': true,
-                    'description': 'Provider-owned premium room.',
-                    'mapHint': 'Second floor above the corner cafe.',
-                    'members': [
-                      {
-                        'id': 'uso_remote',
-                        'fullName': 'Rauf Mammadov',
-                        'headline': 'Lead barber',
-                        'bio': 'Provider-owned premium room.',
-                        'distanceKm': 1.2,
-                        'rating': 4.8,
-                        'reviewCount': 18,
-                        'completedReservations': 120,
-                        'categoryIds': ['barber'],
-                        'visibilityLabels': ['VIP'],
-                        'availableNow': true,
-                      },
-                    ],
-                    'joinRequests': [
-                      {
-                        'id': 'jr_1',
-                        'applicantName': 'Aysel Karimova',
-                        'note': 'Ready to join the brand roster.',
-                        'requestedAt': '2026-03-13T09:00:00.000Z',
-                      },
-                    ],
-                    'services': [
-                      {
-                        'id': 'svc_brand_1',
-                        'name': 'Signature trim',
-                        'category': {'id': 'barber', 'name': 'Barber'},
-                        'owner': {
-                          'id': 'uso_remote',
-                          'fullName': 'Rauf Mammadov',
-                        },
-                        'brand': {'id': 'brand_remote', 'name': 'Studio North'},
-                        'addressLine': '42 Central Ave',
-                        'distanceKm': 1.2,
-                        'rating': 4.8,
-                        'reviewCount': 10,
-                        'visibilityLabels': ['VIP'],
-                        'approvalMode': 'MANUAL',
-                        'isAvailable': true,
-                        'popularityScore': 80,
-                      },
-                    ],
-                  },
-                };
-              }
-              throw StateError('Unexpected GET path $path');
-            },
-            onPost: ({required path, data, queryParameters}) {
-              capturedActionPath = path;
-              if (path == '/brands/brand_remote/join-requests/jr_1/accept') {
+              if (path == '/brands/brand_created/logo' ||
+                  path == '/brands/brand_remote/logo' ||
+                  path == '/brands/brand_remote/join-requests/jr_1/accept') {
                 return <String, dynamic>{};
               }
               throw StateError('Unexpected POST path $path');
+            },
+            onPatch: ({required path, data, queryParameters}) {
+              updatePayload = data;
+              return {
+                'brand': {'id': 'brand_remote', 'name': 'Studio North'},
+              };
             },
           ),
         );
@@ -488,6 +639,37 @@ void main() {
         final brand = await repository.getProviderBrand(
           brandId: 'brand_remote',
           providerId: 'uso_remote',
+        );
+        final createdId = await repository.createProviderBrand(
+          providerId: 'uso_remote',
+          draft: ProviderBrandDraft(
+            name: 'North Atelier',
+            headline: 'Small premium grooming room.',
+            addressLine: '42 Central Ave, Baku',
+            description: 'Provider-owned brand for premium appointment flow.',
+            mapHint: 'Second floor above the corner cafe.',
+            visibilityLabels: const [VisibilityLabel.vip],
+            openNow: true,
+            logoMedia: AppMediaAsset(
+              id: 'logo_1',
+              label: 'NA mark',
+              source: AppMediaSource.pickedImage,
+              bytes: Uint8List.fromList(const [7, 8, 9]),
+            ),
+          ),
+        );
+        await repository.updateProviderBrand(
+          providerId: 'uso_remote',
+          brandId: 'brand_remote',
+          draft: const ProviderBrandDraft(
+            name: 'Studio North',
+            headline: 'Minimal grooming studio',
+            addressLine: '42 Central Ave, Baku',
+            description: 'Premium appointment room.',
+            mapHint: 'Second floor above the corner cafe.',
+            visibilityLabels: [VisibilityLabel.common],
+            openNow: true,
+          ),
         );
         await repository.acceptBrandJoinRequest(
           providerId: 'uso_remote',
@@ -497,85 +679,20 @@ void main() {
 
         expect(brand.detail.summary.id, 'brand_remote');
         expect(brand.joinRequests.single.applicantName, 'Aysel Karimova');
-        expect(brand.detail.services.single.id, 'svc_brand_1');
+        expect(createdId, 'brand_created');
+        expect(createPayload, containsPair('name', 'North Atelier'));
         expect(
-          capturedActionPath,
-          '/brands/brand_remote/join-requests/jr_1/accept',
-        );
-      },
-    );
-
-    test(
-      'update service falls back from patch to put and archive uses delete',
-      () async {
-        String? capturedPutPath;
-        String? capturedDeletePath;
-        final repository = BackendDiscoveryRepository(
-          apiClient: _FakeDiscoveryApiClient(
-            onPatch: ({required path, data, queryParameters}) {
-              throw const AppException(
-                'Patch not supported.',
-                type: AppExceptionType.server,
-                statusCode: 405,
-              );
-            },
-            onPut: ({required path, data, queryParameters}) {
-              capturedPutPath = path;
-              return {
-                'service': {
-                  'id': 'svc_provider_1',
-                  'name': 'Executive cleanup',
-                  'category': {'id': 'barber', 'name': 'Barber'},
-                  'owner': {'id': 'uso_remote', 'fullName': 'Rauf Mammadov'},
-                  'addressLine': '42 Central Ave',
-                  'distanceKm': 1.2,
-                  'rating': 4.8,
-                  'reviewCount': 12,
-                  'visibilityLabels': ['VIP'],
-                  'approvalMode': 'AUTOMATIC',
-                  'isAvailable': true,
-                  'popularityScore': 91,
-                },
-              };
-            },
-            onDelete: ({required path, data, queryParameters}) {
-              capturedDeletePath = path;
-              return <String, dynamic>{};
-            },
+          createPayload,
+          containsPair(
+            'primaryAddress',
+            containsPair('fullAddress', '42 Central Ave, Baku'),
           ),
         );
-
-        await repository.updateProviderService(
-          providerId: 'uso_remote',
-          serviceId: 'svc_provider_1',
-          draft: const ProviderServiceDraft(
-            name: 'Executive cleanup',
-            categoryId: 'barber',
-            categoryName: 'Barber',
-            addressLine: '42 Central Ave',
-            descriptionSnippet: 'Updated cleanup flow.',
-            about: 'Updated notes.',
-            approvalMode: ApprovalMode.automatic,
-            isAvailable: true,
-            serviceType: ManagedServiceType.solo,
-            waitingTimeMinutes: 10,
-            leadTimeHours: 1,
-            freeCancellationHours: 2,
-            visibilityLabels: [VisibilityLabel.vip],
-            requestableSlots: [],
-            exceptionNotes: [],
-            galleryMedia: [],
-          ),
-        );
-        await repository.archiveProviderService(
-          providerId: 'uso_remote',
-          serviceId: 'svc_provider_1',
-        );
-
-        expect(capturedPutPath, '/service-owners/me/services/svc_provider_1');
+        expect(updatePayload, containsPair('name', 'Studio North'));
+        expect(postPaths, contains('/brands/brand_created/logo'));
         expect(
-          capturedDeletePath,
-          '/service-owners/me/services/svc_provider_1',
+          postPaths,
+          contains('/brands/brand_remote/join-requests/jr_1/accept'),
         );
       },
     );

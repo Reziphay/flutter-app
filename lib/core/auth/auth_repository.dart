@@ -65,10 +65,15 @@ class BackendAuthRepository implements AuthRepository {
 
   @override
   Future<EmailLinkResultStatus> verifyEmailMagicLink(Uri uri) async {
+    final token = _extractMagicLinkToken(uri);
+    if (token == null || token.isEmpty) {
+      return EmailLinkResultStatus.invalid;
+    }
+
     try {
-      final data = await _publicApiClient.get<dynamic>(
+      final data = await _publicApiClient.post<dynamic>(
         '/auth/verify-email-magic-link',
-        queryParameters: _magicLinkQueryParameters(uri),
+        data: {'token': token},
         extra: const {'skipAuth': true},
         mapper: (payload) => payload,
       );
@@ -176,12 +181,13 @@ class BackendAuthRepository implements AuthRepository {
     };
   }
 
-  Map<String, dynamic> _magicLinkQueryParameters(Uri uri) {
+  String? _extractMagicLinkToken(Uri uri) {
     final query = <String, dynamic>{...uri.queryParameters};
     if (query.isEmpty && uri.fragment.isNotEmpty) {
       query.addAll(Uri.splitQueryString(uri.fragment));
     }
-    return query;
+    final token = query['token'];
+    return token is String ? token.trim() : null;
   }
 
   EmailLinkResultStatus _mapEmailLinkError(AppException error, Uri uri) {

@@ -36,7 +36,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = ref.watch(discoveryCategoriesProvider);
+    final categoriesAsync = ref.watch(discoveryCategoriesProvider);
+    final categories =
+        categoriesAsync.asData?.value ?? const <DiscoveryCategory>[];
     final request = DiscoverySearchRequest(
       query: _controller.text.trim(),
       filters: _filters,
@@ -58,7 +60,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             ),
             IconButton(
               tooltip: 'Filters',
-              onPressed: () => _showFilterSheet(categories),
+              onPressed: categoriesAsync.isLoading
+                  ? null
+                  : () => _showFilterSheet(categories),
               icon: Badge.count(
                 count: _filters.activeCount,
                 isLabelVisible: _filters.activeCount > 0,
@@ -78,6 +82,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
+        if (categoriesAsync.hasError)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: Text(
+              categoriesAsync.error.toString(),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.error),
+            ),
+          ),
         if (_filters.hasActiveFilters)
           Wrap(
             spacing: AppSpacing.xs,

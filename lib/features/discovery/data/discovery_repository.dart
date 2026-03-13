@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:reziphay_mobile/core/network/api_client.dart';
@@ -12,6 +13,8 @@ abstract class DiscoveryRepository {
   DiscoveryCategory? categoryById(String id);
 
   ServiceSummary? serviceSummaryById(String id);
+
+  Future<List<DiscoveryCategory>> getCategories();
 
   Future<CustomerHomeData> getCustomerHomeData();
 
@@ -85,7 +88,6 @@ final _discoveryCategoriesCacheProvider =
 final discoveryRepositoryProvider = Provider<DiscoveryRepository>((ref) {
   return BackendDiscoveryRepository(
     apiClient: ref.watch(apiClientProvider),
-    fallback: MockDiscoveryRepository(),
     onCategoriesUpdated: (categories) {
       ref
           .read(_discoveryCategoriesCacheProvider.notifier)
@@ -94,14 +96,15 @@ final discoveryRepositoryProvider = Provider<DiscoveryRepository>((ref) {
   );
 });
 
-final discoveryCategoriesProvider = Provider<List<DiscoveryCategory>>((ref) {
-  final cachedCategories = ref.watch(_discoveryCategoriesCacheProvider);
-  if (cachedCategories.isNotEmpty) {
-    return cachedCategories;
-  }
+final discoveryCategoriesProvider =
+    FutureProvider.autoDispose<List<DiscoveryCategory>>((ref) async {
+      final cachedCategories = ref.watch(_discoveryCategoriesCacheProvider);
+      if (cachedCategories.isNotEmpty) {
+        return cachedCategories;
+      }
 
-  return ref.watch(discoveryRepositoryProvider).categories;
-});
+      return ref.watch(discoveryRepositoryProvider).getCategories();
+    });
 
 class _DiscoveryCategoriesCache extends Notifier<List<DiscoveryCategory>> {
   @override
@@ -866,6 +869,12 @@ class MockDiscoveryRepository implements DiscoveryRepository {
 
   @override
   ServiceSummary? serviceSummaryById(String id) => _servicesById[id];
+
+  @override
+  Future<List<DiscoveryCategory>> getCategories() async {
+    await _delay();
+    return List<DiscoveryCategory>.unmodifiable(categories);
+  }
 
   @override
   Future<BrandDetail> getBrandDetail(String id) async {
@@ -1940,29 +1949,6 @@ class _ServiceMeta {
   final List<String> exceptionNotes;
 }
 
-class _RequestAttempt {
-  const _RequestAttempt({required this.method, required this.path, this.data});
-
-  factory _RequestAttempt.get(String path) =>
-      _RequestAttempt(method: 'GET', path: path);
-
-  factory _RequestAttempt.post(String path, {Object? data}) =>
-      _RequestAttempt(method: 'POST', path: path, data: data);
-
-  factory _RequestAttempt.patch(String path, {Object? data}) =>
-      _RequestAttempt(method: 'PATCH', path: path, data: data);
-
-  factory _RequestAttempt.put(String path, {Object? data}) =>
-      _RequestAttempt(method: 'PUT', path: path, data: data);
-
-  factory _RequestAttempt.delete(String path, {Object? data}) =>
-      _RequestAttempt(method: 'DELETE', path: path, data: data);
-
-  final String method;
-  final String path;
-  final Object? data;
-}
-
 DateTime _dateAt(int dayOffset, int hour, int minute) {
   final now = DateTime.now();
   return DateTime(now.year, now.month, now.day + dayOffset, hour, minute);
@@ -1971,16 +1957,13 @@ DateTime _dateAt(int dayOffset, int hour, int minute) {
 class BackendDiscoveryRepository implements DiscoveryRepository {
   BackendDiscoveryRepository({
     required ApiClient apiClient,
-    MockDiscoveryRepository? fallback,
     void Function(List<DiscoveryCategory> categories)? onCategoriesUpdated,
   }) : _apiClient = apiClient,
-       _fallback = fallback ?? MockDiscoveryRepository(),
        _onCategoriesUpdated = onCategoriesUpdated;
 
   static const _cacheTtl = Duration(seconds: 30);
 
   final ApiClient _apiClient;
-  final MockDiscoveryRepository _fallback;
   final void Function(List<DiscoveryCategory> categories)? _onCategoriesUpdated;
 
   List<DiscoveryCategory>? _categoriesCache;
@@ -2000,7 +1983,7 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
   List<DiscoveryCategory> get categories =>
       _categoriesCache != null && _categoriesCache!.isNotEmpty
       ? List<DiscoveryCategory>.unmodifiable(_categoriesCache!)
-      : _fallback.categories;
+      : const [];
 
   @override
   DiscoveryCategory? categoryById(String id) {
@@ -2010,207 +1993,328 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       }
     }
 
-    return _fallback.categoryById(id);
+    return null;
   }
 
   @override
-  ServiceSummary? serviceSummaryById(String id) =>
-      _serviceSummaryCache[id] ?? _fallback.serviceSummaryById(id);
+  ServiceSummary? serviceSummaryById(String id) => _serviceSummaryCache[id];
+
+  @override
+  Future<List<DiscoveryCategory>> getCategories() => _fetchCategories();
 
   @override
   Future<BrandDetail> getBrandDetail(String id) async {
-    try {
-      final payload = await _apiClient.get<dynamic>(
-        '/brands/$id',
-        mapper: (data) => data,
-      );
-      final entity = _extractEntity(payload, ['brand', 'item']);
-      final summary = _parseBrandSummary(entity);
-      _rememberBrand(summary);
+    final payload = await _apiClient.get<dynamic>(
+      '/brands/$id',
+      mapper: (data) => data,
+    );
+    final entity = _extractEntity(payload, ['brand', 'item']);
+    final brandContent = _brandContent(entity);
+    final summary = _parseBrandSummary(entity);
+    _rememberBrand(summary);
 
-      final providers = entity['members'] is List
-          ? _parseProviderList(entity['members'])
-          : (await _fetchProviderSummaries())
-                .where((provider) => provider.brandIds.contains(id))
-                .toList(growable: false);
-      final services = (await _fetchServiceSummaries())
-          .where((service) => service.brandId == id)
-          .toList(growable: false);
+    final providers = await _fetchBrandMembers(id);
+    final services = await _fetchServiceSummaries(brandId: id);
 
-      return BrandDetail(
-        summary: summary,
-        description:
-            _readString(entity, ['description', 'about', 'headline']) ??
-            summary.headline,
-        mapHint:
-            _readString(entity, ['mapHint', 'locationHint']) ??
-            'Use the saved address in your maps app for directions.',
-        members: providers,
-        services: services,
-        reviews: const [],
-      );
-    } catch (_) {
-      return _fallback.getBrandDetail(id);
-    }
+    return BrandDetail(
+      summary: summary,
+      description: brandContent.description,
+      mapHint: brandContent.mapHint,
+      members: providers,
+      services: services,
+      reviews: const [],
+    );
   }
 
   @override
   Future<CustomerHomeData> getCustomerHomeData() async {
-    try {
-      final fetchedCategories = await _fetchCategories();
-      final services = await _fetchServiceSummaries();
-      final brands = await _fetchBrandSummaries();
-      final providers = await _fetchProviderSummaries();
+    final fetchedCategories = await _fetchCategories();
+    final services = await _fetchServiceSummaries();
+    final brands = await _fetchBrandSummaries();
+    final providers = await _fetchProviderSummaries();
 
-      final nearYou = List<ServiceSummary>.of(services)
-        ..sort((left, right) => left.distanceKm.compareTo(right.distanceKm));
-      final featured = services
-          .where(
-            (service) =>
-                service.visibilityLabels.contains(VisibilityLabel.vip) ||
-                service.visibilityLabels.contains(VisibilityLabel.sponsored),
-          )
-          .toList(growable: false);
-      final bestOfMonth = services
-          .where(
-            (service) =>
-                service.visibilityLabels.contains(VisibilityLabel.bestOfMonth),
-          )
-          .toList(growable: false);
-      final popularBrands = List<BrandSummary>.of(brands)
-        ..sort(
-          (left, right) =>
-              right.popularityScore.compareTo(left.popularityScore),
-        );
-      final popularProviders = List<ProviderSummary>.of(providers)
-        ..sort(
-          (left, right) =>
-              right.popularityScore.compareTo(left.popularityScore),
-        );
-
-      return CustomerHomeData(
-        nearYou: nearYou.take(4).toList(growable: false),
-        featured: featured.take(4).toList(growable: false),
-        bestOfMonth: bestOfMonth.take(4).toList(growable: false),
-        categories: fetchedCategories,
-        popularBrands: popularBrands.take(3).toList(growable: false),
-        popularProviders: popularProviders.take(3).toList(growable: false),
+    final nearYou = List<ServiceSummary>.of(services)
+      ..sort((left, right) => left.distanceKm.compareTo(right.distanceKm));
+    final featured = services
+        .where(
+          (service) =>
+              service.visibilityLabels.contains(VisibilityLabel.vip) ||
+              service.visibilityLabels.contains(VisibilityLabel.sponsored),
+        )
+        .toList(growable: false);
+    final bestOfMonth = services
+        .where(
+          (service) =>
+              service.visibilityLabels.contains(VisibilityLabel.bestOfMonth),
+        )
+        .toList(growable: false);
+    final popularBrands = List<BrandSummary>.of(brands)
+      ..sort(
+        (left, right) => right.popularityScore.compareTo(left.popularityScore),
       );
-    } catch (_) {
-      return _fallback.getCustomerHomeData();
-    }
+    final popularProviders = List<ProviderSummary>.of(providers)
+      ..sort(
+        (left, right) => right.popularityScore.compareTo(left.popularityScore),
+      );
+
+    return CustomerHomeData(
+      nearYou: nearYou.take(4).toList(growable: false),
+      featured: featured.take(4).toList(growable: false),
+      bestOfMonth: bestOfMonth.take(4).toList(growable: false),
+      categories: fetchedCategories,
+      popularBrands: popularBrands.take(3).toList(growable: false),
+      popularProviders: popularProviders.take(3).toList(growable: false),
+    );
   }
 
   @override
   Future<ProviderDetail> getProviderDetail(String id) async {
-    try {
-      final providers = await _fetchProviderSummaries();
-      final summary = providers.firstWhere((provider) => provider.id == id);
-      final services = (await _fetchServiceSummaries())
-          .where((service) => service.providerId == id)
-          .toList(growable: false);
-      final brandIds = {
-        ...summary.brandIds,
-        for (final service in services)
-          if (service.brandId != null) service.brandId!,
-      };
-      final brands = (await _fetchBrandSummaries())
-          .where((brand) => brandIds.contains(brand.id))
-          .toList(growable: false);
+    final summary = await _fetchProviderSummary(id);
+    final services = await _fetchServiceSummaries(ownerUserId: id);
+    final brandIds = {
+      ...summary.brandIds,
+      for (final service in services)
+        if (service.brandId != null) service.brandId!,
+    };
+    final brands = (await _fetchBrandSummaries())
+        .where((brand) => brandIds.contains(brand.id))
+        .toList(growable: false);
 
-      return ProviderDetail(
-        summary: summary,
-        associatedBrands: brands,
-        services: services,
-        reviews: const [],
-      );
-    } catch (_) {
-      return _fallback.getProviderDetail(id);
-    }
+    return ProviderDetail(
+      summary: summary,
+      associatedBrands: brands,
+      services: services,
+      reviews: const [],
+    );
   }
 
   @override
   Future<DiscoverySearchResponse> search(DiscoverySearchRequest request) async {
-    try {
-      final normalizedQuery = request.query.trim().toLowerCase();
-      final services =
-          List<ServiceSummary>.of(await _fetchServiceSummaries())
-              .where(
-                (service) => _matchesServiceQuery(service, normalizedQuery),
-              )
-              .where(
-                (service) => _matchesServiceFilters(service, request.filters),
-              )
-              .toList()
-            ..sort(
-              (left, right) => _compareServices(left, right, request.sort),
-            );
-      final brands =
-          List<BrandSummary>.of(await _fetchBrandSummaries())
-              .where((brand) => _matchesBrandQuery(brand, normalizedQuery))
-              .where((brand) => _matchesBrandFilters(brand, request.filters))
-              .toList()
-            ..sort((left, right) => _compareBrands(left, right, request.sort));
-      final providers =
-          List<ProviderSummary>.of(await _fetchProviderSummaries())
-              .where(
-                (provider) => _matchesProviderQuery(provider, normalizedQuery),
-              )
-              .where(
-                (provider) =>
-                    _matchesProviderFilters(provider, request.filters),
-              )
-              .toList()
-            ..sort(
-              (left, right) => _compareProviders(left, right, request.sort),
-            );
+    final payload = await _apiClient.get<dynamic>(
+      '/search',
+      queryParameters: _searchQueryParameters(request),
+      mapper: (data) => data,
+    );
 
-      return DiscoverySearchResponse(
-        services: services,
-        brands: brands,
-        providers: providers,
-      );
-    } catch (_) {
-      return _fallback.search(request);
+    final services =
+        _extractItems(payload, ['services'])
+            .map(_tryParseServiceSummary)
+            .whereType<ServiceSummary>()
+            .where(
+              (service) => _matchesServiceFilters(service, request.filters),
+            )
+            .toList(growable: false)
+          ..sort((left, right) => _compareServices(left, right, request.sort));
+    final brands =
+        _extractItems(payload, ['brands'])
+            .map(_tryParseBrandSummary)
+            .whereType<BrandSummary>()
+            .where((brand) => _matchesBrandFilters(brand, request.filters))
+            .toList(growable: false)
+          ..sort((left, right) => _compareBrands(left, right, request.sort));
+    final providers =
+        _extractItems(payload, ['providers'])
+            .map(_tryParseProviderSummary)
+            .whereType<ProviderSummary>()
+            .where(
+              (provider) => _matchesProviderFilters(provider, request.filters),
+            )
+            .toList(growable: false)
+          ..sort((left, right) => _compareProviders(left, right, request.sort));
+
+    for (final service in services) {
+      _rememberService(service);
     }
+    for (final brand in brands) {
+      _rememberBrand(brand);
+    }
+    for (final provider in providers) {
+      _rememberProvider(provider);
+    }
+
+    return DiscoverySearchResponse(
+      services: services,
+      brands: brands,
+      providers: providers,
+    );
   }
 
   @override
   Future<ServiceDetail> getServiceDetail(String id) async {
-    try {
-      final payload = await _apiClient.get<dynamic>(
-        '/services/$id',
-        mapper: (data) => data,
-      );
-      final entity = _extractEntity(payload, ['service', 'item']);
-      final summary = _parseServiceSummary(entity);
-      _rememberService(summary);
-
-      final provider =
-          _parseNestedProvider(entity) ??
-          await _findProvider(summary.providerId);
-      final brand = summary.brandId == null
+    final payload = await _apiClient.get<dynamic>(
+      '/services/$id',
+      mapper: (data) => data,
+    );
+    final entity = _extractEntity(payload, ['service', 'item']);
+    final availabilityEntity = await _tryFetchServiceAvailability(id);
+    final resolvedEntity = {
+      ...entity,
+      ...?availabilityEntity == null
           ? null
-          : _parseNestedBrand(entity) ?? await _findBrand(summary.brandId!);
-      final slots = _parseAvailabilityWindows(entity);
+          : {'availability': availabilityEntity},
+    };
+    final serviceContent = _serviceContent(resolvedEntity);
+    final summary = _parseServiceSummary(resolvedEntity);
+    _rememberService(summary);
 
-      return ServiceDetail(
-        summary: summary,
-        description:
-            _readString(entity, [
-              'description',
-              'summary',
-              'details',
-              'descriptionSnippet',
+    final provider =
+        _parseNestedProvider(resolvedEntity) ??
+        await _findProvider(summary.providerId);
+    final brand = summary.brandId == null
+        ? null
+        : _parseNestedBrand(resolvedEntity) ??
+              await _findBrand(summary.brandId!);
+    final slots = _parseAvailabilityWindows(resolvedEntity);
+
+    return ServiceDetail(
+      summary: summary,
+      description: serviceContent.summary,
+      about: serviceContent.about,
+      availabilitySummary:
+          _readString(resolvedEntity, [
+            'availabilitySummary',
+            'availability.summary',
+            'availability.description',
+          ]) ??
+          _buildAvailabilitySummary(slots),
+      requestableSlots: slots,
+      waitingTimeLabel: _formatDurationLabel(
+        minutes: _readInt(resolvedEntity, [
+          'waitingTimeMinutes',
+          'waitingTime',
+          'waiting_time',
+        ]),
+        fallback: 'Provider-defined waiting time',
+      ),
+      freeCancellationLabel: _formatCancellationLabel(
+        hours:
+            _readInt(resolvedEntity, [
+              'freeCancellationHours',
+              'freeCancellationDeadlineHours',
+              'free_cancellation_hours',
             ]) ??
-            summary.descriptionSnippet ??
-            'Service details are available from the backend record.',
-        about:
-            _readString(entity, ['about', 'provider.bio', 'provider.about']) ??
-            summary.descriptionSnippet ??
-            'Provider-specific notes are available on request.',
+            ((_readInt(resolvedEntity, [
+                      'freeCancellationDeadlineMinutes',
+                      'free_cancellation_deadline_minutes',
+                    ]) ??
+                    0) ~/
+                60),
+      ),
+      galleryMedia: _parseMediaAssets(resolvedEntity),
+      provider:
+          provider ??
+          ProviderSummary(
+            id: summary.providerId,
+            name: summary.providerName,
+            headline: 'Provider details',
+            bio: summary.descriptionSnippet ?? 'Provider details unavailable.',
+            distanceKm: summary.distanceKm,
+            rating: summary.rating,
+            reviewCount: summary.reviewCount,
+            completedReservations: 0,
+            responseReliability: 'Response time unavailable',
+            brandIds: [if (summary.brandId != null) summary.brandId!],
+            categoryIds: [summary.categoryId],
+            visibilityLabels: const [],
+            popularityScore: summary.popularityScore,
+            availableNow: summary.isAvailable,
+          ),
+      brand: brand,
+      reviews: const [],
+    );
+  }
+
+  @override
+  Future<ProviderServicesData> getProviderServices(String providerId) async {
+    final payload = await _apiClient.get<dynamic>(
+      '/services',
+      queryParameters: {'ownerUserId': providerId, 'includeInactive': true},
+      mapper: (data) => data,
+    );
+    final items = _extractItems(payload, ['items', 'services'])
+        .map((item) {
+          final entity = asJsonMap(item);
+          final summary = _parseServiceSummary(entity);
+          _rememberService(summary);
+          return ProviderManagedServiceListItem(
+            summary: summary,
+            serviceType: _parseManagedServiceType(entity),
+            waitingTimeMinutes:
+                _readInt(entity, [
+                  'waitingTimeMinutes',
+                  'waitingTime',
+                  'waiting_time',
+                ]) ??
+                0,
+            leadTimeHours:
+                ((_readInt(entity, ['minAdvanceMinutes', 'leadTimeMinutes']) ??
+                            0) /
+                        60)
+                    .round(),
+            exceptionCount: _parseExceptionNotes(entity).length,
+            canArchive: true,
+          );
+        })
+        .toList(growable: false);
+
+    return ProviderServicesData(
+      services: items,
+      activeCount: items.where((service) => service.summary.isAvailable).length,
+      manualApprovalCount: items
+          .where(
+            (service) => service.summary.approvalMode == ApprovalMode.manual,
+          )
+          .length,
+      brandLinkedCount: items
+          .where((service) => service.summary.brandId != null)
+          .length,
+    );
+  }
+
+  @override
+  Future<ProviderManagedService> getProviderService({
+    required String serviceId,
+    required String providerId,
+  }) async {
+    final payload = await _apiClient.get<dynamic>(
+      '/services/$serviceId',
+      mapper: (data) => data,
+    );
+    final entity = _extractEntity(payload, ['service', 'item']);
+    final availabilityEntity = await _tryFetchServiceAvailability(serviceId);
+    final resolvedEntity = {
+      ...entity,
+      ...?availabilityEntity == null
+          ? null
+          : {'availability': availabilityEntity},
+    };
+    final summary = _parseServiceSummary(resolvedEntity);
+    if (summary.providerId != providerId) {
+      throw const AppException('Service not found for this provider.');
+    }
+    _rememberService(summary);
+
+    final provider =
+        _parseNestedProvider(resolvedEntity) ??
+        await _findProvider(summary.providerId);
+    final brand = summary.brandId == null
+        ? null
+        : _parseNestedBrand(resolvedEntity) ??
+              await _findBrand(summary.brandId!);
+    final slots = _parseAvailabilityWindows(resolvedEntity);
+    final draft = _draftFromServiceEntity(
+      summary: summary,
+      entity: resolvedEntity,
+      slots: slots,
+    );
+
+    return ProviderManagedService(
+      detail: ServiceDetail(
+        summary: summary,
+        description: _serviceContent(resolvedEntity).summary,
+        about: _serviceContent(resolvedEntity).about,
         availabilitySummary:
-            _readString(entity, [
+            _readString(resolvedEntity, [
               'availabilitySummary',
               'availability.summary',
               'availability.description',
@@ -2218,21 +2322,13 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
             _buildAvailabilitySummary(slots),
         requestableSlots: slots,
         waitingTimeLabel: _formatDurationLabel(
-          minutes: _readInt(entity, [
-            'waitingTimeMinutes',
-            'waitingTime',
-            'waiting_time',
-          ]),
+          minutes: draft.waitingTimeMinutes,
           fallback: 'Provider-defined waiting time',
         ),
         freeCancellationLabel: _formatCancellationLabel(
-          hours: _readInt(entity, [
-            'freeCancellationHours',
-            'freeCancellationDeadlineHours',
-            'free_cancellation_hours',
-          ]),
+          hours: draft.freeCancellationHours,
         ),
-        galleryMedia: _parseMediaAssets(entity),
+        galleryMedia: draft.galleryMedia,
         provider:
             provider ??
             ProviderSummary(
@@ -2254,174 +2350,10 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
             ),
         brand: brand,
         reviews: const [],
-      );
-    } catch (_) {
-      return _fallback.getServiceDetail(id);
-    }
-  }
-
-  @override
-  Future<ProviderServicesData> getProviderServices(String providerId) async {
-    try {
-      final payload = await _requestFirstSuccess<dynamic>(
-        _providerServiceCollectionPaths(
-          providerId,
-        ).map(_RequestAttempt.get).toList(growable: false),
-      );
-      final items = _extractItems(payload, ['items', 'services']);
-      final services = <ProviderManagedServiceListItem>[];
-
-      for (final item in items) {
-        final summary = _tryParseServiceSummary(item);
-        if (summary == null) {
-          continue;
-        }
-
-        _rememberService(summary);
-        final entity = asJsonMap(item);
-        services.add(
-          ProviderManagedServiceListItem(
-            summary: summary,
-            serviceType: _parseManagedServiceType(entity),
-            waitingTimeMinutes:
-                _readInt(entity, [
-                  'waitingTimeMinutes',
-                  'waitingTime',
-                  'waiting_time',
-                ]) ??
-                0,
-            leadTimeHours:
-                _readInt(entity, ['leadTimeHours', 'leadTime', 'lead_time']) ??
-                0,
-            exceptionCount: _parseExceptionNotes(entity).length,
-            canArchive:
-                _readBool(entity, [
-                  'canArchive',
-                  'canDelete',
-                  'canRemove',
-                  'permissions.canArchive',
-                ]) ??
-                true,
-          ),
-        );
-      }
-
-      return ProviderServicesData(
-        services: services,
-        activeCount: services
-            .where((service) => service.summary.isAvailable)
-            .length,
-        manualApprovalCount: services
-            .where(
-              (service) => service.summary.approvalMode == ApprovalMode.manual,
-            )
-            .length,
-        brandLinkedCount: services
-            .where((service) => service.summary.brandId != null)
-            .length,
-      );
-    } catch (_) {
-      return _fallback.getProviderServices(providerId);
-    }
-  }
-
-  @override
-  Future<ProviderManagedService> getProviderService({
-    required String serviceId,
-    required String providerId,
-  }) async {
-    try {
-      final payload = await _requestFirstSuccess<dynamic>(
-        _providerServiceDetailPaths(
-          providerId: providerId,
-          serviceId: serviceId,
-        ).map(_RequestAttempt.get).toList(growable: false),
-      );
-      final entity = _extractEntity(payload, ['service', 'item']);
-      final summary = _parseServiceSummary(entity);
-      _rememberService(summary);
-
-      final provider =
-          _parseNestedProvider(entity) ??
-          await _findProvider(summary.providerId);
-      final brand = summary.brandId == null
-          ? null
-          : _parseNestedBrand(entity) ?? await _findBrand(summary.brandId!);
-      final slots = _parseAvailabilityWindows(entity);
-      final draft = _draftFromServiceEntity(
-        summary: summary,
-        entity: entity,
-        slots: slots,
-      );
-
-      return ProviderManagedService(
-        detail: ServiceDetail(
-          summary: summary,
-          description:
-              _readString(entity, [
-                'description',
-                'summary',
-                'details',
-                'descriptionSnippet',
-              ]) ??
-              summary.descriptionSnippet ??
-              'Service details are available from the backend record.',
-          about: _readString(entity, ['about', 'serviceAbout']) ?? draft.about,
-          availabilitySummary:
-              _readString(entity, [
-                'availabilitySummary',
-                'availability.summary',
-                'availability.description',
-              ]) ??
-              _buildAvailabilitySummary(slots),
-          requestableSlots: slots,
-          waitingTimeLabel: _formatDurationLabel(
-            minutes: draft.waitingTimeMinutes,
-            fallback: 'Provider-defined waiting time',
-          ),
-          freeCancellationLabel: _formatCancellationLabel(
-            hours: draft.freeCancellationHours,
-          ),
-          galleryMedia: draft.galleryMedia,
-          provider:
-              provider ??
-              ProviderSummary(
-                id: summary.providerId,
-                name: summary.providerName,
-                headline: 'Provider details',
-                bio:
-                    summary.descriptionSnippet ??
-                    'Provider details unavailable.',
-                distanceKm: summary.distanceKm,
-                rating: summary.rating,
-                reviewCount: summary.reviewCount,
-                completedReservations: 0,
-                responseReliability: 'Response time unavailable',
-                brandIds: [if (summary.brandId != null) summary.brandId!],
-                categoryIds: [summary.categoryId],
-                visibilityLabels: const [],
-                popularityScore: summary.popularityScore,
-                availableNow: summary.isAvailable,
-              ),
-          brand: brand,
-          reviews: const [],
-        ),
-        draft: draft,
-        canArchive:
-            _readBool(entity, [
-              'canArchive',
-              'canDelete',
-              'canRemove',
-              'permissions.canArchive',
-            ]) ??
-            true,
-      );
-    } catch (_) {
-      return _fallback.getProviderService(
-        serviceId: serviceId,
-        providerId: providerId,
-      );
-    }
+      ),
+      draft: draft,
+      canArchive: true,
+    );
   }
 
   @override
@@ -2429,53 +2361,31 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required String providerId,
     required ProviderServiceDraft draft,
   }) async {
-    try {
-      final payload = await _requestFirstSuccess<dynamic>(
-        _providerServiceCollectionPaths(providerId)
-            .map(
-              (path) => _RequestAttempt.post(
-                path,
-                data: _serviceDraftPayload(
-                  providerId: providerId,
-                  draft: draft,
-                ),
-              ),
-            )
-            .toList(growable: false),
+    final payload = await _apiClient.post<dynamic>(
+      '/services',
+      data: _serviceDraftPayload(draft: draft),
+      mapper: (data) => data,
+    );
+    final entity = _tryExtractEntity(payload, ['service', 'item']) ?? const {};
+    final serviceId =
+        _readString(entity, ['id', 'serviceId']) ??
+        (payload is Map
+            ? _readString(asJsonMap(payload), ['id', 'serviceId'])
+            : null);
+    if (serviceId == null || serviceId.isEmpty) {
+      throw const AppException(
+        'Service was created but the backend did not return an identifier.',
+        type: AppExceptionType.server,
       );
-      final entity =
-          _tryExtractEntity(payload, ['service', 'item']) ?? const {};
-      final serviceId =
-          _readString(entity, ['id', 'serviceId']) ??
-          (payload is Map
-              ? _readString(asJsonMap(payload), ['id', 'serviceId'])
-              : null);
-      if (serviceId == null || serviceId.isEmpty) {
-        throw const AppException(
-          'Service was created but the backend did not return an identifier.',
-          type: AppExceptionType.server,
-        );
-      }
-
-      final summary = entity.isEmpty ? null : _tryParseServiceSummary(entity);
-      if (summary != null) {
-        _rememberService(summary);
-      }
-      _invalidateProviderCatalogCaches(
-        providerId: providerId,
-        serviceId: serviceId,
-        brandId: summary?.brandId ?? draft.brandId,
-      );
-      return serviceId;
-    } on AppException catch (error) {
-      if (_shouldFallbackProviderManagement(error)) {
-        return _fallback.createProviderService(
-          providerId: providerId,
-          draft: draft,
-        );
-      }
-      rethrow;
     }
+
+    await _uploadServicePhotos(serviceId, draft.galleryMedia);
+    _invalidateProviderCatalogCaches(
+      providerId: providerId,
+      serviceId: serviceId,
+      brandId: draft.brandId,
+    );
+    return serviceId;
   }
 
   @override
@@ -2484,45 +2394,36 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required String serviceId,
     required ProviderServiceDraft draft,
   }) async {
-    try {
-      final payload = await _requestFirstSuccess<dynamic>([
-        for (final path in _providerServiceDetailPaths(
-          providerId: providerId,
-          serviceId: serviceId,
-        ))
-          _RequestAttempt.patch(
-            path,
-            data: _serviceDraftPayload(providerId: providerId, draft: draft),
-          ),
-        for (final path in _providerServiceDetailPaths(
-          providerId: providerId,
-          serviceId: serviceId,
-        ))
-          _RequestAttempt.put(
-            path,
-            data: _serviceDraftPayload(providerId: providerId, draft: draft),
-          ),
-      ]);
-      final entity = _tryExtractEntity(payload, ['service', 'item']);
-      final summary = entity == null ? null : _tryParseServiceSummary(entity);
-      if (summary != null) {
-        _rememberService(summary);
-      }
-      _invalidateProviderCatalogCaches(
-        providerId: providerId,
-        serviceId: serviceId,
-        brandId: summary?.brandId ?? draft.brandId,
-      );
-    } on AppException catch (error) {
-      if (_shouldFallbackProviderManagement(error)) {
-        return _fallback.updateProviderService(
-          providerId: providerId,
-          serviceId: serviceId,
-          draft: draft,
-        );
-      }
-      rethrow;
+    final existing = await getProviderService(
+      serviceId: serviceId,
+      providerId: providerId,
+    );
+    final payload = await _apiClient.patch<dynamic>(
+      '/services/$serviceId',
+      data: _serviceDraftPayload(draft: draft),
+      mapper: (data) => data,
+    );
+    final entity = _tryExtractEntity(payload, ['service', 'item']);
+    final summary = entity == null ? null : _tryParseServiceSummary(entity);
+    if (summary != null) {
+      _rememberService(summary);
     }
+
+    await _replaceServiceAvailabilityExceptions(
+      serviceId,
+      draft.requestableSlots,
+    );
+    await _syncServicePhotos(
+      serviceId: serviceId,
+      previousAssets: existing.draft.galleryMedia,
+      nextAssets: draft.galleryMedia,
+    );
+    _invalidateProviderCatalogCaches(
+      providerId: providerId,
+      serviceId: serviceId,
+      brandId:
+          summary?.brandId ?? draft.brandId ?? existing.detail.summary.brandId,
+    );
   }
 
   @override
@@ -2530,81 +2431,58 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required String providerId,
     required String serviceId,
   }) async {
-    try {
-      await _requestFirstSuccess<dynamic>([
-        for (final path in _providerServiceDetailPaths(
-          providerId: providerId,
-          serviceId: serviceId,
-        ))
-          _RequestAttempt.delete(path),
-        for (final path in _providerServiceDetailPaths(
-          providerId: providerId,
-          serviceId: serviceId,
-        ))
-          _RequestAttempt.post('$path/archive'),
-      ]);
-      _invalidateProviderCatalogCaches(
-        providerId: providerId,
-        serviceId: serviceId,
-      );
-    } on AppException catch (error) {
-      if (_shouldFallbackProviderManagement(error)) {
-        return _fallback.archiveProviderService(
-          providerId: providerId,
-          serviceId: serviceId,
-        );
-      }
-      rethrow;
-    }
+    await _apiClient.delete<dynamic>(
+      '/services/$serviceId',
+      mapper: (data) => data,
+    );
+    _invalidateProviderCatalogCaches(
+      providerId: providerId,
+      serviceId: serviceId,
+    );
   }
 
   @override
   Future<ProviderBrandsData> getProviderBrands(String providerId) async {
-    try {
-      final payload = await _requestFirstSuccess<dynamic>(
-        _providerBrandCollectionPaths(
-          providerId,
-        ).map(_RequestAttempt.get).toList(growable: false),
-      );
-      final items = _extractItems(payload, ['items', 'brands']);
-      final brands = <ProviderManagedBrandListItem>[];
+    final provider = await _fetchProviderSummary(providerId);
+    final ownedBrandIds = provider.brandIds.toSet();
+    final services = await _fetchServiceSummaries(
+      ownerUserId: providerId,
+      includeInactive: true,
+    );
+    final brands = (await _fetchBrandSummaries())
+        .where((brand) => ownedBrandIds.contains(brand.id))
+        .toList(growable: false);
 
-      for (final item in items) {
-        final summary = _tryParseBrandSummary(item);
-        if (summary == null) {
-          continue;
-        }
-        _rememberBrand(summary);
-        final entity = asJsonMap(item);
-        final joinRequests = _parseBrandJoinRequests(entity);
-        brands.add(
-          ProviderManagedBrandListItem(
-            summary: summary,
-            joinRequestCount:
-                _readInt(entity, [
-                  'pendingJoinRequestCount',
-                  'joinRequestCount',
-                  'membershipRequestCount',
-                ]) ??
-                joinRequests.length,
-          ),
+    final joinRequestCounts = <String, int>{};
+    await Future.wait(
+      brands.map((brand) async {
+        final requests = await _fetchProviderBrandJoinRequests(
+          providerId: providerId,
+          brandId: brand.id,
         );
-      }
+        joinRequestCounts[brand.id] = requests.length;
+      }),
+    );
 
-      return ProviderBrandsData(
-        brands: brands,
-        totalServiceCount: brands.fold<int>(
-          0,
-          (total, brand) => total + brand.summary.serviceCount,
-        ),
-        pendingJoinRequestCount: brands.fold<int>(
-          0,
-          (total, brand) => total + brand.joinRequestCount,
-        ),
-      );
-    } catch (_) {
-      return _fallback.getProviderBrands(providerId);
-    }
+    final items = brands
+        .map(
+          (brand) => ProviderManagedBrandListItem(
+            summary: brand,
+            joinRequestCount: joinRequestCounts[brand.id] ?? 0,
+          ),
+        )
+        .toList(growable: false);
+
+    return ProviderBrandsData(
+      brands: items,
+      totalServiceCount: services
+          .where((service) => service.brandId != null)
+          .length,
+      pendingJoinRequestCount: items.fold<int>(
+        0,
+        (total, brand) => total + brand.joinRequestCount,
+      ),
+    );
   }
 
   @override
@@ -2612,67 +2490,43 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required String brandId,
     required String providerId,
   }) async {
-    try {
-      final payload = await _requestFirstSuccess<dynamic>(
-        _providerBrandDetailPaths(
-          providerId: providerId,
-          brandId: brandId,
-        ).map(_RequestAttempt.get).toList(growable: false),
-      );
-      final entity = _extractEntity(payload, ['brand', 'item']);
-      final summary = _parseBrandSummary(entity);
-      _rememberBrand(summary);
+    final payload = await _apiClient.get<dynamic>(
+      '/brands/$brandId',
+      mapper: (data) => data,
+    );
+    final entity = _extractEntity(payload, ['brand', 'item']);
+    final summary = _parseBrandSummary(entity);
+    _rememberBrand(summary);
 
-      final members = entity['members'] is List
-          ? _parseProviderList(entity['members'])
-          : entity['providers'] is List
-          ? _parseProviderList(entity['providers'])
-          : (await _fetchProviderSummaries())
-                .where((provider) => provider.brandIds.contains(brandId))
-                .toList(growable: false);
-      final services = entity['services'] is List
-          ? entity['services'] is List
-                ? asJsonMapList(entity['services'])
-                      .map(_tryParseServiceSummary)
-                      .whereType<ServiceSummary>()
-                      .toList(growable: false)
-                : const <ServiceSummary>[]
-          : (await _fetchServiceSummaries())
-                .where((service) => service.brandId == brandId)
-                .toList(growable: false);
-      for (final service in services) {
-        _rememberService(service);
-      }
-      final joinRequests = _parseBrandJoinRequests(entity);
-      final resolvedJoinRequests = joinRequests.isNotEmpty
-          ? joinRequests
-          : await _fetchProviderBrandJoinRequests(
-              providerId: providerId,
-              brandId: brandId,
-            );
-      final draft = _draftFromBrandEntity(summary: summary, entity: entity);
-
-      return ProviderManagedBrand(
-        detail: BrandDetail(
-          summary: summary,
-          description:
-              _readString(entity, ['description', 'about', 'headline']) ??
-              summary.headline,
-          mapHint:
-              _readString(entity, ['mapHint', 'locationHint']) ?? draft.mapHint,
-          members: members,
-          services: services,
-          reviews: const [],
-        ),
-        draft: draft,
-        joinRequests: resolvedJoinRequests,
-      );
-    } catch (_) {
-      return _fallback.getProviderBrand(
-        brandId: brandId,
-        providerId: providerId,
-      );
+    final provider = await _fetchProviderSummary(providerId);
+    if (!provider.brandIds.contains(brandId)) {
+      throw const AppException('Brand not found for this provider.');
     }
+
+    final members = await _fetchBrandMembers(brandId);
+    final services = await _fetchServiceSummaries(
+      ownerUserId: providerId,
+      includeInactive: true,
+      brandId: brandId,
+    );
+    final joinRequests = await _fetchProviderBrandJoinRequests(
+      providerId: providerId,
+      brandId: brandId,
+    );
+    final draft = _draftFromBrandEntity(summary: summary, entity: entity);
+
+    return ProviderManagedBrand(
+      detail: BrandDetail(
+        summary: summary,
+        description: _brandContent(entity).description,
+        mapHint: _brandContent(entity).mapHint,
+        members: members,
+        services: services,
+        reviews: const [],
+      ),
+      draft: draft,
+      joinRequests: joinRequests,
+    );
   }
 
   @override
@@ -2680,48 +2534,27 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required String providerId,
     required ProviderBrandDraft draft,
   }) async {
-    try {
-      final payload = await _requestFirstSuccess<dynamic>(
-        _providerBrandCollectionPaths(providerId)
-            .map(
-              (path) => _RequestAttempt.post(
-                path,
-                data: _brandDraftPayload(providerId: providerId, draft: draft),
-              ),
-            )
-            .toList(growable: false),
+    final payload = await _apiClient.post<dynamic>(
+      '/brands',
+      data: _brandDraftPayload(draft: draft),
+      mapper: (data) => data,
+    );
+    final entity = _tryExtractEntity(payload, ['brand', 'item']) ?? const {};
+    final brandId =
+        _readString(entity, ['id', 'brandId']) ??
+        (payload is Map
+            ? _readString(asJsonMap(payload), ['id', 'brandId'])
+            : null);
+    if (brandId == null || brandId.isEmpty) {
+      throw const AppException(
+        'Brand was created but the backend did not return an identifier.',
+        type: AppExceptionType.server,
       );
-      final entity = _tryExtractEntity(payload, ['brand', 'item']) ?? const {};
-      final brandId =
-          _readString(entity, ['id', 'brandId']) ??
-          (payload is Map
-              ? _readString(asJsonMap(payload), ['id', 'brandId'])
-              : null);
-      if (brandId == null || brandId.isEmpty) {
-        throw const AppException(
-          'Brand was created but the backend did not return an identifier.',
-          type: AppExceptionType.server,
-        );
-      }
-
-      final summary = entity.isEmpty ? null : _tryParseBrandSummary(entity);
-      if (summary != null) {
-        _rememberBrand(summary);
-      }
-      _invalidateProviderCatalogCaches(
-        providerId: providerId,
-        brandId: brandId,
-      );
-      return brandId;
-    } on AppException catch (error) {
-      if (_shouldFallbackProviderManagement(error)) {
-        return _fallback.createProviderBrand(
-          providerId: providerId,
-          draft: draft,
-        );
-      }
-      rethrow;
     }
+
+    await _uploadBrandLogo(brandId, draft.logoMedia);
+    _invalidateProviderCatalogCaches(providerId: providerId, brandId: brandId);
+    return brandId;
   }
 
   @override
@@ -2730,44 +2563,13 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required String brandId,
     required ProviderBrandDraft draft,
   }) async {
-    try {
-      final payload = await _requestFirstSuccess<dynamic>([
-        for (final path in _providerBrandDetailPaths(
-          providerId: providerId,
-          brandId: brandId,
-        ))
-          _RequestAttempt.patch(
-            path,
-            data: _brandDraftPayload(providerId: providerId, draft: draft),
-          ),
-        for (final path in _providerBrandDetailPaths(
-          providerId: providerId,
-          brandId: brandId,
-        ))
-          _RequestAttempt.put(
-            path,
-            data: _brandDraftPayload(providerId: providerId, draft: draft),
-          ),
-      ]);
-      final entity = _tryExtractEntity(payload, ['brand', 'item']);
-      final summary = entity == null ? null : _tryParseBrandSummary(entity);
-      if (summary != null) {
-        _rememberBrand(summary);
-      }
-      _invalidateProviderCatalogCaches(
-        providerId: providerId,
-        brandId: brandId,
-      );
-    } on AppException catch (error) {
-      if (_shouldFallbackProviderManagement(error)) {
-        return _fallback.updateProviderBrand(
-          providerId: providerId,
-          brandId: brandId,
-          draft: draft,
-        );
-      }
-      rethrow;
-    }
+    await _apiClient.patch<dynamic>(
+      '/brands/$brandId',
+      data: _brandDraftPayload(draft: draft),
+      mapper: (data) => data,
+    );
+    await _uploadBrandLogo(brandId, draft.logoMedia);
+    _invalidateProviderCatalogCaches(providerId: providerId, brandId: brandId);
   }
 
   @override
@@ -2776,28 +2578,11 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required String brandId,
     required String requestId,
   }) async {
-    try {
-      await _requestFirstSuccess<dynamic>(
-        _acceptJoinRequestPaths(
-          brandId: brandId,
-          providerId: providerId,
-          requestId: requestId,
-        ).map(_RequestAttempt.post).toList(growable: false),
-      );
-      _invalidateProviderCatalogCaches(
-        providerId: providerId,
-        brandId: brandId,
-      );
-    } on AppException catch (error) {
-      if (_shouldFallbackProviderManagement(error)) {
-        return _fallback.acceptBrandJoinRequest(
-          providerId: providerId,
-          brandId: brandId,
-          requestId: requestId,
-        );
-      }
-      rethrow;
-    }
+    await _apiClient.post<dynamic>(
+      '/brands/$brandId/join-requests/$requestId/accept',
+      mapper: (data) => data,
+    );
+    _invalidateProviderCatalogCaches(providerId: providerId, brandId: brandId);
   }
 
   @override
@@ -2806,28 +2591,11 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required String brandId,
     required String requestId,
   }) async {
-    try {
-      await _requestFirstSuccess<dynamic>(
-        _rejectJoinRequestPaths(
-          brandId: brandId,
-          providerId: providerId,
-          requestId: requestId,
-        ).map(_RequestAttempt.post).toList(growable: false),
-      );
-      _invalidateProviderCatalogCaches(
-        providerId: providerId,
-        brandId: brandId,
-      );
-    } on AppException catch (error) {
-      if (_shouldFallbackProviderManagement(error)) {
-        return _fallback.rejectBrandJoinRequest(
-          providerId: providerId,
-          brandId: brandId,
-          requestId: requestId,
-        );
-      }
-      rethrow;
-    }
+    await _apiClient.post<dynamic>(
+      '/brands/$brandId/join-requests/$requestId/reject',
+      mapper: (data) => data,
+    );
+    _invalidateProviderCatalogCaches(providerId: providerId, brandId: brandId);
   }
 
   ProviderServiceDraft _draftFromServiceEntity({
@@ -2835,24 +2603,15 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required JsonMap entity,
     required List<AvailabilityWindow> slots,
   }) {
+    final content = _serviceContent(entity);
     final galleryMedia = _parseMediaAssets(entity);
     return ProviderServiceDraft(
       name: summary.name,
       categoryId: summary.categoryId,
       categoryName: summary.categoryName,
       addressLine: summary.addressLine,
-      descriptionSnippet:
-          _readString(entity, [
-            'descriptionSnippet',
-            'description',
-            'summary',
-          ]) ??
-          summary.descriptionSnippet ??
-          '',
-      about:
-          _readString(entity, ['about', 'details', 'serviceAbout']) ??
-          summary.descriptionSnippet ??
-          '',
+      descriptionSnippet: content.summary,
+      about: content.about,
       approvalMode: summary.approvalMode,
       isAvailable: summary.isAvailable,
       serviceType: _parseManagedServiceType(entity),
@@ -2864,17 +2623,29 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
           ]) ??
           0,
       leadTimeHours:
-          _readInt(entity, ['leadTimeHours', 'leadTime', 'lead_time']) ?? 0,
+          _readInt(entity, ['leadTimeHours', 'leadTime', 'lead_time']) ??
+          ((_readInt(entity, [
+                    'minAdvanceMinutes',
+                    'leadTimeMinutes',
+                    'min_advance_minutes',
+                  ]) ??
+                  0) ~/
+              60),
       freeCancellationHours:
           _readInt(entity, [
             'freeCancellationHours',
             'freeCancellationDeadlineHours',
             'free_cancellation_hours',
           ]) ??
-          0,
+          ((_readInt(entity, [
+                    'freeCancellationDeadlineMinutes',
+                    'free_cancellation_deadline_minutes',
+                  ]) ??
+                  0) ~/
+              60),
       visibilityLabels: summary.visibilityLabels,
       requestableSlots: slots,
-      exceptionNotes: _parseExceptionNotes(entity),
+      exceptionNotes: content.notes,
       galleryMedia: galleryMedia,
       brandId: summary.brandId,
       brandName: summary.brandName,
@@ -2886,177 +2657,49 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     required BrandSummary summary,
     required JsonMap entity,
   }) {
+    final content = _brandContent(entity);
     return ProviderBrandDraft(
       name: summary.name,
-      headline: summary.headline,
+      headline: content.headline,
       addressLine: summary.addressLine,
-      description:
-          _readString(entity, ['description', 'about', 'headline']) ??
-          summary.headline,
-      mapHint:
-          _readString(entity, ['mapHint', 'locationHint']) ??
-          'Use the saved address in your maps app for directions.',
+      description: content.description,
+      mapHint: content.mapHint,
       visibilityLabels: summary.visibilityLabels,
       openNow: summary.openNow,
       logoMedia:
-          _parsePrimaryMediaAsset(entity, ['logoMedia', 'logo', 'brandLogo']) ??
+          _parsePrimaryMediaAsset(entity, [
+            'logoMedia',
+            'logo',
+            'brandLogo',
+            'logoFile',
+          ]) ??
           summary.logoMedia,
     );
   }
-
-  List<String> _providerServiceCollectionPaths(String providerId) => [
-    '/service-owners/me/services',
-    '/providers/me/services',
-    '/providers/$providerId/services',
-    '/service-owners/$providerId/services',
-  ];
-
-  List<String> _providerServiceDetailPaths({
-    required String providerId,
-    required String serviceId,
-  }) => [
-    '/service-owners/me/services/$serviceId',
-    '/providers/me/services/$serviceId',
-    '/providers/$providerId/services/$serviceId',
-    '/service-owners/$providerId/services/$serviceId',
-  ];
-
-  List<String> _providerBrandCollectionPaths(String providerId) => [
-    '/service-owners/me/brands',
-    '/providers/me/brands',
-    '/providers/$providerId/brands',
-    '/service-owners/$providerId/brands',
-  ];
-
-  List<String> _providerBrandDetailPaths({
-    required String providerId,
-    required String brandId,
-  }) => [
-    '/service-owners/me/brands/$brandId',
-    '/providers/me/brands/$brandId',
-    '/providers/$providerId/brands/$brandId',
-    '/service-owners/$providerId/brands/$brandId',
-  ];
-
-  List<String> _acceptJoinRequestPaths({
-    required String brandId,
-    required String providerId,
-    required String requestId,
-  }) => [
-    '/brands/$brandId/join-requests/$requestId/accept',
-    '/service-owners/me/brands/$brandId/join-requests/$requestId/accept',
-    '/providers/me/brands/$brandId/join-requests/$requestId/accept',
-    '/providers/$providerId/brands/$brandId/join-requests/$requestId/accept',
-  ];
-
-  List<String> _rejectJoinRequestPaths({
-    required String brandId,
-    required String providerId,
-    required String requestId,
-  }) => [
-    '/brands/$brandId/join-requests/$requestId/reject',
-    '/service-owners/me/brands/$brandId/join-requests/$requestId/reject',
-    '/providers/me/brands/$brandId/join-requests/$requestId/reject',
-    '/providers/$providerId/brands/$brandId/join-requests/$requestId/reject',
-  ];
 
   Future<List<BrandJoinRequest>> _fetchProviderBrandJoinRequests({
     required String providerId,
     required String brandId,
   }) async {
-    try {
-      final payload = await _requestFirstSuccess<dynamic>([
-        for (final path in [
-          '/brands/$brandId/join-requests',
-          '/service-owners/me/brands/$brandId/join-requests',
-          '/providers/me/brands/$brandId/join-requests',
-          '/providers/$providerId/brands/$brandId/join-requests',
-        ])
-          _RequestAttempt.get(path),
-      ]);
-      final items = _extractItems(payload, [
-        'items',
-        'joinRequests',
-        'pendingJoinRequests',
-        'membershipRequests',
-      ]);
-      return items
-          .map(_tryParseBrandJoinRequest)
-          .whereType<BrandJoinRequest>()
-          .toList(growable: false);
-    } on AppException catch (error) {
-      if (_shouldFallbackProviderManagement(error)) {
-        return const [];
-      }
-      rethrow;
-    }
-  }
-
-  Future<T> _requestFirstSuccess<T>(List<_RequestAttempt> attempts) async {
-    final errors = <AppException>[];
-
-    for (final attempt in attempts) {
-      try {
-        switch (attempt.method) {
-          case 'GET':
-            return await _apiClient.get<T>(
-              attempt.path,
-              mapper: (data) => data as T,
-            );
-          case 'POST':
-            return await _apiClient.post<T>(
-              attempt.path,
-              data: attempt.data,
-              mapper: (data) => data as T,
-            );
-          case 'PATCH':
-            return await _apiClient.patch<T>(
-              attempt.path,
-              data: attempt.data,
-              mapper: (data) => data as T,
-            );
-          case 'PUT':
-            return await _apiClient.put<T>(
-              attempt.path,
-              data: attempt.data,
-              mapper: (data) => data as T,
-            );
-          case 'DELETE':
-            return await _apiClient.delete<T>(
-              attempt.path,
-              data: attempt.data,
-              mapper: (data) => data as T,
-            );
-        }
-      } on AppException catch (error) {
-        if (_shouldTryNextProviderEndpoint(error)) {
-          errors.add(error);
-          continue;
-        }
-        rethrow;
-      }
+    final provider = await _fetchProviderSummary(providerId);
+    if (!provider.brandIds.contains(brandId)) {
+      throw const AppException('Brand not found for this provider.');
     }
 
-    final lastError = errors.isEmpty ? null : errors.last;
-    throw AppException(
-      'The provider management endpoint is unavailable right now.',
-      type: AppExceptionType.server,
-      statusCode: lastError?.statusCode,
-      code: lastError?.code,
-      details: lastError?.details,
-      requestId: lastError?.requestId,
+    final payload = await _apiClient.get<dynamic>(
+      '/brands/$brandId/join-requests',
+      mapper: (data) => data,
     );
-  }
-
-  bool _shouldTryNextProviderEndpoint(AppException error) {
-    return switch (error.statusCode) {
-      404 || 405 || 501 => true,
-      _ => false,
-    };
-  }
-
-  bool _shouldFallbackProviderManagement(AppException error) {
-    return _shouldTryNextProviderEndpoint(error);
+    final items = _extractItems(payload, [
+      'items',
+      'joinRequests',
+      'pendingJoinRequests',
+      'membershipRequests',
+    ]);
+    return items
+        .map(_tryParseBrandJoinRequest)
+        .whereType<BrandJoinRequest>()
+        .toList(growable: false);
   }
 
   void _invalidateProviderCatalogCaches({
@@ -3080,66 +2723,204 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
   }
 
   Map<String, dynamic> _serviceDraftPayload({
-    required String providerId,
     required ProviderServiceDraft draft,
   }) {
+    final address = _addressPayload(draft.addressLine.trim());
     return {
-      'providerId': providerId,
       'name': draft.name.trim(),
-      'categoryId': draft.categoryId,
-      'categoryName': draft.categoryName,
+      if (draft.categoryId.isNotEmpty) 'categoryId': draft.categoryId,
       'brandId': draft.brandId,
-      'addressLine': draft.addressLine.trim(),
-      'description': draft.descriptionSnippet.trim(),
-      'descriptionSnippet': draft.descriptionSnippet.trim(),
-      'about': draft.about.trim(),
+      'address': address,
+      'description': _serviceDescriptionValue(draft),
       'approvalMode': _approvalModeValue(draft.approvalMode),
-      'isAvailable': draft.isAvailable,
       'serviceType': _serviceTypeValue(draft.serviceType),
       'waitingTimeMinutes': draft.waitingTimeMinutes,
-      'leadTimeHours': draft.leadTimeHours,
-      'freeCancellationHours': draft.freeCancellationHours,
-      'visibilityLabels': draft.visibilityLabels
-          .map(_visibilityLabelValue)
-          .toList(growable: false),
-      'requestableSlots': draft.requestableSlots
-          .map(
-            (slot) => {
-              'startsAt': slot.startsAt.toUtc().toIso8601String(),
-              'label': slot.label,
-              'available': slot.available,
-              if (slot.note != null && slot.note!.trim().isNotEmpty)
-                'note': slot.note!.trim(),
-            },
-          )
-          .toList(growable: false),
-      'exceptionNotes': draft.exceptionNotes
-          .map((note) => note.trim())
-          .where((note) => note.isNotEmpty)
-          .toList(growable: false),
-      'gallery': _serializeMediaAssets(draft.galleryMedia),
-      if (draft.price != null) 'price': draft.price,
+      'minAdvanceMinutes': draft.leadTimeHours * 60,
+      'freeCancellationDeadlineMinutes': draft.freeCancellationHours * 60,
+      'availabilityExceptions': _availabilityExceptionsPayload(
+        draft.requestableSlots,
+      ),
+      if (draft.price != null) ...{
+        'priceAmount': draft.price,
+        'priceCurrency': 'AZN',
+      },
     };
   }
 
-  Map<String, dynamic> _brandDraftPayload({
-    required String providerId,
-    required ProviderBrandDraft draft,
-  }) {
+  Map<String, dynamic> _brandDraftPayload({required ProviderBrandDraft draft}) {
     return {
-      'providerId': providerId,
       'name': draft.name.trim(),
-      'headline': draft.headline.trim(),
-      'addressLine': draft.addressLine.trim(),
-      'description': draft.description.trim(),
-      'mapHint': draft.mapHint.trim(),
-      'visibilityLabels': draft.visibilityLabels
-          .map(_visibilityLabelValue)
-          .toList(growable: false),
-      'openNow': draft.openNow,
-      if (draft.logoMedia != null)
-        'logo': _serializeMediaAsset(draft.logoMedia!),
+      'description': _brandDescriptionValue(draft),
+      'primaryAddress': _addressPayload(draft.addressLine.trim()),
     };
+  }
+
+  Future<void> _replaceServiceAvailabilityExceptions(
+    String serviceId,
+    List<AvailabilityWindow> slots,
+  ) async {
+    await _apiClient.put<dynamic>(
+      '/services/$serviceId/availability-exceptions',
+      data: {'exceptions': _availabilityExceptionsPayload(slots)},
+      mapper: (data) => data,
+    );
+  }
+
+  Future<void> _uploadServicePhotos(
+    String serviceId,
+    List<AppMediaAsset> assets,
+  ) async {
+    for (final asset in assets) {
+      if (!asset.hasBytes) {
+        continue;
+      }
+      await _apiClient.post<dynamic>(
+        '/services/$serviceId/photos',
+        data: _mediaFormData(asset),
+        headers: const {'Content-Type': 'multipart/form-data'},
+        mapper: (data) => data,
+      );
+    }
+  }
+
+  Future<void> _syncServicePhotos({
+    required String serviceId,
+    required List<AppMediaAsset> previousAssets,
+    required List<AppMediaAsset> nextAssets,
+  }) async {
+    final nextIds = nextAssets
+        .where((asset) => !asset.hasBytes)
+        .map((asset) => asset.id)
+        .toSet();
+    for (final asset in previousAssets) {
+      if (asset.hasBytes || nextIds.contains(asset.id)) {
+        continue;
+      }
+      await _apiClient.delete<dynamic>(
+        '/services/$serviceId/photos/${asset.id}',
+        mapper: (data) => data,
+      );
+    }
+
+    await _uploadServicePhotos(serviceId, nextAssets);
+  }
+
+  Future<void> _uploadBrandLogo(String brandId, AppMediaAsset? asset) async {
+    if (asset == null || !asset.hasBytes) {
+      return;
+    }
+    await _apiClient.post<dynamic>(
+      '/brands/$brandId/logo',
+      data: _mediaFormData(asset),
+      headers: const {'Content-Type': 'multipart/form-data'},
+      mapper: (data) => data,
+    );
+  }
+
+  FormData _mediaFormData(AppMediaAsset asset) {
+    return FormData.fromMap({
+      'file': MultipartFile.fromBytes(
+        asset.bytes!,
+        filename: _filenameForAsset(asset),
+      ),
+    });
+  }
+
+  String _filenameForAsset(AppMediaAsset asset) {
+    final base = asset.label
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    if (base.isEmpty) {
+      return 'upload.jpg';
+    }
+    return '$base.jpg';
+  }
+
+  Map<String, dynamic> _addressPayload(String fullAddress) {
+    final segments = fullAddress
+        .split(',')
+        .map((segment) => segment.trim())
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+    final city = segments.length >= 2 ? segments[segments.length - 1] : 'Baku';
+    final country = segments.length >= 3
+        ? segments.last
+        : _countryForCity(city);
+    return {'fullAddress': fullAddress, 'city': city, 'country': country};
+  }
+
+  String _countryForCity(String city) {
+    final normalized = city.trim().toLowerCase();
+    return switch (normalized) {
+      'baku' || 'baku city' => 'Azerbaijan',
+      _ => 'Azerbaijan',
+    };
+  }
+
+  String _serviceDescriptionValue(ProviderServiceDraft draft) {
+    final buffer = StringBuffer(draft.descriptionSnippet.trim());
+    final about = draft.about.trim();
+    if (about.isNotEmpty && about != draft.descriptionSnippet.trim()) {
+      if (buffer.isNotEmpty) {
+        buffer.write('\n\n');
+      }
+      buffer.write(about);
+    }
+    final notes = draft.exceptionNotes
+        .map((note) => note.trim())
+        .where((note) => note.isNotEmpty)
+        .toList(growable: false);
+    if (notes.isNotEmpty) {
+      if (buffer.isNotEmpty) {
+        buffer.write('\n\n');
+      }
+      buffer.write('Operational notes:\n');
+      buffer.write(notes.map((note) => '- $note').join('\n'));
+    }
+    return buffer.toString().trim();
+  }
+
+  String _brandDescriptionValue(ProviderBrandDraft draft) {
+    final buffer = StringBuffer(draft.headline.trim());
+    final description = draft.description.trim();
+    if (description.isNotEmpty && description != draft.headline.trim()) {
+      if (buffer.isNotEmpty) {
+        buffer.write('\n\n');
+      }
+      buffer.write(description);
+    }
+    final mapHint = draft.mapHint.trim();
+    if (mapHint.isNotEmpty) {
+      if (buffer.isNotEmpty) {
+        buffer.write('\n\n');
+      }
+      buffer.write('Map note: $mapHint');
+    }
+    return buffer.toString().trim();
+  }
+
+  List<Map<String, dynamic>> _availabilityExceptionsPayload(
+    List<AvailabilityWindow> slots,
+  ) {
+    return slots
+        .where((slot) => slot.available)
+        .map((slot) {
+          final local = slot.startsAt.toUtc();
+          final end = local.add(const Duration(minutes: 59));
+          return {
+            'date':
+                '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}',
+            'startTime':
+                '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
+            'endTime':
+                '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}',
+            if (slot.note != null && slot.note!.trim().isNotEmpty)
+              'note': slot.note!.trim(),
+          };
+        })
+        .toList(growable: false);
   }
 
   ManagedServiceType _parseManagedServiceType(JsonMap item) {
@@ -3187,22 +2968,6 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     return notes;
   }
 
-  List<BrandJoinRequest> _parseBrandJoinRequests(JsonMap item) {
-    final values = _readList(item, [
-      'joinRequests',
-      'pendingJoinRequests',
-      'membershipRequests',
-    ]);
-    if (values == null) {
-      return const [];
-    }
-
-    return values
-        .map(_tryParseBrandJoinRequest)
-        .whereType<BrandJoinRequest>()
-        .toList(growable: false);
-  }
-
   BrandJoinRequest? _tryParseBrandJoinRequest(dynamic raw) {
     if (raw is! Map) {
       return null;
@@ -3244,18 +3009,6 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     return _extractEntity(payload, keys);
   }
 
-  List<Map<String, dynamic>> _serializeMediaAssets(List<AppMediaAsset> assets) {
-    return assets.map(_serializeMediaAsset).toList(growable: false);
-  }
-
-  Map<String, dynamic> _serializeMediaAsset(AppMediaAsset asset) {
-    return {
-      'id': asset.id,
-      'label': asset.label,
-      if (asset.remoteUrl != null) 'url': asset.remoteUrl,
-    };
-  }
-
   String _approvalModeValue(ApprovalMode mode) {
     return switch (mode) {
       ApprovalMode.manual => 'MANUAL',
@@ -3267,15 +3020,6 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     return switch (type) {
       ManagedServiceType.solo => 'SOLO',
       ManagedServiceType.multi => 'MULTI',
-    };
-  }
-
-  String _visibilityLabelValue(VisibilityLabel label) {
-    return switch (label) {
-      VisibilityLabel.common => 'COMMON',
-      VisibilityLabel.vip => 'VIP',
-      VisibilityLabel.bestOfMonth => 'BEST_OF_MONTH',
-      VisibilityLabel.sponsored => 'SPONSORED',
     };
   }
 
@@ -3302,18 +3046,31 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       _onCategoriesUpdated?.call(categories);
     }
 
-    return categories.isNotEmpty ? categories : _fallback.categories;
+    return categories;
   }
 
   Future<List<ServiceSummary>> _fetchServiceSummaries({
     bool force = false,
+    String? ownerUserId,
+    String? brandId,
+    bool includeInactive = false,
   }) async {
-    if (!force && _servicesCache != null && _isCacheFresh(_servicesFetchedAt)) {
+    final useCache = ownerUserId == null && brandId == null && !includeInactive;
+    if (useCache &&
+        !force &&
+        _servicesCache != null &&
+        _isCacheFresh(_servicesFetchedAt)) {
       return _servicesCache!;
     }
 
+    final queryParameters = <String, dynamic>{
+      ...?ownerUserId == null ? null : {'ownerUserId': ownerUserId},
+      ...?brandId == null ? null : {'brandId': brandId},
+      if (includeInactive) 'includeInactive': true,
+    };
     final payload = await _apiClient.get<dynamic>(
       '/services',
+      queryParameters: queryParameters,
       mapper: (data) => data,
     );
     final items = _extractItems(payload, ['items', 'services']);
@@ -3322,8 +3079,10 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
         .whereType<ServiceSummary>()
         .toList(growable: false);
 
-    _servicesCache = services;
-    _servicesFetchedAt = DateTime.now();
+    if (useCache) {
+      _servicesCache = services;
+      _servicesFetchedAt = DateTime.now();
+    }
     for (final service in services) {
       _rememberService(service);
     }
@@ -3355,15 +3114,22 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
 
   Future<List<ProviderSummary>> _fetchProviderSummaries({
     bool force = false,
+    String? ownerUserId,
   }) async {
-    if (!force &&
+    final useCache = ownerUserId == null;
+    if (useCache &&
+        !force &&
         _providersCache != null &&
         _isCacheFresh(_providersFetchedAt)) {
       return _providersCache!;
     }
 
+    final queryParameters = ownerUserId == null
+        ? null
+        : <String, dynamic>{'ownerUserId': ownerUserId};
     final payload = await _apiClient.get<dynamic>(
       '/service-owners',
+      queryParameters: queryParameters,
       mapper: (data) => data,
     );
     final items = _extractItems(payload, [
@@ -3377,8 +3143,10 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
         .whereType<ProviderSummary>()
         .toList(growable: false);
 
-    _providersCache = providers;
-    _providersFetchedAt = DateTime.now();
+    if (useCache) {
+      _providersCache = providers;
+      _providersFetchedAt = DateTime.now();
+    }
     for (final provider in providers) {
       _rememberProvider(provider);
     }
@@ -3415,15 +3183,155 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     return null;
   }
 
-  List<ProviderSummary> _parseProviderList(dynamic value) {
-    if (value is! List) {
-      return const [];
+  Future<ProviderSummary> _fetchProviderSummary(String id) async {
+    final cached = _providerSummaryCache[id];
+    if (cached != null) {
+      return cached;
     }
 
-    return value
+    final providers = await _fetchProviderSummaries(ownerUserId: id);
+    for (final provider in providers) {
+      if (provider.id == id) {
+        return provider;
+      }
+    }
+
+    throw const AppException('Provider not found.');
+  }
+
+  Future<List<ProviderSummary>> _fetchBrandMembers(String brandId) async {
+    final payload = await _apiClient.get<dynamic>(
+      '/brands/$brandId/members',
+      mapper: (data) => data,
+    );
+    final items = _extractItems(payload, ['items', 'members', 'providers']);
+    final members = items
         .map(_tryParseProviderSummary)
         .whereType<ProviderSummary>()
         .toList(growable: false);
+    for (final member in members) {
+      _rememberProvider(member);
+    }
+    return members;
+  }
+
+  Future<JsonMap?> _tryFetchServiceAvailability(String serviceId) async {
+    try {
+      final payload = await _apiClient.get<dynamic>(
+        '/services/$serviceId/availability',
+        mapper: (data) => data,
+      );
+      return payload is Map ? asJsonMap(payload) : null;
+    } on AppException catch (error) {
+      if (error.statusCode == 404 || error.statusCode == 405) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  Map<String, dynamic> _searchQueryParameters(DiscoverySearchRequest request) {
+    return {
+      if (request.query.trim().isNotEmpty) 'q': request.query.trim(),
+      if (request.filters.categoryId != null)
+        'categoryId': request.filters.categoryId,
+      if (request.filters.maxPrice != null)
+        'maxPriceAmount': request.filters.maxPrice,
+      if (request.filters.maxDistanceKm != null)
+        'radiusKm': request.filters.maxDistanceKm,
+      if (request.filters.availableOnly) 'availableOnly': true,
+      'sortBy': switch (request.sort) {
+        SearchSort.proximity => 'PROXIMITY',
+        SearchSort.rating => 'RATING',
+        SearchSort.price => 'PRICE_LOW',
+        SearchSort.popularity => 'POPULARITY',
+        SearchSort.availability => 'AVAILABILITY',
+      },
+      'limit': 25,
+    };
+  }
+
+  ({String summary, String about, List<String> notes}) _serviceContent(
+    JsonMap item,
+  ) {
+    final explicitSummary = _readString(item, [
+      'descriptionSnippet',
+      'summary',
+    ]);
+    final explicitAbout = _readString(item, [
+      'about',
+      'details',
+      'serviceAbout',
+    ]);
+    final rawDescription = _readString(item, ['description']) ?? '';
+    final sections = rawDescription
+        .split(RegExp(r'\n\s*\n'))
+        .map((section) => section.trim())
+        .where((section) => section.isNotEmpty)
+        .toList(growable: false);
+    final notesIndex = sections.indexWhere(
+      (section) => section.startsWith('Operational notes:'),
+    );
+    final noteSection = notesIndex == -1 ? null : sections[notesIndex];
+    final notes = {
+      ..._parseExceptionNotes(item),
+      ...?noteSection
+          ?.split('\n')
+          .skip(1)
+          .map((line) => line.trim().replaceFirst(RegExp(r'^-\s*'), '').trim())
+          .where((line) => line.isNotEmpty),
+    }.toList(growable: false);
+    final contentSections = notesIndex == -1
+        ? sections
+        : sections.take(notesIndex).toList(growable: false);
+
+    final summary =
+        explicitSummary ??
+        (contentSections.isNotEmpty
+            ? contentSections.first
+            : (rawDescription.trim().isEmpty
+                  ? 'Service details are available from the backend record.'
+                  : rawDescription.trim()));
+    final aboutSections = contentSections.length > 1
+        ? contentSections.skip(1).toList(growable: false)
+        : const <String>[];
+    final about =
+        explicitAbout ??
+        (aboutSections.isNotEmpty ? aboutSections.join('\n\n') : summary);
+
+    return (summary: summary, about: about, notes: notes);
+  }
+
+  ({String headline, String description, String mapHint}) _brandContent(
+    JsonMap item,
+  ) {
+    final explicitHeadline = _readString(item, ['headline']);
+    final explicitMapHint = _readString(item, ['mapHint', 'locationHint']);
+    final rawDescription = _readString(item, ['description', 'about']) ?? '';
+    final sections = rawDescription
+        .split(RegExp(r'\n\s*\n'))
+        .map((section) => section.trim())
+        .where((section) => section.isNotEmpty)
+        .toList(growable: false);
+    final mapSectionIndex = sections.indexWhere(
+      (section) => section.startsWith('Map note:'),
+    );
+    final mapHint =
+        explicitMapHint ??
+        (mapSectionIndex == -1
+            ? 'Use the saved address in your maps app for directions.'
+            : sections[mapSectionIndex].replaceFirst('Map note:', '').trim());
+    final contentSections = mapSectionIndex == -1
+        ? sections
+        : sections.take(mapSectionIndex).toList(growable: false);
+    final headline =
+        explicitHeadline ??
+        (contentSections.isNotEmpty ? contentSections.first : 'Brand profile');
+    final description = contentSections.length > 1
+        ? contentSections.skip(1).join('\n\n')
+        : (rawDescription.trim().isEmpty ? headline : rawDescription.trim());
+
+    return (headline: headline, description: description, mapHint: mapHint);
   }
 
   DiscoveryCategory? _tryParseCategory(dynamic raw) {
@@ -3465,6 +3373,7 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
   }
 
   ServiceSummary _parseServiceSummary(JsonMap item) {
+    final content = _serviceContent(item);
     final categoryId =
         _readString(item, ['category.id', 'categoryId', 'category_id']) ??
         'general';
@@ -3496,8 +3405,10 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       addressLine:
           _readString(item, [
             'addressLine',
+            'address.fullAddress',
             'address.addressLine',
             'serviceAddress.addressLine',
+            'brand.primaryAddress.fullAddress',
             'brand.addressLine',
           ]) ??
           'Address not specified',
@@ -3545,12 +3456,8 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
               : 'Check availability'),
       brandId: brandId,
       brandName: brandName,
-      price: _readDouble(item, ['price', 'price.amount']),
-      descriptionSnippet: _readString(item, [
-        'descriptionSnippet',
-        'description',
-        'summary',
-      ]),
+      price: _readDouble(item, ['price', 'price.amount', 'priceAmount']),
+      descriptionSnippet: content.summary,
       coverMedia:
           _parsePrimaryMediaAsset(item, ['coverMedia', 'cover', 'heroMedia']) ??
           _parseMediaAssets(item).firstOrNull,
@@ -3573,14 +3480,18 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
   }
 
   BrandSummary _parseBrandSummary(JsonMap item) {
+    final content = _brandContent(item);
     return BrandSummary(
       id: _readString(item, ['id'])!,
       name: _readString(item, ['name', 'title'])!,
-      headline:
-          _readString(item, ['headline', 'description', 'summary']) ??
-          'Brand profile',
+      headline: content.headline,
       addressLine:
-          _readString(item, ['addressLine', 'address.addressLine']) ??
+          _readString(item, [
+            'addressLine',
+            'address.fullAddress',
+            'address.addressLine',
+            'primaryAddress.fullAddress',
+          ]) ??
           'Address not specified',
       distanceKm:
           _readDouble(item, ['distanceKm']) ??
@@ -3601,10 +3512,21 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
           ]) ??
           0,
       serviceCount:
-          _readInt(item, ['serviceCount', 'servicesCount', 'services.count']) ??
+          _readInt(item, [
+            'serviceCount',
+            'servicesCount',
+            'services.count',
+            'stats.serviceCount',
+          ]) ??
           0,
       memberCount:
-          _readInt(item, ['memberCount', 'membersCount', 'members.count']) ?? 0,
+          _readInt(item, [
+            'memberCount',
+            'membersCount',
+            'members.count',
+            'stats.memberCount',
+          ]) ??
+          0,
       categoryIds: _parseCategoryIds(
         _readList(item, ['categories', 'categoryIds']),
       ),
@@ -3617,11 +3539,12 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       ),
       popularityScore:
           _readInt(item, ['popularityScore', 'stats.popularityScore']) ?? 0,
-      openNow: _readBool(item, ['openNow', 'isOpen', 'availableNow']) ?? false,
+      openNow: _readBool(item, ['openNow', 'isOpen', 'availableNow']) ?? true,
       logoMedia: _parsePrimaryMediaAsset(item, [
         'logoMedia',
         'logo',
         'brandLogo',
+        'logoFile',
       ]),
     );
   }
@@ -3702,7 +3625,7 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       popularityScore:
           _readInt(item, ['popularityScore', 'stats.popularityScore']) ?? 0,
       availableNow:
-          _readBool(item, ['availableNow', 'isAvailable', 'openNow']) ?? false,
+          _readBool(item, ['availableNow', 'isAvailable', 'openNow']) ?? true,
     );
   }
 
@@ -3723,42 +3646,51 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       'availability.slots',
       'availability',
     ]);
-    if (rawSlots == null) {
-      return const [];
-    }
-
     final formatter = DateFormat('EEE, MMM d · HH:mm');
     final slots = <AvailabilityWindow>[];
-    for (final rawSlot in rawSlots) {
-      if (rawSlot is! Map) {
-        continue;
-      }
+    if (rawSlots != null) {
+      for (final rawSlot in rawSlots) {
+        if (rawSlot is! Map) {
+          continue;
+        }
 
-      final slot = asJsonMap(rawSlot);
-      final startsAt = _readDateTime(slot, [
-        'startsAt',
-        'startAt',
-        'start',
-        'from',
-      ]);
-      if (startsAt == null) {
-        continue;
-      }
+        final slot = asJsonMap(rawSlot);
+        final startsAt = _readDateTime(slot, [
+          'startsAt',
+          'startAt',
+          'start',
+          'from',
+        ]);
+        if (startsAt == null) {
+          continue;
+        }
 
-      slots.add(
-        AvailabilityWindow(
-          startsAt: startsAt,
-          label:
-              _readString(slot, ['label', 'displayLabel']) ??
-              formatter.format(startsAt.toLocal()),
-          available:
-              _readBool(slot, ['available', 'isAvailable', 'open']) ?? true,
-          note: _readString(slot, ['note', 'status', 'summary']),
-        ),
-      );
+        slots.add(
+          AvailabilityWindow(
+            startsAt: startsAt,
+            label:
+                _readString(slot, ['label', 'displayLabel']) ??
+                formatter.format(startsAt.toLocal()),
+            available:
+                _readBool(slot, ['available', 'isAvailable', 'open']) ?? true,
+            note: _readString(slot, ['note', 'status', 'summary']),
+          ),
+        );
+      }
     }
 
-    return slots;
+    if (slots.isNotEmpty) {
+      slots.sort((left, right) => left.startsAt.compareTo(right.startsAt));
+      return slots.take(8).toList(growable: false);
+    }
+
+    final exceptionSlots = _availabilityWindowsFromExceptions(item);
+    if (exceptionSlots.isNotEmpty) {
+      return exceptionSlots.take(8).toList(growable: false);
+    }
+
+    final recurringSlots = _availabilityWindowsFromRules(item);
+    return recurringSlots.take(8).toList(growable: false);
   }
 
   List<AppMediaAsset> _parseMediaAssets(JsonMap item) {
@@ -3805,26 +3737,210 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     }
 
     final asset = asJsonMap(rawAsset);
+    final fileEntity = _readMap(asset, ['file', 'logoFile']);
     final id =
         _readString(asset, ['id', 'fileId', 'mediaId', 'key']) ??
+        (fileEntity == null ? null : _readString(fileEntity, ['id'])) ??
         _readString(asset, ['url', 'publicUrl', 'downloadUrl', 'cdnUrl']);
     if (id == null || id.isEmpty) {
       return null;
     }
 
-    final label = _readString(asset, ['label', 'name', 'fileName']) ?? 'Photo';
-    final remoteUrl = _readString(asset, [
-      'url',
-      'publicUrl',
-      'downloadUrl',
-      'cdnUrl',
-    ]);
+    final label =
+        _readString(asset, ['label', 'name', 'fileName']) ??
+        (fileEntity == null
+            ? null
+            : _readString(fileEntity, ['originalFilename', 'name'])) ??
+        'Photo';
+    final remoteUrl =
+        _readString(asset, ['url', 'publicUrl', 'downloadUrl', 'cdnUrl']) ??
+        (fileEntity == null
+            ? null
+            : _readString(fileEntity, [
+                'url',
+                'publicUrl',
+                'downloadUrl',
+                'cdnUrl',
+              ]));
 
     if (remoteUrl != null && remoteUrl.isNotEmpty) {
       return AppMediaAsset.uploaded(id: id, label: label, remoteUrl: remoteUrl);
     }
 
     return AppMediaAsset.generated(id: id, label: label);
+  }
+
+  List<AvailabilityWindow> _availabilityWindowsFromExceptions(JsonMap item) {
+    final formatter = DateFormat('EEE, MMM d · HH:mm');
+    final rawExceptions = _readList(item, [
+      'availability.exceptions',
+      'exceptions',
+    ]);
+    if (rawExceptions == null) {
+      return const [];
+    }
+
+    final slots = <AvailabilityWindow>[];
+    for (final rawException in rawExceptions) {
+      if (rawException is! Map) {
+        continue;
+      }
+      final exception = asJsonMap(rawException);
+      if (_readBool(exception, ['isClosedAllDay']) == true) {
+        continue;
+      }
+      final date = _readDateTime(exception, ['date']);
+      final startTime = _readString(exception, ['startTime']);
+      if (date == null || startTime == null) {
+        continue;
+      }
+      final startsAt = _dateWithTime(date.toUtc(), startTime);
+      if (startsAt == null || !startsAt.isAfter(DateTime.now().toUtc())) {
+        continue;
+      }
+      slots.add(
+        AvailabilityWindow(
+          startsAt: startsAt,
+          label: formatter.format(startsAt.toLocal()),
+          available: true,
+          note: _readString(exception, ['note']),
+        ),
+      );
+    }
+
+    slots.sort((left, right) => left.startsAt.compareTo(right.startsAt));
+    return slots;
+  }
+
+  List<AvailabilityWindow> _availabilityWindowsFromRules(JsonMap item) {
+    final formatter = DateFormat('EEE, MMM d · HH:mm');
+    final rawRules = _readList(item, ['availability.rules', 'rules']);
+    if (rawRules == null) {
+      return const [];
+    }
+
+    final nowUtc = DateTime.now().toUtc();
+    final manualBlocks = _parseManualBlocks(item);
+    final slots = <AvailabilityWindow>[];
+    for (final rawRule in rawRules) {
+      if (rawRule is! Map) {
+        continue;
+      }
+      final rule = asJsonMap(rawRule);
+      if (_readBool(rule, ['isActive']) == false) {
+        continue;
+      }
+      final dayOfWeek = _readString(rule, ['dayOfWeek']);
+      final startTime = _readString(rule, ['startTime']);
+      if (dayOfWeek == null || startTime == null) {
+        continue;
+      }
+      slots.addAll(
+        _nextSlotsForRule(
+          dayOfWeek: dayOfWeek,
+          startTime: startTime,
+          nowUtc: nowUtc,
+          formatter: formatter,
+          manualBlocks: manualBlocks,
+        ),
+      );
+    }
+
+    slots.sort((left, right) => left.startsAt.compareTo(right.startsAt));
+    return slots;
+  }
+
+  List<_ManualBlockWindow> _parseManualBlocks(JsonMap item) {
+    final rawBlocks = _readList(item, [
+      'availability.manualBlocks',
+      'manualBlocks',
+    ]);
+    if (rawBlocks == null) {
+      return const [];
+    }
+
+    final blocks = <_ManualBlockWindow>[];
+    for (final rawBlock in rawBlocks) {
+      if (rawBlock is! Map) {
+        continue;
+      }
+      final block = asJsonMap(rawBlock);
+      final startsAt = _readDateTime(block, ['startsAt', 'startAt']);
+      final endsAt = _readDateTime(block, ['endsAt', 'endAt']);
+      if (startsAt == null || endsAt == null) {
+        continue;
+      }
+      blocks.add(_ManualBlockWindow(startsAt: startsAt, endsAt: endsAt));
+    }
+    return blocks;
+  }
+
+  List<AvailabilityWindow> _nextSlotsForRule({
+    required String dayOfWeek,
+    required String startTime,
+    required DateTime nowUtc,
+    required DateFormat formatter,
+    required List<_ManualBlockWindow> manualBlocks,
+  }) {
+    final targetWeekday = _weekdayValue(dayOfWeek);
+    if (targetWeekday == null) {
+      return const [];
+    }
+
+    final slots = <AvailabilityWindow>[];
+    for (var offset = 0; offset < 28 && slots.length < 3; offset += 1) {
+      final date = DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day + offset);
+      if (date.weekday != targetWeekday) {
+        continue;
+      }
+      final startsAt = _dateWithTime(date, startTime);
+      if (startsAt == null || !startsAt.isAfter(nowUtc)) {
+        continue;
+      }
+      final overlapsBlock = manualBlocks.any(
+        (block) =>
+            !startsAt.isBefore(block.startsAt) &&
+            startsAt.isBefore(block.endsAt),
+      );
+      if (overlapsBlock) {
+        continue;
+      }
+      slots.add(
+        AvailabilityWindow(
+          startsAt: startsAt,
+          label: formatter.format(startsAt.toLocal()),
+          available: true,
+          note: 'Recurring availability',
+        ),
+      );
+    }
+    return slots;
+  }
+
+  DateTime? _dateWithTime(DateTime date, String hhmm) {
+    final parts = hhmm.split(':');
+    if (parts.length != 2) {
+      return null;
+    }
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) {
+      return null;
+    }
+    return DateTime.utc(date.year, date.month, date.day, hour, minute);
+  }
+
+  int? _weekdayValue(String raw) {
+    return switch (raw.trim().toUpperCase()) {
+      'MONDAY' => DateTime.monday,
+      'TUESDAY' => DateTime.tuesday,
+      'WEDNESDAY' => DateTime.wednesday,
+      'THURSDAY' => DateTime.thursday,
+      'FRIDAY' => DateTime.friday,
+      'SATURDAY' => DateTime.saturday,
+      'SUNDAY' => DateTime.sunday,
+      _ => null,
+    };
   }
 
   String _buildAvailabilitySummary(List<AvailabilityWindow> slots) {
@@ -3863,7 +3979,47 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
   }
 
   void _rememberProvider(ProviderSummary provider) {
-    _providerSummaryCache[provider.id] = provider;
+    final existing = _providerSummaryCache[provider.id];
+    if (existing == null) {
+      _providerSummaryCache[provider.id] = provider;
+      return;
+    }
+
+    _providerSummaryCache[provider.id] = ProviderSummary(
+      id: provider.id,
+      name: provider.name,
+      headline: provider.headline != 'Service provider'
+          ? provider.headline
+          : existing.headline,
+      bio: provider.bio != 'Provider profile' ? provider.bio : existing.bio,
+      distanceKm: provider.distanceKm != 0
+          ? provider.distanceKm
+          : existing.distanceKm,
+      rating: provider.rating != 0 ? provider.rating : existing.rating,
+      reviewCount: provider.reviewCount != 0
+          ? provider.reviewCount
+          : existing.reviewCount,
+      completedReservations: provider.completedReservations != 0
+          ? provider.completedReservations
+          : existing.completedReservations,
+      responseReliability:
+          provider.responseReliability != 'Response time unavailable'
+          ? provider.responseReliability
+          : existing.responseReliability,
+      brandIds: provider.brandIds.isNotEmpty
+          ? provider.brandIds
+          : existing.brandIds,
+      categoryIds: provider.categoryIds.isNotEmpty
+          ? provider.categoryIds
+          : existing.categoryIds,
+      visibilityLabels: provider.visibilityLabels.isNotEmpty
+          ? provider.visibilityLabels
+          : existing.visibilityLabels,
+      popularityScore: provider.popularityScore != 0
+          ? provider.popularityScore
+          : existing.popularityScore,
+      availableNow: provider.availableNow || existing.availableNow,
+    );
   }
 
   bool _isCacheFresh(DateTime? fetchedAt) {
@@ -3947,19 +4103,6 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     return true;
   }
 
-  bool _matchesBrandQuery(BrandSummary brand, String query) {
-    if (query.isEmpty) {
-      return true;
-    }
-    final haystack = [
-      brand.name,
-      brand.headline,
-      brand.addressLine,
-      ...brand.categoryIds,
-    ].join(' ').toLowerCase();
-    return haystack.contains(query);
-  }
-
   bool _matchesProviderFilters(
     ProviderSummary provider,
     SearchFilters filters,
@@ -3979,19 +4122,6 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       return false;
     }
     return true;
-  }
-
-  bool _matchesProviderQuery(ProviderSummary provider, String query) {
-    if (query.isEmpty) {
-      return true;
-    }
-    final haystack = [
-      provider.name,
-      provider.headline,
-      provider.bio,
-      ...provider.categoryIds,
-    ].join(' ').toLowerCase();
-    return haystack.contains(query);
   }
 
   bool _matchesServiceFilters(ServiceSummary service, SearchFilters filters) {
@@ -4014,21 +4144,6 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       return false;
     }
     return true;
-  }
-
-  bool _matchesServiceQuery(ServiceSummary service, String query) {
-    if (query.isEmpty) {
-      return true;
-    }
-    final haystack = [
-      service.name,
-      service.categoryName,
-      service.providerName,
-      service.brandName ?? '',
-      service.addressLine,
-      service.descriptionSnippet ?? '',
-    ].join(' ').toLowerCase();
-    return haystack.contains(query);
   }
 
   List<VisibilityLabel> _parseVisibilityLabels(dynamic raw) {
@@ -4268,4 +4383,11 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
         .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
         .replaceAll(RegExp(r'^-+|-+$'), '');
   }
+}
+
+class _ManualBlockWindow {
+  const _ManualBlockWindow({required this.startsAt, required this.endsAt});
+
+  final DateTime startsAt;
+  final DateTime endsAt;
 }

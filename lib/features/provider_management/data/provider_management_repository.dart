@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
-import 'package:reziphay_mobile/features/media/data/media_upload_repository.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 
@@ -49,14 +48,13 @@ class ProviderManagementActions {
 
   Future<String> createService(ProviderServiceDraft draft) async {
     final providerId = ref.read(activeProviderContextProvider);
-    final preparedDraft = await _prepareServiceDraft(draft);
     final serviceId = await ref
         .read(discoveryRepositoryProvider)
-        .createProviderService(providerId: providerId, draft: preparedDraft);
+        .createProviderService(providerId: providerId, draft: draft);
     _invalidateService(
       serviceId: serviceId,
       providerId: providerId,
-      brandIds: {if (preparedDraft.brandId != null) preparedDraft.brandId!},
+      brandIds: {if (draft.brandId != null) draft.brandId!},
     );
     return serviceId;
   }
@@ -69,14 +67,13 @@ class ProviderManagementActions {
     final existing = await ref
         .read(discoveryRepositoryProvider)
         .getProviderService(serviceId: serviceId, providerId: providerId);
-    final preparedDraft = await _prepareServiceDraft(draft);
 
     await ref
         .read(discoveryRepositoryProvider)
         .updateProviderService(
           providerId: providerId,
           serviceId: serviceId,
-          draft: preparedDraft,
+          draft: draft,
         );
 
     _invalidateService(
@@ -85,7 +82,7 @@ class ProviderManagementActions {
       brandIds: {
         if (existing.detail.summary.brandId != null)
           existing.detail.summary.brandId!,
-        if (preparedDraft.brandId != null) preparedDraft.brandId!,
+        if (draft.brandId != null) draft.brandId!,
       },
     );
   }
@@ -112,10 +109,9 @@ class ProviderManagementActions {
 
   Future<String> createBrand(ProviderBrandDraft draft) async {
     final providerId = ref.read(activeProviderContextProvider);
-    final preparedDraft = await _prepareBrandDraft(draft);
     final brandId = await ref
         .read(discoveryRepositoryProvider)
-        .createProviderBrand(providerId: providerId, draft: preparedDraft);
+        .createProviderBrand(providerId: providerId, draft: draft);
     _invalidateBrand(brandId: brandId, providerId: providerId);
     return brandId;
   }
@@ -125,13 +121,12 @@ class ProviderManagementActions {
     required ProviderBrandDraft draft,
   }) async {
     final providerId = ref.read(activeProviderContextProvider);
-    final preparedDraft = await _prepareBrandDraft(draft);
     await ref
         .read(discoveryRepositoryProvider)
         .updateProviderBrand(
           providerId: providerId,
           brandId: brandId,
-          draft: preparedDraft,
+          draft: draft,
         );
     _invalidateBrand(brandId: brandId, providerId: providerId);
   }
@@ -190,25 +185,5 @@ class ProviderManagementActions {
     ref.invalidate(customerHomeProvider);
     ref.invalidate(providerDetailProvider(providerId));
     ref.invalidate(brandDetailProvider(brandId));
-  }
-
-  Future<ProviderServiceDraft> _prepareServiceDraft(
-    ProviderServiceDraft draft,
-  ) async {
-    final uploadedGallery = await ref
-        .read(mediaUploadRepositoryProvider)
-        .uploadImages(draft.galleryMedia, purpose: 'service_gallery');
-
-    return draft.copyWith(galleryMedia: uploadedGallery);
-  }
-
-  Future<ProviderBrandDraft> _prepareBrandDraft(
-    ProviderBrandDraft draft,
-  ) async {
-    final uploadedLogo = await ref
-        .read(mediaUploadRepositoryProvider)
-        .uploadOptionalImage(draft.logoMedia, purpose: 'brand_logo');
-
-    return draft.copyWith(logoMedia: uploadedLogo);
   }
 }

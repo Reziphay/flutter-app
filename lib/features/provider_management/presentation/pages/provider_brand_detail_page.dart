@@ -180,15 +180,13 @@ class _ProviderBrandDetailPageState
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Open now'),
                   subtitle: Text(
-                    _openNow
-                        ? 'Discovery can show this brand as currently open.'
-                        : 'Show the brand as currently closed.',
+                    'Brand availability is derived from live service inventory and current discovery data.',
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
                   ),
                   value: _openNow,
-                  onChanged: (value) => setState(() => _openNow = value),
+                  onChanged: null,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Align(
@@ -198,10 +196,20 @@ class _ProviderBrandDetailPageState
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
+                const SizedBox(height: AppSpacing.xxs),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Assigned by Reziphay ranking and promotion systems, not by provider edits.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 VisibilityLabelSelector(
                   selected: _visibilityLabels,
-                  onChanged: (next) => setState(() => _visibilityLabels = next),
+                  onChanged: (_) {},
                 ),
               ],
             ),

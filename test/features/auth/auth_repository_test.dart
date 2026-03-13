@@ -10,9 +10,9 @@ void main() {
     test('verifyEmailMagicLink maps backend success payload', () async {
       final repository = BackendAuthRepository(
         publicApiClient: _FakeAuthApiClient(
-          onGet: ({required path, queryParameters}) {
+          onPost: ({required path, data}) {
             expect(path, '/auth/verify-email-magic-link');
-            expect(queryParameters?['token'], 'abc123');
+            expect(data, {'token': 'abc123'});
             return {'status': 'VERIFIED'};
           },
         ),
@@ -29,7 +29,7 @@ void main() {
     test('verifyEmailMagicLink maps backend expiry errors', () async {
       final repository = BackendAuthRepository(
         publicApiClient: _FakeAuthApiClient(
-          onGet: ({required path, queryParameters}) {
+          onPost: ({required path, data}) {
             throw const AppException(
               'Link expired.',
               type: AppExceptionType.server,
@@ -50,25 +50,19 @@ void main() {
 }
 
 class _FakeAuthApiClient extends ApiClient {
-  _FakeAuthApiClient({this.onGet}) : super(Dio());
+  _FakeAuthApiClient({this.onPost}) : super(Dio());
 
-  final dynamic Function({
-    required String path,
-    Map<String, dynamic>? queryParameters,
-  })?
-  onGet;
+  final dynamic Function({required String path, Object? data})? onPost;
 
   @override
-  Future<T> get<T>(
+  Future<T> post<T>(
     String path, {
+    Object? data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
     required T Function(dynamic data) mapper,
   }) async {
-    return mapper(
-      onGet?.call(path: path, queryParameters: queryParameters) ??
-          <String, dynamic>{},
-    );
+    return mapper(onPost?.call(path: path, data: data) ?? <String, dynamic>{});
   }
 }

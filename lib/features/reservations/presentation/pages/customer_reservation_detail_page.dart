@@ -385,11 +385,11 @@ class _CustomerReservationDetailPageState
             ref,
             title: 'Report reservation issue',
             target: ReportTargetSummary(
-              type: ReportTargetType.reservation,
-              id: detail.summary.id,
+              type: ReportTargetType.service,
+              id: detail.summary.serviceId,
               title: detail.summary.serviceName,
               subtitle:
-                  '${detail.summary.providerName} · ${detail.summary.scheduledAtLabel}',
+                  '${detail.summary.providerName} · ${detail.summary.scheduledAtLabel} · Reservation ${detail.summary.id}',
             ),
           ),
           icon: const Icon(Icons.flag_outlined),
