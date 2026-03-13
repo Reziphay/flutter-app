@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 import 'package:reziphay_mobile/features/reservations/models/reservation_models.dart';
@@ -77,6 +78,44 @@ void main() {
         expect(detail.summary.status, ReservationStatus.confirmed);
         expect(detail.summary.scheduledAt, proposedTime);
         expect(detail.changeHistory.first.statusLabel, 'Accepted by provider');
+      },
+    );
+
+    test(
+      'provider can decline a customer change and keep the original schedule',
+      () async {
+        final originalTime = DateTime.now().add(
+          const Duration(days: 2, hours: 1),
+        );
+        final proposedTime = originalTime.add(const Duration(hours: 2));
+
+        final reservationId = await repository.createReservation(
+          serviceId: 'precision-beard-trim',
+          scheduledAt: originalTime,
+          note: '',
+          customerId: 'current-user',
+          customerName: 'Test Customer',
+        );
+
+        await repository.requestCustomerChange(
+          reservationId: reservationId,
+          proposedTime: proposedTime,
+          reason: 'Need a later arrival window.',
+        );
+        await repository.declineCustomerChange(
+          reservationId: reservationId,
+          reason: 'The original slot is the only one the team can keep.',
+        );
+
+        final detail = await repository.getCustomerReservationDetail(
+          reservationId,
+          'current-user',
+        );
+
+        expect(detail.summary.status, ReservationStatus.confirmed);
+        expect(detail.summary.scheduledAt, originalTime);
+        expect(detail.changeHistory.first.statusLabel, 'Declined by provider');
+        expect(detail.timeline.first.title, 'Original time kept');
       },
     );
 
@@ -204,6 +243,35 @@ void main() {
     );
 
     test(
+      'customer can submit a no-show objection and penalty summary reflects review state',
+      () async {
+        await repository.submitNoShowObjection(
+          reservationId: 'r_1005',
+          customerId: 'current-user',
+          reason: NoShowObjectionReason.arrivedOnTime,
+          details: 'I arrived on time and waited outside the location.',
+        );
+
+        final detail = await repository.getCustomerReservationDetail(
+          'r_1005',
+          'current-user',
+        );
+        final penaltySummary = await repository.getCustomerPenaltySummary(
+          'current-user',
+        );
+
+        expect(detail.noShowObjection, isNotNull);
+        expect(
+          detail.noShowObjection?.status,
+          NoShowObjectionStatus.underReview,
+        );
+        expect(detail.timeline.first.title, 'No-show objection submitted');
+        expect(penaltySummary.activePenaltyPoints, 1);
+        expect(penaltySummary.objectionsUnderReview, 1);
+      },
+    );
+
+    test(
       'provider dashboard service and brand counts reflect provider management changes',
       () async {
         final discoveryRepository = MockDiscoveryRepository();
@@ -250,7 +318,12 @@ void main() {
               ),
             ],
             exceptionNotes: const [],
-            galleryLabels: const ['Lineup station'],
+            galleryMedia: const [
+              AppMediaAsset.generated(
+                id: 'north-collective-service-cover',
+                label: 'Lineup station',
+              ),
+            ],
             brandId: brandId,
             brandName: 'North Collective',
             price: 42,

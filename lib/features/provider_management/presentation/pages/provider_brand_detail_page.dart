@@ -8,6 +8,8 @@ import 'package:reziphay_mobile/core/widgets/app_card.dart';
 import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/core/widgets/status_pill.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/media/data/media_picker_repository.dart';
+import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 import 'package:reziphay_mobile/features/provider_management/data/provider_management_repository.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_brands_page.dart';
@@ -39,13 +41,13 @@ class _ProviderBrandDetailPageState
   final _addressController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _mapHintController = TextEditingController();
-  final _logoLabelController = TextEditingController();
 
   String? _initializedFor;
   bool _openNow = true;
   bool _isSaving = false;
   String? _busyJoinRequestId;
   Set<VisibilityLabel> _visibilityLabels = {VisibilityLabel.common};
+  AppMediaAsset? _logoMedia;
 
   @override
   void dispose() {
@@ -54,7 +56,6 @@ class _ProviderBrandDetailPageState
     _addressController.dispose();
     _descriptionController.dispose();
     _mapHintController.dispose();
-    _logoLabelController.dispose();
     super.dispose();
   }
 
@@ -164,14 +165,15 @@ class _ProviderBrandDetailPageState
                   validator: _requiredValidator,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                TextFormField(
-                  controller: _logoLabelController,
-                  decoration: const InputDecoration(
-                    labelText: 'Logo label',
-                    hintText:
-                        'Optional placeholder until media upload is wired.',
-                  ),
-                  textInputAction: TextInputAction.next,
+                EditableSingleMediaField(
+                  asset: _logoMedia,
+                  title: 'Brand image',
+                  emptyTitle: 'No brand image yet',
+                  emptyDescription:
+                      'Add a logo or storefront visual so discovery cards do not fall back to generated art.',
+                  addLabel: 'Add brand image',
+                  onAdd: _pickLogoMedia,
+                  onRemove: () => setState(() => _logoMedia = null),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 SwitchListTile.adaptive(
@@ -416,7 +418,7 @@ class _ProviderBrandDetailPageState
     _addressController.text = draft.addressLine;
     _descriptionController.text = draft.description;
     _mapHintController.text = draft.mapHint;
-    _logoLabelController.text = draft.logoLabel ?? '';
+    _logoMedia = draft.logoMedia;
     _openNow = draft.openNow;
     _visibilityLabels = draft.visibilityLabels.toSet();
     _initializedFor = key;
@@ -440,9 +442,7 @@ class _ProviderBrandDetailPageState
             ? const [VisibilityLabel.common]
             : _visibilityLabels.toList(),
         openNow: _openNow,
-        logoLabel: _logoLabelController.text.trim().isEmpty
-            ? null
-            : _logoLabelController.text.trim(),
+        logoMedia: _logoMedia,
       );
 
       if (widget.isEditing) {
@@ -470,6 +470,27 @@ class _ProviderBrandDetailPageState
       if (mounted) {
         setState(() => _isSaving = false);
       }
+    }
+  }
+
+  Future<void> _pickLogoMedia() async {
+    try {
+      final picked = await ref
+          .read(mediaPickerRepositoryProvider)
+          .pickSingleImage();
+      if (picked == null || !mounted) {
+        return;
+      }
+
+      setState(() => _logoMedia = picked);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 

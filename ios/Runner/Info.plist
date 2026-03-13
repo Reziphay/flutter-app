@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Reziphay uses the camera to scan provider QR codes for reservation completion.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Reziphay uses your photo library so providers can attach service and brand images.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

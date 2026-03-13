@@ -8,7 +8,9 @@ import 'package:reziphay_mobile/core/widgets/app_button.dart';
 import 'package:reziphay_mobile/core/widgets/app_card.dart';
 import 'package:reziphay_mobile/core/widgets/section_header.dart';
 import 'package:reziphay_mobile/core/widgets/status_pill.dart';
+import 'package:reziphay_mobile/features/common/presentation/pages/notifications_page.dart';
 import 'package:reziphay_mobile/features/common/presentation/pages/settings_page.dart';
+import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 import 'package:reziphay_mobile/features/role_switch/presentation/pages/role_switch_page.dart';
 import 'package:reziphay_mobile/shared/models/app_role.dart';
 import 'package:reziphay_mobile/shared/models/user_status.dart';
@@ -28,6 +30,7 @@ class ProfilePage extends ConsumerWidget {
 
     final textTheme = Theme.of(context).textTheme;
     final user = session.user;
+    final penaltySummaryAsync = ref.watch(customerPenaltySummaryProvider);
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -135,9 +138,46 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              const StatusPill(
-                label: 'Penalty flow and objections arrive in Phase 3+',
-                tone: StatusPillTone.warning,
+              penaltySummaryAsync.when(
+                data: (summary) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: AppSpacing.xs,
+                      runSpacing: AppSpacing.xs,
+                      children: [
+                        StatusPill(
+                          label: summary.summaryLabel,
+                          tone: summary.activePenaltyPoints == 0
+                              ? StatusPillTone.success
+                              : StatusPillTone.warning,
+                        ),
+                        StatusPill(
+                          label: '${summary.noShowCount} no-show records',
+                          tone: StatusPillTone.neutral,
+                        ),
+                        if (summary.objectionsUnderReview > 0)
+                          StatusPill(
+                            label:
+                                '${summary.objectionsUnderReview} objection${summary.objectionsUnderReview == 1 ? '' : 's'} under review',
+                            tone: StatusPillTone.info,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      summary.riskDescription,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                loading: () => const CircularProgressIndicator(),
+                error: (error, stackTrace) => Text(
+                  error.toString(),
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+                ),
               ),
             ],
           ),
@@ -149,6 +189,14 @@ class ProfilePage extends ConsumerWidget {
             children: [
               Text('Shortcuts', style: textTheme.titleMedium),
               const SizedBox(height: AppSpacing.md),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.notifications_outlined),
+                title: const Text('Notifications'),
+                subtitle: const Text('Open the in-app notification center'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go(NotificationsPage.path),
+              ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.settings_outlined),

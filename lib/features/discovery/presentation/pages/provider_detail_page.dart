@@ -12,7 +12,8 @@ import 'package:reziphay_mobile/features/discovery/presentation/pages/brand_deta
 import 'package:reziphay_mobile/features/discovery/presentation/pages/service_detail_page.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_cards.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_media.dart';
-import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_notice_sheet.dart';
+import 'package:reziphay_mobile/features/reports/models/report_models.dart';
+import 'package:reziphay_mobile/features/reports/presentation/widgets/report_submission_sheet.dart';
 import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
 import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
 import 'package:reziphay_mobile/features/reviews/presentation/widgets/review_widgets.dart';
@@ -163,11 +164,16 @@ class ProviderDetailPage extends ConsumerWidget {
                 onReport: (review) => _reportReview(context, ref, review),
               ),
               TextButton.icon(
-                onPressed: () => showDiscoveryNoticeSheet(
+                onPressed: () => submitReportFlow(
                   context,
+                  ref,
                   title: 'Report provider',
-                  message:
-                      'The report sheet is planned for the trust-and-safety flow.',
+                  target: ReportTargetSummary(
+                    type: ReportTargetType.provider,
+                    id: detail.summary.id,
+                    title: detail.summary.name,
+                    subtitle: detail.summary.headline,
+                  ),
                 ),
                 icon: const Icon(Icons.flag_outlined),
                 label: const Text('Report this provider'),

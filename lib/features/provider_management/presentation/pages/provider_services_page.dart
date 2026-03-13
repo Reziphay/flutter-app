@@ -8,6 +8,7 @@ import 'package:reziphay_mobile/core/widgets/app_card.dart';
 import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/core/widgets/status_pill.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_media.dart';
 import 'package:reziphay_mobile/features/provider_management/data/provider_management_repository.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_service_form_page.dart';
@@ -160,6 +161,17 @@ class _ProviderServiceCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (service.summary.coverMedia != null) ...[
+                DiscoveryMedia(
+                  seed: service.summary.coverMedia!.id,
+                  label: service.summary.coverMedia!.label,
+                  kind: DiscoveryMediaKind.service,
+                  media: service.summary.coverMedia,
+                  width: 72,
+                  height: 72,
+                ),
+                const SizedBox(width: AppSpacing.md),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

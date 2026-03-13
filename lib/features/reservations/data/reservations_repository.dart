@@ -31,6 +31,8 @@ abstract class ReservationsRepository {
     String providerId,
   );
 
+  Future<CustomerPenaltySummary> getCustomerPenaltySummary(String customerId);
+
   Future<ProviderDashboardData> getProviderDashboard(String providerId);
 
   Future<void> cancelCustomerReservation({
@@ -62,6 +64,18 @@ abstract class ReservationsRepository {
     required String reservationId,
     required DateTime proposedTime,
     required String reason,
+  });
+
+  Future<void> declineCustomerChange({
+    required String reservationId,
+    required String reason,
+  });
+
+  Future<void> submitNoShowObjection({
+    required String reservationId,
+    required String customerId,
+    required NoShowObjectionReason reason,
+    required String details,
   });
 
   Future<void> completeReservationViaQr(String reservationId);
@@ -98,6 +112,13 @@ final customerReservationDetailProvider = FutureProvider.autoDispose
             reservationId,
             ref.watch(activeCustomerContextProvider),
           ),
+    );
+
+final customerPenaltySummaryProvider =
+    FutureProvider.autoDispose<CustomerPenaltySummary>(
+      (ref) => ref
+          .watch(reservationsRepositoryProvider)
+          .getCustomerPenaltySummary(ref.watch(activeCustomerContextProvider)),
     );
 
 final providerReservationsProvider =
@@ -235,6 +256,32 @@ class ReservationsActions {
     _invalidate(reservationId);
   }
 
+  Future<void> declineCustomerChange({
+    required String reservationId,
+    required String reason,
+  }) async {
+    await ref
+        .read(reservationsRepositoryProvider)
+        .declineCustomerChange(reservationId: reservationId, reason: reason);
+    _invalidate(reservationId);
+  }
+
+  Future<void> submitNoShowObjection({
+    required String reservationId,
+    required NoShowObjectionReason reason,
+    required String details,
+  }) async {
+    await ref
+        .read(reservationsRepositoryProvider)
+        .submitNoShowObjection(
+          reservationId: reservationId,
+          customerId: ref.read(activeCustomerContextProvider),
+          reason: reason,
+          details: details,
+        );
+    _invalidate(reservationId);
+  }
+
   Future<void> completeProviderReservation(String reservationId) async {
     await ref
         .read(reservationsRepositoryProvider)
@@ -251,6 +298,7 @@ class ReservationsActions {
 
   void _invalidate(String reservationId) {
     ref.invalidate(customerReservationsProvider);
+    ref.invalidate(customerPenaltySummaryProvider);
     ref.invalidate(providerReservationsProvider);
     ref.invalidate(providerDashboardProvider);
     ref.invalidate(customerReservationDetailProvider(reservationId));
@@ -580,6 +628,44 @@ class MockReservationsRepository implements ReservationsRepository {
   }
 
   @override
+  Future<void> declineCustomerChange({
+    required String reservationId,
+    required String reason,
+  }) async {
+    await _delay();
+    _syncExpirations();
+    final record = _findRecord(reservationId);
+    _ensureActionable(record);
+
+    final latestChange = _latestChange(record);
+    if (record.status != ReservationStatus.changeRequested ||
+        latestChange == null ||
+        latestChange.requestedByLabel != 'Customer') {
+      throw const AppException(
+        'No customer change request is waiting for a provider response.',
+      );
+    }
+
+    record.status = ReservationStatus.confirmed;
+    record.responseDeadline = null;
+    _updateLatestChangeStatus(record, 'Declined by provider');
+    final declineReason = _safeReason(
+      reason,
+      fallback: 'The original reservation time still works best.',
+    );
+    record.timeline.insert(
+      0,
+      ReservationTimelineEvent(
+        title: 'Original time kept',
+        description:
+            'The provider kept the original time. Reason: $declineReason',
+        timestamp: DateTime.now(),
+        actorLabel: 'Provider',
+      ),
+    );
+  }
+
+  @override
   Future<void> completeProviderReservation(String reservationId) async {
     await _delay();
     _syncExpirations();
@@ -694,6 +780,43 @@ class MockReservationsRepository implements ReservationsRepository {
   }
 
   @override
+  Future<CustomerPenaltySummary> getCustomerPenaltySummary(
+    String customerId,
+  ) async {
+    await _delay();
+    _syncExpirations();
+
+    final customerRecords = _records
+        .where((record) => record.customerId == customerId)
+        .toList();
+    final noShows = customerRecords
+        .where((record) => record.status == ReservationStatus.noShow)
+        .toList();
+    final objectionsUnderReview = noShows
+        .where(
+          (record) =>
+              record.noShowObjection?.status ==
+              NoShowObjectionStatus.underReview,
+        )
+        .length;
+
+    DateTime? latestPenaltyAt;
+    for (final record in noShows) {
+      if (latestPenaltyAt == null ||
+          record.scheduledAt.isAfter(latestPenaltyAt)) {
+        latestPenaltyAt = record.scheduledAt;
+      }
+    }
+
+    return CustomerPenaltySummary(
+      activePenaltyPoints: noShows.length,
+      noShowCount: noShows.length,
+      objectionsUnderReview: objectionsUnderReview,
+      latestPenaltyAt: latestPenaltyAt,
+    );
+  }
+
+  @override
   Future<List<ReservationSummary>> getCustomerReservations(
     String customerId,
   ) async {
@@ -716,14 +839,18 @@ class MockReservationsRepository implements ReservationsRepository {
       return service?.providerId == providerId;
     }).toList();
 
-    final pending = providerReservations
-        .where(_requiresProviderAttention)
-        .map(_buildSummary)
-        .toList();
-    final today = providerReservations
-        .where(_isOperationalToday)
-        .map(_buildSummary)
-        .toList();
+    final pending =
+        providerReservations
+            .where(_requiresProviderAttention)
+            .map(_buildSummary)
+            .toList()
+          ..sort(_compareProviderAttention);
+    final today =
+        providerReservations
+            .where(_isOperationalToday)
+            .map(_buildSummary)
+            .toList()
+          ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
 
     final providerProfile = await _discoveryRepository.getProviderDetail(
       providerId,
@@ -874,6 +1001,51 @@ class MockReservationsRepository implements ReservationsRepository {
     );
   }
 
+  @override
+  Future<void> submitNoShowObjection({
+    required String reservationId,
+    required String customerId,
+    required NoShowObjectionReason reason,
+    required String details,
+  }) async {
+    await _delay();
+    _syncExpirations();
+    final record = _findRecord(reservationId);
+    _ensureCustomerOwns(record, customerId);
+
+    if (record.status != ReservationStatus.noShow) {
+      throw const AppException(
+        'Only no-show reservations can receive an objection.',
+      );
+    }
+
+    if (record.noShowObjection != null) {
+      throw const AppException('An objection was already submitted.');
+    }
+
+    final objection = NoShowObjection(
+      reason: reason,
+      details: _safeReason(
+        details,
+        fallback:
+            'The customer disputes the no-show outcome and requested a manual review.',
+      ),
+      status: NoShowObjectionStatus.underReview,
+      submittedAt: DateTime.now(),
+    );
+
+    record.noShowObjection = objection;
+    record.timeline.insert(
+      0,
+      ReservationTimelineEvent(
+        title: 'No-show objection submitted',
+        description: objection.details,
+        timestamp: objection.submittedAt,
+        actorLabel: 'Customer',
+      ),
+    );
+  }
+
   ReservationDetail _buildDetail(_ReservationRecord record) {
     return ReservationDetail(
       summary: _buildSummary(record),
@@ -882,6 +1054,7 @@ class MockReservationsRepository implements ReservationsRepository {
       cancellationReason: record.cancellationReason,
       rejectionReason: record.rejectionReason,
       noShowReason: record.noShowReason,
+      noShowObjection: record.noShowObjection,
       completionMethod: record.completionMethod,
     );
   }
@@ -910,6 +1083,7 @@ class MockReservationsRepository implements ReservationsRepository {
       latestChangeRequestedBy: _latestChange(record) == null
           ? null
           : _actorFromLabel(_latestChange(record)!.requestedByLabel),
+      latestChangeProposedTime: _latestChange(record)?.proposedTime,
       note: record.note,
       responseDeadline: record.responseDeadline,
     );
@@ -987,6 +1161,27 @@ class MockReservationsRepository implements ReservationsRepository {
             ReservationActor.customer;
   }
 
+  int _compareProviderAttention(
+    ReservationSummary left,
+    ReservationSummary right,
+  ) {
+    final leftPriority = left.isPendingManualApproval ? 0 : 1;
+    final rightPriority = right.isPendingManualApproval ? 0 : 1;
+
+    if (leftPriority != rightPriority) {
+      return leftPriority.compareTo(rightPriority);
+    }
+
+    if (left.isPendingManualApproval &&
+        right.isPendingManualApproval &&
+        left.responseDeadline != null &&
+        right.responseDeadline != null) {
+      return left.responseDeadline!.compareTo(right.responseDeadline!);
+    }
+
+    return left.scheduledAt.compareTo(right.scheduledAt);
+  }
+
   ReservationActor? _actorFromLabel(String? label) {
     return switch (label) {
       'Customer' => ReservationActor.customer,
@@ -1056,6 +1251,7 @@ class _ReservationRecord {
   String? cancellationReason;
   String? rejectionReason;
   String? noShowReason;
+  NoShowObjection? noShowObjection;
   CompletionMethod? completionMethod;
 }
 

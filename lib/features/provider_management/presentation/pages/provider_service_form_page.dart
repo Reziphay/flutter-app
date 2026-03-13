@@ -9,6 +9,8 @@ import 'package:reziphay_mobile/core/widgets/app_card.dart';
 import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/media/data/media_picker_repository.dart';
+import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 import 'package:reziphay_mobile/features/provider_management/data/provider_management_repository.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_services_page.dart';
@@ -58,7 +60,7 @@ class _ProviderServiceFormPageState
   Set<VisibilityLabel> _visibilityLabels = {VisibilityLabel.common};
   List<AvailabilityWindow> _slots = const [];
   List<String> _exceptionNotes = const [];
-  List<String> _galleryLabels = const [];
+  List<AppMediaAsset> _galleryMedia = const [];
 
   @override
   void dispose() {
@@ -495,18 +497,17 @@ class _ProviderServiceFormPageState
                   validator: _requiredValidator,
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                EditableStringList(
-                  items: _galleryLabels,
-                  emptyTitle: 'No gallery labels',
+                EditableMediaGallery(
+                  items: _galleryMedia,
+                  emptyTitle: 'No gallery yet',
                   emptyDescription:
-                      'Add lightweight media placeholders until real upload wiring is connected.',
-                  addLabel: 'Add media label',
-                  onAdd: _addGalleryLabel,
-                  onRemove: (value) => setState(
-                    () => _galleryLabels = _galleryLabels
-                        .where((item) => item != value)
-                        .toList(),
-                  ),
+                      'Add service photos so discovery detail and cards stop falling back to generated visuals.',
+                  helperText:
+                      'The first image becomes the discovery cover. Add up to 6 images to keep the MVP lightweight.',
+                  addLabel: 'Add photos',
+                  onAdd: _pickGalleryMedia,
+                  onRemove: _removeGalleryMedia,
+                  onPromote: _setCoverMedia,
                 ),
               ],
             ),
@@ -562,7 +563,7 @@ class _ProviderServiceFormPageState
     _visibilityLabels = draft.visibilityLabels.toSet();
     _slots = List<AvailabilityWindow>.of(draft.requestableSlots);
     _exceptionNotes = List<String>.of(draft.exceptionNotes);
-    _galleryLabels = List<String>.of(draft.galleryLabels);
+    _galleryMedia = List<AppMediaAsset>.of(draft.galleryMedia);
     _canArchive = canArchive;
     _initializedFor = key;
   }
@@ -592,7 +593,7 @@ class _ProviderServiceFormPageState
       visibilityLabels: const [VisibilityLabel.common],
       requestableSlots: const [],
       exceptionNotes: const [],
-      galleryLabels: const [],
+      galleryMedia: const [],
       brandId: availableBrands.isEmpty
           ? null
           : availableBrands.first.summary.id,
@@ -649,7 +650,7 @@ class _ProviderServiceFormPageState
             : _visibilityLabels.toList(),
         requestableSlots: _slots,
         exceptionNotes: _exceptionNotes,
-        galleryLabels: _galleryLabels,
+        galleryMedia: _galleryMedia,
         brandId: _selectedBrandId,
         brandName: null,
         price: _priceController.text.trim().isEmpty
@@ -796,19 +797,50 @@ class _ProviderServiceFormPageState
     setState(() => _exceptionNotes = [..._exceptionNotes, value]);
   }
 
-  Future<void> _addGalleryLabel() async {
-    final value = await showManagementTextSheet(
-      context,
-      title: 'Add media label',
-      labelText: 'Media label',
-      hintText: 'Example: Treatment room, product shelf, or before/after.',
-      buttonLabel: 'Add label',
-    );
-    if (value == null || value.isEmpty) {
-      return;
-    }
+  Future<void> _pickGalleryMedia() async {
+    try {
+      final remainingSlots = 6 - _galleryMedia.length;
+      if (remainingSlots <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Keep the gallery within 6 images.')),
+        );
+        return;
+      }
 
-    setState(() => _galleryLabels = [..._galleryLabels, value]);
+      final picked = await ref
+          .read(mediaPickerRepositoryProvider)
+          .pickMultipleImages(limit: remainingSlots);
+      if (picked.isEmpty || !mounted) {
+        return;
+      }
+
+      setState(() => _galleryMedia = [..._galleryMedia, ...picked]);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  void _removeGalleryMedia(AppMediaAsset asset) {
+    setState(
+      () => _galleryMedia = _galleryMedia
+          .where((item) => item.id != asset.id)
+          .toList(),
+    );
+  }
+
+  void _setCoverMedia(AppMediaAsset asset) {
+    setState(() {
+      _galleryMedia = [
+        asset,
+        ..._galleryMedia.where((item) => item.id != asset.id),
+      ];
+    });
   }
 
   String? _requiredValidator(String? value) {

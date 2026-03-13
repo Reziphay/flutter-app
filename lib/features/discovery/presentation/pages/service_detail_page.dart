@@ -13,7 +13,10 @@ import 'package:reziphay_mobile/features/discovery/presentation/pages/brand_deta
 import 'package:reziphay_mobile/features/discovery/presentation/pages/provider_detail_page.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_cards.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_media.dart';
-import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_notice_sheet.dart';
+import 'package:reziphay_mobile/features/maps/models/map_destination.dart';
+import 'package:reziphay_mobile/features/maps/presentation/widgets/map_preview_card.dart';
+import 'package:reziphay_mobile/features/reports/models/report_models.dart';
+import 'package:reziphay_mobile/features/reports/presentation/widgets/report_submission_sheet.dart';
 import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
 import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
 import 'package:reziphay_mobile/features/reviews/presentation/widgets/review_widgets.dart';
@@ -49,6 +52,18 @@ class ServiceDetailPage extends ConsumerWidget {
             detail: detail,
             dynamicReviewsAsync: dynamicReviewsAsync,
             onReport: (review) => _reportReview(context, ref, review),
+            onReportService: () => submitReportFlow(
+              context,
+              ref,
+              title: 'Report service',
+              target: ReportTargetSummary(
+                type: ReportTargetType.service,
+                id: detail.summary.id,
+                title: detail.summary.name,
+                subtitle:
+                    '${detail.summary.providerName} · ${detail.summary.addressLine}',
+              ),
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -69,14 +84,18 @@ class _ServiceDetailContent extends StatelessWidget {
     required this.detail,
     required this.dynamicReviewsAsync,
     required this.onReport,
+    required this.onReportService,
   });
 
   final ServiceDetail detail;
   final AsyncValue<List<AppReview>> dynamicReviewsAsync;
   final ValueChanged<AppReview> onReport;
+  final VoidCallback onReportService;
 
   @override
   Widget build(BuildContext context) {
+    final gallery = detail.galleryMedia;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       bottomNavigationBar: SafeArea(
@@ -105,24 +124,31 @@ class _ServiceDetailContent extends StatelessWidget {
         children: [
           SizedBox(
             height: 240,
-            child: PageView.builder(
-              itemCount: detail.galleryLabels.length,
-              itemBuilder: (context, index) {
-                final label = detail.galleryLabels[index];
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index == detail.galleryLabels.length - 1
-                        ? 0
-                        : AppSpacing.sm,
-                  ),
-                  child: DiscoveryMedia(
-                    seed: '${detail.summary.id}-$index',
-                    label: label,
+            child: gallery.isEmpty
+                ? DiscoveryMedia(
+                    seed: detail.summary.id,
+                    label: detail.summary.name,
                     kind: DiscoveryMediaKind.service,
+                  )
+                : PageView.builder(
+                    itemCount: gallery.length,
+                    itemBuilder: (context, index) {
+                      final media = gallery[index];
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          right: index == gallery.length - 1
+                              ? 0
+                              : AppSpacing.sm,
+                        ),
+                        child: DiscoveryMedia(
+                          seed: media.id,
+                          label: media.label,
+                          kind: DiscoveryMediaKind.service,
+                          media: media,
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
@@ -188,6 +214,19 @@ class _ServiceDetailContent extends StatelessWidget {
                   value: detail.summary.priceLabel,
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          MapPreviewCard(
+            destination: MapDestination(
+              title: detail.summary.name,
+              subtitle: [
+                detail.summary.providerName,
+                if (detail.summary.brandName != null) detail.summary.brandName!,
+              ].join(' · '),
+              addressLine: detail.summary.addressLine,
+              note:
+                  'Use the provider and brand name to confirm you are heading to the correct entrance.',
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -316,12 +355,7 @@ class _ServiceDetailContent extends StatelessWidget {
             onReport: onReport,
           ),
           TextButton.icon(
-            onPressed: () => showDiscoveryNoticeSheet(
-              context,
-              title: 'Report flow',
-              message:
-                  'Reporting for services, brands, providers, and reviews lands in a later trust-and-safety pass.',
-            ),
+            onPressed: onReportService,
             icon: const Icon(Icons.flag_outlined),
             label: const Text('Report this service'),
           ),

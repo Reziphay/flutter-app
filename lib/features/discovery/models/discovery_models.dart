@@ -1,3 +1,5 @@
+import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
+
 enum VisibilityLabel { common, vip, bestOfMonth, sponsored }
 
 extension VisibilityLabelX on VisibilityLabel {
@@ -215,6 +217,7 @@ class BrandSummary {
     required this.visibilityLabels,
     required this.popularityScore,
     required this.openNow,
+    this.logoMedia,
   });
 
   final String id;
@@ -230,6 +233,7 @@ class BrandSummary {
   final List<VisibilityLabel> visibilityLabels;
   final int popularityScore;
   final bool openNow;
+  final AppMediaAsset? logoMedia;
 }
 
 class ProviderSummary {
@@ -287,6 +291,7 @@ class ServiceSummary {
     this.brandName,
     this.price,
     this.descriptionSnippet,
+    this.coverMedia,
   });
 
   final String id;
@@ -308,6 +313,7 @@ class ServiceSummary {
   final String? brandName;
   final double? price;
   final String? descriptionSnippet;
+  final AppMediaAsset? coverMedia;
 
   String get priceLabel =>
       price == null ? 'Price on request' : '${price!.toStringAsFixed(0)} AZN';
@@ -322,7 +328,7 @@ class ServiceDetail {
     required this.requestableSlots,
     required this.waitingTimeLabel,
     required this.freeCancellationLabel,
-    required this.galleryLabels,
+    required this.galleryMedia,
     required this.provider,
     required this.reviews,
     this.brand,
@@ -335,10 +341,13 @@ class ServiceDetail {
   final List<AvailabilityWindow> requestableSlots;
   final String waitingTimeLabel;
   final String freeCancellationLabel;
-  final List<String> galleryLabels;
+  final List<AppMediaAsset> galleryMedia;
   final ProviderSummary provider;
   final BrandSummary? brand;
   final List<ReviewPreview> reviews;
+
+  List<String> get galleryLabels =>
+      galleryMedia.map((asset) => asset.label).toList(growable: false);
 }
 
 class BrandDetail {

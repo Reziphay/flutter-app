@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reziphay_mobile/core/network/app_exception.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 
 abstract class DiscoveryRepository {
@@ -161,6 +162,10 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       visibilityLabels: [VisibilityLabel.vip, VisibilityLabel.sponsored],
       popularityScore: 94,
       openNow: true,
+      logoMedia: AppMediaAsset.generated(
+        id: 'studio-north-logo',
+        label: 'SN mark',
+      ),
     ),
     BrandSummary(
       id: 'luna-dental',
@@ -176,6 +181,10 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       visibilityLabels: [VisibilityLabel.bestOfMonth],
       popularityScore: 97,
       openNow: true,
+      logoMedia: AppMediaAsset.generated(
+        id: 'luna-dental-logo',
+        label: 'LD crest',
+      ),
     ),
     BrandSummary(
       id: 'form-and-flare',
@@ -191,6 +200,10 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       visibilityLabels: [VisibilityLabel.common],
       popularityScore: 83,
       openNow: false,
+      logoMedia: AppMediaAsset.generated(
+        id: 'form-and-flare-logo',
+        label: 'F&F monogram',
+      ),
     ),
   ]);
 
@@ -503,21 +516,30 @@ class MockDiscoveryRepository implements DiscoveryRepository {
           'Studio North keeps the grooming experience calm and intentionally lightweight. Reservations stay flexible, but response times are visible and reliable.',
       mapHint:
           'Map preview will connect to the geolocation abstraction in a later pass.',
-      logoLabel: 'SN mark',
+      logoMedia: AppMediaAsset.generated(
+        id: 'studio-north-logo',
+        label: 'SN mark',
+      ),
     ),
     'luna-dental': _BrandMeta(
       description:
           'Luna Dental uses Reziphay to make discovery and coordination easier without pretending every clinical visit fits a rigid slot engine.',
       mapHint:
           'Map preview will connect to the geolocation abstraction in a later pass.',
-      logoLabel: 'LD crest',
+      logoMedia: AppMediaAsset.generated(
+        id: 'luna-dental-logo',
+        label: 'LD crest',
+      ),
     ),
     'form-and-flare': _BrandMeta(
       description:
           'Form & Flare focuses on studio-quality beauty sessions with careful review signals and clear availability communication.',
       mapHint:
           'Map preview will connect to the geolocation abstraction in a later pass.',
-      logoLabel: 'F&F monogram',
+      logoMedia: AppMediaAsset.generated(
+        id: 'form-and-flare-logo',
+        label: 'F&F monogram',
+      ),
     ),
   });
 
@@ -550,7 +572,20 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       freeCancellationHours: 2,
       leadTimeHours: 1,
       serviceType: ManagedServiceType.solo,
-      galleryLabels: ['Studio chair', 'Clean finish', 'Product shelf'],
+      galleryMedia: [
+        const AppMediaAsset.generated(
+          id: 'classic-haircut-0',
+          label: 'Studio chair',
+        ),
+        const AppMediaAsset.generated(
+          id: 'classic-haircut-1',
+          label: 'Clean finish',
+        ),
+        const AppMediaAsset.generated(
+          id: 'classic-haircut-2',
+          label: 'Product shelf',
+        ),
+      ],
       exceptionNotes: ['Closed every Sunday morning.'],
     ),
     'precision-beard-trim': _ServiceMeta(
@@ -581,7 +616,20 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       freeCancellationHours: 2,
       leadTimeHours: 0,
       serviceType: ManagedServiceType.solo,
-      galleryLabels: ['Beard line', 'Chair setup', 'Finishing tools'],
+      galleryMedia: [
+        const AppMediaAsset.generated(
+          id: 'precision-beard-trim-0',
+          label: 'Beard line',
+        ),
+        const AppMediaAsset.generated(
+          id: 'precision-beard-trim-1',
+          label: 'Chair setup',
+        ),
+        const AppMediaAsset.generated(
+          id: 'precision-beard-trim-2',
+          label: 'Finishing tools',
+        ),
+      ],
       exceptionNotes: const [],
     ),
     'dental-consultation': _ServiceMeta(
@@ -613,7 +661,20 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       freeCancellationHours: 12,
       leadTimeHours: 4,
       serviceType: ManagedServiceType.multi,
-      galleryLabels: ['Clinic room', 'Reception', 'Care setup'],
+      galleryMedia: [
+        const AppMediaAsset.generated(
+          id: 'dental-consultation-0',
+          label: 'Clinic room',
+        ),
+        const AppMediaAsset.generated(
+          id: 'dental-consultation-1',
+          label: 'Reception',
+        ),
+        const AppMediaAsset.generated(
+          id: 'dental-consultation-2',
+          label: 'Care setup',
+        ),
+      ],
       exceptionNotes: ['Closed for sterilization every Monday 09:00-10:00.'],
     ),
     'professional-cleaning': _ServiceMeta(
@@ -639,7 +700,20 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       freeCancellationHours: 12,
       leadTimeHours: 4,
       serviceType: ManagedServiceType.multi,
-      galleryLabels: ['Procedure room', 'Clean tools', 'Aftercare desk'],
+      galleryMedia: [
+        const AppMediaAsset.generated(
+          id: 'professional-cleaning-0',
+          label: 'Procedure room',
+        ),
+        const AppMediaAsset.generated(
+          id: 'professional-cleaning-1',
+          label: 'Clean tools',
+        ),
+        const AppMediaAsset.generated(
+          id: 'professional-cleaning-2',
+          label: 'Aftercare desk',
+        ),
+      ],
       exceptionNotes: const [],
     ),
     'signature-skin-reset': _ServiceMeta(
@@ -665,7 +739,20 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       freeCancellationHours: 2,
       leadTimeHours: 6,
       serviceType: ManagedServiceType.solo,
-      galleryLabels: ['Treatment room', 'Lighting', 'Product detail'],
+      galleryMedia: [
+        const AppMediaAsset.generated(
+          id: 'signature-skin-reset-0',
+          label: 'Treatment room',
+        ),
+        const AppMediaAsset.generated(
+          id: 'signature-skin-reset-1',
+          label: 'Lighting',
+        ),
+        const AppMediaAsset.generated(
+          id: 'signature-skin-reset-2',
+          label: 'Product detail',
+        ),
+      ],
       exceptionNotes: ['Unavailable after 18:00 on weekdays.'],
     ),
     'strategy-session': _ServiceMeta(
@@ -691,7 +778,17 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       freeCancellationHours: 6,
       leadTimeHours: 12,
       serviceType: ManagedServiceType.solo,
-      galleryLabels: ['Overview', 'Space', 'Result'],
+      galleryMedia: [
+        const AppMediaAsset.generated(
+          id: 'strategy-session-0',
+          label: 'Overview',
+        ),
+        const AppMediaAsset.generated(id: 'strategy-session-1', label: 'Space'),
+        const AppMediaAsset.generated(
+          id: 'strategy-session-2',
+          label: 'Result',
+        ),
+      ],
       exceptionNotes: ['Remote-only on Fridays.'],
     ),
   };
@@ -943,6 +1040,7 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       nextAvailabilityLabel: _nextAvailabilityLabel(draft.requestableSlots),
       price: draft.price,
       descriptionSnippet: draft.descriptionSnippet.trim(),
+      coverMedia: draft.galleryMedia.isEmpty ? null : draft.galleryMedia.first,
     );
 
     _services.add(summary);
@@ -994,6 +1092,9 @@ class MockDiscoveryRepository implements DiscoveryRepository {
         nextAvailabilityLabel: _nextAvailabilityLabel(draft.requestableSlots),
         price: draft.price,
         descriptionSnippet: draft.descriptionSnippet.trim(),
+        coverMedia: draft.galleryMedia.isEmpty
+            ? null
+            : draft.galleryMedia.first,
       ),
     );
     _serviceMetaById[serviceId] = _serviceMetaFromDraft(draft);
@@ -1044,7 +1145,6 @@ class MockDiscoveryRepository implements DiscoveryRepository {
           .map(
             (brand) => ProviderManagedBrandListItem(
               summary: brand,
-              logoLabel: _brandMetaById[brand.id]?.logoLabel,
               joinRequestCount:
                   _brandJoinRequestsByBrandId[brand.id]?.length ?? 0,
             ),
@@ -1105,13 +1205,14 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       visibilityLabels: draft.visibilityLabels,
       popularityScore: (provider.popularityScore - 8).clamp(20, 99),
       openNow: draft.openNow,
+      logoMedia: draft.logoMedia,
     );
 
     _brands.add(summary);
     _brandMetaById[brandId] = _BrandMeta(
       description: draft.description.trim(),
       mapHint: draft.mapHint.trim(),
-      logoLabel: draft.logoLabel?.trim(),
+      logoMedia: draft.logoMedia,
     );
     _brandJoinRequestsByBrandId[brandId] = [];
 
@@ -1164,12 +1265,13 @@ class MockDiscoveryRepository implements DiscoveryRepository {
         visibilityLabels: draft.visibilityLabels,
         popularityScore: existing.popularityScore,
         openNow: draft.openNow,
+        logoMedia: draft.logoMedia,
       ),
     );
     _brandMetaById[brandId] = _BrandMeta(
       description: draft.description.trim(),
       mapHint: draft.mapHint.trim(),
-      logoLabel: draft.logoLabel?.trim(),
+      logoMedia: draft.logoMedia,
     );
     _refreshBrandSummary(brandId);
   }
@@ -1204,6 +1306,7 @@ class MockDiscoveryRepository implements DiscoveryRepository {
         visibilityLabels: brand.visibilityLabels,
         popularityScore: brand.popularityScore,
         openNow: brand.openNow,
+        logoMedia: _brandMetaById[brandId]?.logoMedia ?? brand.logoMedia,
       ),
     );
   }
@@ -1384,7 +1487,7 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       waitingTimeLabel: '${meta.waitingTimeMinutes}-minute arrival tolerance',
       freeCancellationLabel:
           'Free cancellation up to ${meta.freeCancellationHours} hours before',
-      galleryLabels: meta.galleryLabels,
+      galleryMedia: meta.galleryMedia,
       provider: provider,
       brand: brand,
       reviews: _reviewsByEntity[serviceId] ?? const [],
@@ -1409,7 +1512,7 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       visibilityLabels: service.visibilityLabels,
       requestableSlots: meta.requestableSlots,
       exceptionNotes: meta.exceptionNotes,
-      galleryLabels: meta.galleryLabels,
+      galleryMedia: meta.galleryMedia,
       brandId: service.brandId,
       brandName: service.brandName,
       price: service.price,
@@ -1430,7 +1533,7 @@ class MockDiscoveryRepository implements DiscoveryRepository {
           'Map preview will connect to the geolocation abstraction in a later pass.',
       visibilityLabels: brand.visibilityLabels,
       openNow: brand.openNow,
-      logoLabel: meta?.logoLabel,
+      logoMedia: meta?.logoMedia ?? brand.logoMedia,
     );
   }
 
@@ -1449,7 +1552,14 @@ class MockDiscoveryRepository implements DiscoveryRepository {
           ),
           leadTimeHours: 1,
           serviceType: ManagedServiceType.solo,
-          galleryLabels: const ['Overview', 'Space', 'Result'],
+          galleryMedia: const [
+            AppMediaAsset.generated(
+              id: 'fallback-service-0',
+              label: 'Overview',
+            ),
+            AppMediaAsset.generated(id: 'fallback-service-1', label: 'Space'),
+            AppMediaAsset.generated(id: 'fallback-service-2', label: 'Result'),
+          ],
           exceptionNotes: const [],
         );
   }
@@ -1467,9 +1577,9 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       freeCancellationHours: draft.freeCancellationHours,
       leadTimeHours: draft.leadTimeHours,
       serviceType: draft.serviceType,
-      galleryLabels: draft.galleryLabels
-          .map((label) => label.trim())
-          .where((label) => label.isNotEmpty)
+      galleryMedia: draft.galleryMedia
+          .map((asset) => asset.copyWith(label: asset.label.trim()))
+          .where((asset) => asset.label.isNotEmpty)
           .toList(),
       exceptionNotes: draft.exceptionNotes
           .map((note) => note.trim())
@@ -1525,6 +1635,7 @@ class MockDiscoveryRepository implements DiscoveryRepository {
         visibilityLabels: brand.visibilityLabels,
         popularityScore: brand.popularityScore,
         openNow: brand.openNow,
+        logoMedia: _brandMetaById[brandId]?.logoMedia ?? brand.logoMedia,
       ),
     );
   }
@@ -1768,12 +1879,12 @@ class _BrandMeta {
   const _BrandMeta({
     required this.description,
     required this.mapHint,
-    this.logoLabel,
+    this.logoMedia,
   });
 
   final String description;
   final String mapHint;
-  final String? logoLabel;
+  final AppMediaAsset? logoMedia;
 }
 
 class _ServiceMeta {
@@ -1785,7 +1896,7 @@ class _ServiceMeta {
     required this.freeCancellationHours,
     required this.leadTimeHours,
     required this.serviceType,
-    required this.galleryLabels,
+    required this.galleryMedia,
     required this.exceptionNotes,
   });
 
@@ -1796,7 +1907,7 @@ class _ServiceMeta {
   final int freeCancellationHours;
   final int leadTimeHours;
   final ManagedServiceType serviceType;
-  final List<String> galleryLabels;
+  final List<AppMediaAsset> galleryMedia;
   final List<String> exceptionNotes;
 }
 

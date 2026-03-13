@@ -12,7 +12,10 @@ import 'package:reziphay_mobile/features/discovery/presentation/pages/provider_d
 import 'package:reziphay_mobile/features/discovery/presentation/pages/service_detail_page.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_cards.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_media.dart';
-import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_notice_sheet.dart';
+import 'package:reziphay_mobile/features/maps/models/map_destination.dart';
+import 'package:reziphay_mobile/features/maps/presentation/widgets/map_preview_card.dart';
+import 'package:reziphay_mobile/features/reports/models/report_models.dart';
+import 'package:reziphay_mobile/features/reports/presentation/widgets/report_submission_sheet.dart';
 import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
 import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
 import 'package:reziphay_mobile/features/reviews/presentation/widgets/review_widgets.dart';
@@ -50,6 +53,7 @@ class BrandDetailPage extends ConsumerWidget {
                 seed: detail.summary.id,
                 label: detail.summary.name,
                 kind: DiscoveryMediaKind.brand,
+                media: detail.summary.logoMedia,
                 height: 200,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -124,22 +128,13 @@ class BrandDetailPage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Map preview',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      detail.mapHint,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ],
+              MapPreviewCard(
+                title: 'Location',
+                destination: MapDestination(
+                  title: detail.summary.name,
+                  subtitle: detail.summary.headline,
+                  addressLine: detail.summary.addressLine,
+                  note: detail.mapHint,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -177,11 +172,16 @@ class BrandDetailPage extends ConsumerWidget {
                 onReport: (review) => _reportReview(context, ref, review),
               ),
               TextButton.icon(
-                onPressed: () => showDiscoveryNoticeSheet(
+                onPressed: () => submitReportFlow(
                   context,
+                  ref,
                   title: 'Report brand',
-                  message:
-                      'The lightweight report sheet arrives in a later trust-and-safety pass.',
+                  target: ReportTargetSummary(
+                    type: ReportTargetType.brand,
+                    id: detail.summary.id,
+                    title: detail.summary.name,
+                    subtitle: detail.summary.addressLine,
+                  ),
                 ),
                 icon: const Icon(Icons.flag_outlined),
                 label: const Text('Report this brand'),

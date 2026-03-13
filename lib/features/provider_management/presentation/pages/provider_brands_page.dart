@@ -7,6 +7,7 @@ import 'package:reziphay_mobile/core/widgets/app_button.dart';
 import 'package:reziphay_mobile/core/widgets/app_card.dart';
 import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/core/widgets/status_pill.dart';
+import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_media.dart';
 import 'package:reziphay_mobile/features/provider_management/data/provider_management_repository.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_brand_detail_page.dart';
@@ -144,6 +145,17 @@ class _ProviderBrandCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (brand.summary.logoMedia != null) ...[
+                DiscoveryMedia(
+                  seed: brand.summary.logoMedia!.id,
+                  label: brand.summary.logoMedia!.label,
+                  kind: DiscoveryMediaKind.brand,
+                  media: brand.summary.logoMedia,
+                  width: 72,
+                  height: 72,
+                ),
+                const SizedBox(width: AppSpacing.md),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,8 +174,6 @@ class _ProviderBrandCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (brand.logoLabel != null)
-                StatusPill(label: brand.logoLabel!, tone: StatusPillTone.info),
             ],
           ),
           const SizedBox(height: AppSpacing.md),

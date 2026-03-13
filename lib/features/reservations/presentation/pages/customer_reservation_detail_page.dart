@@ -11,7 +11,11 @@ import 'package:reziphay_mobile/core/widgets/status_pill.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/pages/provider_detail_page.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/pages/service_detail_page.dart';
+import 'package:reziphay_mobile/features/maps/models/map_destination.dart';
+import 'package:reziphay_mobile/features/maps/presentation/widgets/map_preview_card.dart';
 import 'package:reziphay_mobile/features/qr_completion/presentation/pages/qr_scan_page.dart';
+import 'package:reziphay_mobile/features/reports/models/report_models.dart';
+import 'package:reziphay_mobile/features/reports/presentation/widgets/report_submission_sheet.dart';
 import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
 import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
 import 'package:reziphay_mobile/features/reviews/presentation/pages/review_create_page.dart';
@@ -183,6 +187,19 @@ class _CustomerReservationDetailPageState
             ],
           ),
         ),
+        const SizedBox(height: AppSpacing.lg),
+        MapPreviewCard(
+          destination: MapDestination(
+            title: summary.serviceName,
+            subtitle: [
+              if (summary.brandName != null) summary.brandName!,
+              summary.providerName,
+            ].join(' · '),
+            addressLine: summary.addressLine,
+            note:
+                'Open the destination in your maps app if you need walking, driving, or ride-share handoff.',
+          ),
+        ),
         if (status == ReservationStatus.changeRequested &&
             latestChange != null) ...[
           const SizedBox(height: AppSpacing.xl),
@@ -232,6 +249,10 @@ class _CustomerReservationDetailPageState
         if (detail.noShowReason != null) ...[
           const SizedBox(height: AppSpacing.xl),
           _ReasonCard(title: 'No-show record', message: detail.noShowReason!),
+        ],
+        if (detail.noShowObjection != null) ...[
+          const SizedBox(height: AppSpacing.xl),
+          _NoShowObjectionCard(objection: detail.noShowObjection!),
         ],
         const SizedBox(height: AppSpacing.xl),
         const SectionHeader(title: 'Timeline'),
@@ -304,14 +325,14 @@ class _CustomerReservationDetailPageState
                 ),
               if (status == ReservationStatus.noShow)
                 AppButton(
-                  label: 'Submit objection',
+                  label: detail.noShowObjection == null
+                      ? 'Submit objection'
+                      : 'Objection submitted',
                   variant: AppButtonVariant.secondary,
-                  onPressed: () => showReservationMessageSheet(
-                    context,
-                    title: 'Objection flow',
-                    message:
-                        'No-show objections need backend case handling, so this entry point is staged but not yet connected.',
-                  ),
+                  isLoading: _busyAction == 'objection',
+                  onPressed: detail.noShowObjection == null
+                      ? () => _submitNoShowObjection(detail)
+                      : null,
                 ),
             ],
           ),
@@ -359,11 +380,17 @@ class _CustomerReservationDetailPageState
         ],
         const SizedBox(height: AppSpacing.xl),
         TextButton.icon(
-          onPressed: () => showReservationMessageSheet(
+          onPressed: () => submitReportFlow(
             context,
-            title: 'Support and reporting',
-            message:
-                'Trust-and-safety reporting will connect from reservation detail once the shared report surface is wired across services, providers, brands, and reviews.',
+            ref,
+            title: 'Report reservation issue',
+            target: ReportTargetSummary(
+              type: ReportTargetType.reservation,
+              id: detail.summary.id,
+              title: detail.summary.serviceName,
+              subtitle:
+                  '${detail.summary.providerName} · ${detail.summary.scheduledAtLabel}',
+            ),
           ),
           icon: const Icon(Icons.flag_outlined),
           label: const Text('Report an issue'),
@@ -437,6 +464,30 @@ class _CustomerReservationDetailPageState
       'delete-review',
       () => ref.read(reviewsActionsProvider).deleteReview(review),
       successMessage: 'Review deleted.',
+    );
+  }
+
+  Future<void> _submitNoShowObjection(ReservationDetail detail) async {
+    final draft = await showNoShowObjectionSheet(
+      context,
+      reservationLabel: detail.summary.serviceName,
+      scheduledTimeLabel: detail.summary.scheduledAtLabel,
+    );
+
+    if (draft == null) {
+      return;
+    }
+
+    await _runAction(
+      'objection',
+      () => ref
+          .read(reservationsActionsProvider)
+          .submitNoShowObjection(
+            reservationId: widget.reservationId,
+            reason: draft.reason,
+            details: draft.details,
+          ),
+      successMessage: 'No-show objection submitted for review.',
     );
   }
 
@@ -662,6 +713,75 @@ class _ReasonCard extends StatelessWidget {
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoShowObjectionCard extends StatelessWidget {
+  const _NoShowObjectionCard({required this.objection});
+
+  final NoShowObjection objection;
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = switch (objection.status) {
+      NoShowObjectionStatus.underReview => StatusPillTone.info,
+      NoShowObjectionStatus.accepted => StatusPillTone.success,
+      NoShowObjectionStatus.rejected => StatusPillTone.error,
+    };
+
+    final background = switch (objection.status) {
+      NoShowObjectionStatus.underReview => const Color(0xFFEFF3FF),
+      NoShowObjectionStatus.accepted => const Color(0xFFEAF8F1),
+      NoShowObjectionStatus.rejected => const Color(0xFFFDECEC),
+    };
+
+    return AppCard(
+      color: background,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Objection status',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              StatusPill(label: objection.status.label, tone: tone),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            objection.status.description,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _PendingChangeRow(label: 'Reason', value: objection.reason.label),
+          const SizedBox(height: AppSpacing.xs),
+          _PendingChangeRow(
+            label: 'Submitted',
+            value: objection.submittedAtLabel,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            objection.details,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          if (objection.resolutionNote != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              objection.resolutionNote!,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
+            ),
+          ],
         ],
       ),
     );

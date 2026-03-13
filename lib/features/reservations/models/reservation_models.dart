@@ -53,6 +53,24 @@ extension ReservationStatusX on ReservationStatus {
 }
 
 extension ReservationSummaryX on ReservationSummary {
+  bool get isPendingManualApproval {
+    return effectiveStatus == ReservationStatus.pendingApproval;
+  }
+
+  bool get isCustomerChangeRequest {
+    return effectiveStatus == ReservationStatus.changeRequested &&
+        latestChangeRequestedBy == ReservationActor.customer;
+  }
+
+  bool get isUrgentPendingWindow {
+    final remaining = pendingTimeRemaining;
+    if (remaining == null) {
+      return false;
+    }
+
+    return remaining.inSeconds <= 120;
+  }
+
   bool get isAwaitingProviderAction {
     if (effectiveStatus == ReservationStatus.pendingApproval) {
       return true;
@@ -142,6 +160,7 @@ class ReservationSummary {
     required this.approvalMode,
     required this.priceLabel,
     this.latestChangeRequestedBy,
+    this.latestChangeProposedTime,
     this.brandId,
     this.brandName,
     this.note,
@@ -161,6 +180,7 @@ class ReservationSummary {
   final ApprovalMode approvalMode;
   final String priceLabel;
   final ReservationActor? latestChangeRequestedBy;
+  final DateTime? latestChangeProposedTime;
   final String? brandId;
   final String? brandName;
   final String? note;
@@ -170,6 +190,10 @@ class ReservationSummary {
       DateFormat('EEE, MMM d · HH:mm').format(scheduledAt);
 
   String get createdAtLabel => DateFormat('MMM d · HH:mm').format(createdAt);
+
+  String? get latestChangeProposedTimeLabel => latestChangeProposedTime == null
+      ? null
+      : DateFormat('EEE, MMM d · HH:mm').format(latestChangeProposedTime!);
 
   ReservationStatus get effectiveStatus {
     if (status == ReservationStatus.pendingApproval &&
@@ -197,6 +221,7 @@ class ReservationDetail {
     this.cancellationReason,
     this.rejectionReason,
     this.noShowReason,
+    this.noShowObjection,
     this.completionMethod,
   });
 
@@ -206,6 +231,7 @@ class ReservationDetail {
   final String? cancellationReason;
   final String? rejectionReason;
   final String? noShowReason;
+  final NoShowObjection? noShowObjection;
   final CompletionMethod? completionMethod;
 }
 
@@ -225,6 +251,108 @@ class ProviderDashboardData {
   final int confirmedTodayCount;
   final int serviceCount;
   final int brandCount;
+}
+
+enum NoShowObjectionReason {
+  arrivedOnTime,
+  communicationIssue,
+  providerIssue,
+  other,
+}
+
+extension NoShowObjectionReasonX on NoShowObjectionReason {
+  String get label => switch (this) {
+    NoShowObjectionReason.arrivedOnTime => 'I arrived on time',
+    NoShowObjectionReason.communicationIssue =>
+      'Communication or check-in issue',
+    NoShowObjectionReason.providerIssue => 'Provider-side issue',
+    NoShowObjectionReason.other => 'Other',
+  };
+}
+
+enum NoShowObjectionStatus { underReview, accepted, rejected }
+
+extension NoShowObjectionStatusX on NoShowObjectionStatus {
+  String get label => switch (this) {
+    NoShowObjectionStatus.underReview => 'Under review',
+    NoShowObjectionStatus.accepted => 'Accepted',
+    NoShowObjectionStatus.rejected => 'Rejected',
+  };
+
+  String get description => switch (this) {
+    NoShowObjectionStatus.underReview =>
+      'The support team is reviewing the no-show dispute and timeline evidence.',
+    NoShowObjectionStatus.accepted =>
+      'The objection was accepted and the no-show penalty should be removed.',
+    NoShowObjectionStatus.rejected =>
+      'The dispute was reviewed but the no-show record remains in place.',
+  };
+}
+
+class NoShowObjection {
+  const NoShowObjection({
+    required this.reason,
+    required this.details,
+    required this.status,
+    required this.submittedAt,
+    this.resolutionNote,
+  });
+
+  final NoShowObjectionReason reason;
+  final String details;
+  final NoShowObjectionStatus status;
+  final DateTime submittedAt;
+  final String? resolutionNote;
+
+  String get submittedAtLabel =>
+      DateFormat('MMM d · HH:mm').format(submittedAt);
+}
+
+class CustomerPenaltySummary {
+  const CustomerPenaltySummary({
+    required this.activePenaltyPoints,
+    required this.noShowCount,
+    required this.objectionsUnderReview,
+    this.latestPenaltyAt,
+  });
+
+  final int activePenaltyPoints;
+  final int noShowCount;
+  final int objectionsUnderReview;
+  final DateTime? latestPenaltyAt;
+
+  String get summaryLabel {
+    if (activePenaltyPoints == 0) {
+      return 'No active penalties';
+    }
+
+    if (activePenaltyPoints == 1) {
+      return '1 penalty point active';
+    }
+
+    return '$activePenaltyPoints penalty points active';
+  }
+
+  String get riskDescription {
+    if (activePenaltyPoints >= 10) {
+      return 'Account closure threshold reached.';
+    }
+    if (activePenaltyPoints >= 5) {
+      return 'Suspension threshold reached.';
+    }
+    if (activePenaltyPoints == 0) {
+      return 'Your reservation history has no active no-show penalties.';
+    }
+
+    return 'Penalty rules escalate at 5 points for suspension and 10 points for account closure.';
+  }
+}
+
+class NoShowObjectionDraft {
+  const NoShowObjectionDraft({required this.reason, required this.details});
+
+  final NoShowObjectionReason reason;
+  final String details;
 }
 
 class ReservationChangeDraft {

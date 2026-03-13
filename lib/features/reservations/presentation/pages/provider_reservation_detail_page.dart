@@ -8,6 +8,8 @@ import 'package:reziphay_mobile/core/widgets/app_card.dart';
 import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/core/widgets/section_header.dart';
 import 'package:reziphay_mobile/core/widgets/status_pill.dart';
+import 'package:reziphay_mobile/features/maps/models/map_destination.dart';
+import 'package:reziphay_mobile/features/maps/presentation/widgets/map_preview_card.dart';
 import 'package:reziphay_mobile/features/qr_completion/presentation/pages/provider_qr_page.dart';
 import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
 import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
@@ -66,12 +68,8 @@ class _ProviderReservationDetailPageState
     final latestChange = detail.changeHistory.isEmpty
         ? null
         : detail.changeHistory.first;
-    final awaitingProvider =
-        status == ReservationStatus.changeRequested &&
-        latestChange?.requestedByLabel == 'Customer';
-    final awaitingCustomer =
-        status == ReservationStatus.changeRequested &&
-        latestChange?.requestedByLabel == 'Provider';
+    final awaitingProvider = summary.isCustomerChangeRequest;
+    final awaitingCustomer = summary.isAwaitingCustomerAction;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -137,6 +135,19 @@ class _ProviderReservationDetailPageState
                 value: summary.priceLabel,
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        MapPreviewCard(
+          destination: MapDestination(
+            title: summary.serviceName,
+            subtitle: [
+              if (summary.brandName != null) summary.brandName!,
+              summary.customerName,
+            ].join(' · '),
+            addressLine: summary.addressLine,
+            note:
+                'Use external maps when you need a precise arrival handoff before completion.',
           ),
         ),
         if (status == ReservationStatus.changeRequested &&
@@ -307,8 +318,15 @@ class _ProviderReservationDetailPageState
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   AppButton(
-                    label: 'Propose another time',
+                    label: 'Keep original time',
                     variant: AppButtonVariant.secondary,
+                    isLoading: _busyAction == 'keep-original',
+                    onPressed: () => _declineCustomerChange(detail),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  AppButton(
+                    label: 'Propose another time',
+                    variant: AppButtonVariant.ghost,
                     isLoading: _busyAction == 'request-change',
                     onPressed: () => _requestChange(detail),
                   ),
@@ -454,6 +472,32 @@ class _ProviderReservationDetailPageState
             reason: reason,
           ),
       successMessage: 'Reservation cancelled.',
+    );
+  }
+
+  Future<void> _declineCustomerChange(ReservationDetail detail) async {
+    final reason = await showReservationReasonSheet(
+      context,
+      title: 'Keep original time',
+      buttonLabel: 'Keep original time',
+      destructive: false,
+      reservationLabel: detail.summary.serviceName,
+      currentTimeLabel: detail.summary.scheduledAtLabel,
+    );
+
+    if (reason == null) {
+      return;
+    }
+
+    await _runAction(
+      'keep-original',
+      () => ref
+          .read(reservationsActionsProvider)
+          .declineCustomerChange(
+            reservationId: widget.reservationId,
+            reason: reason,
+          ),
+      successMessage: 'Customer change declined. Original time kept.',
     );
   }
 

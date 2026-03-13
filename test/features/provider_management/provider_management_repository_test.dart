@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 
 void main() {
@@ -14,17 +17,30 @@ void main() {
     test(
       'creating a provider brand and service updates provider-side and public catalog views',
       () async {
+        final logoMedia = AppMediaAsset(
+          id: 'north-atelier-logo',
+          label: 'NA mark',
+          source: AppMediaSource.pickedImage,
+          bytes: Uint8List.fromList(const [1, 2, 3, 4]),
+        );
+        final galleryMedia = AppMediaAsset(
+          id: 'executive-cleanup-cover',
+          label: 'Premium chair',
+          source: AppMediaSource.pickedImage,
+          bytes: Uint8List.fromList(const [4, 3, 2, 1]),
+        );
+
         final brandId = await repository.createProviderBrand(
           providerId: 'rauf-mammadov',
-          draft: const ProviderBrandDraft(
+          draft: ProviderBrandDraft(
             name: 'North Atelier',
             headline: 'Small premium grooming room for repeat customers.',
             addressLine: '42 Central Ave, Baku',
             description: 'Provider-owned brand for premium appointment flow.',
             mapHint: 'Second floor above the corner cafe.',
-            visibilityLabels: [VisibilityLabel.vip],
+            visibilityLabels: const [VisibilityLabel.vip],
             openNow: true,
-            logoLabel: 'NA mark',
+            logoMedia: logoMedia,
           ),
         );
 
@@ -53,7 +69,7 @@ void main() {
               ),
             ],
             exceptionNotes: const ['Closed on Sundays.'],
-            galleryLabels: const ['Premium chair'],
+            galleryMedia: [galleryMedia],
             brandId: brandId,
             brandName: 'North Atelier',
             price: 55,
@@ -85,6 +101,16 @@ void main() {
         );
         expect(serviceDetail.summary.brandId, brandId);
         expect(serviceDetail.waitingTimeLabel, '15-minute arrival tolerance');
+        expect(serviceDetail.summary.coverMedia?.label, 'Premium chair');
+        expect(serviceDetail.summary.coverMedia?.hasBytes, isTrue);
+        expect(
+          brands.brands
+              .firstWhere((brand) => brand.summary.id == brandId)
+              .summary
+              .logoMedia
+              ?.hasBytes,
+          isTrue,
+        );
       },
     );
 
@@ -116,7 +142,12 @@ void main() {
               ),
             ],
             exceptionNotes: const [],
-            galleryLabels: const ['Evening setup'],
+            galleryMedia: const [
+              AppMediaAsset.generated(
+                id: 'late-night-trim-cover',
+                label: 'Evening setup',
+              ),
+            ],
             price: 25,
           ),
         );

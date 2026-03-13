@@ -1,4 +1,5 @@
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 
 enum ManagedServiceType { solo, multi }
 
@@ -33,7 +34,7 @@ class ProviderServiceDraft {
     required this.visibilityLabels,
     required this.requestableSlots,
     required this.exceptionNotes,
-    required this.galleryLabels,
+    required this.galleryMedia,
     this.brandId,
     this.brandName,
     this.price,
@@ -54,10 +55,13 @@ class ProviderServiceDraft {
   final List<VisibilityLabel> visibilityLabels;
   final List<AvailabilityWindow> requestableSlots;
   final List<String> exceptionNotes;
-  final List<String> galleryLabels;
+  final List<AppMediaAsset> galleryMedia;
   final String? brandId;
   final String? brandName;
   final double? price;
+
+  List<String> get galleryLabels =>
+      galleryMedia.map((asset) => asset.label).toList(growable: false);
 
   ProviderServiceDraft copyWith({
     String? name,
@@ -75,7 +79,7 @@ class ProviderServiceDraft {
     List<VisibilityLabel>? visibilityLabels,
     List<AvailabilityWindow>? requestableSlots,
     List<String>? exceptionNotes,
-    List<String>? galleryLabels,
+    List<AppMediaAsset>? galleryMedia,
     Object? brandId = _sentinel,
     Object? brandName = _sentinel,
     Object? price = _sentinel,
@@ -97,7 +101,7 @@ class ProviderServiceDraft {
       visibilityLabels: visibilityLabels ?? this.visibilityLabels,
       requestableSlots: requestableSlots ?? this.requestableSlots,
       exceptionNotes: exceptionNotes ?? this.exceptionNotes,
-      galleryLabels: galleryLabels ?? this.galleryLabels,
+      galleryMedia: galleryMedia ?? this.galleryMedia,
       brandId: identical(brandId, _sentinel)
           ? this.brandId
           : brandId as String?,
@@ -176,7 +180,7 @@ class ProviderBrandDraft {
     required this.mapHint,
     required this.visibilityLabels,
     required this.openNow,
-    this.logoLabel,
+    this.logoMedia,
   });
 
   final String name;
@@ -186,7 +190,9 @@ class ProviderBrandDraft {
   final String mapHint;
   final List<VisibilityLabel> visibilityLabels;
   final bool openNow;
-  final String? logoLabel;
+  final AppMediaAsset? logoMedia;
+
+  String? get logoLabel => logoMedia?.label;
 
   ProviderBrandDraft copyWith({
     String? name,
@@ -196,7 +202,7 @@ class ProviderBrandDraft {
     String? mapHint,
     List<VisibilityLabel>? visibilityLabels,
     bool? openNow,
-    Object? logoLabel = _sentinel,
+    Object? logoMedia = _sentinel,
   }) {
     return ProviderBrandDraft(
       name: name ?? this.name,
@@ -206,9 +212,9 @@ class ProviderBrandDraft {
       mapHint: mapHint ?? this.mapHint,
       visibilityLabels: visibilityLabels ?? this.visibilityLabels,
       openNow: openNow ?? this.openNow,
-      logoLabel: identical(logoLabel, _sentinel)
-          ? this.logoLabel
-          : logoLabel as String?,
+      logoMedia: identical(logoMedia, _sentinel)
+          ? this.logoMedia
+          : logoMedia as AppMediaAsset?,
     );
   }
 }
@@ -228,13 +234,13 @@ class ProviderManagedBrand {
 class ProviderManagedBrandListItem {
   const ProviderManagedBrandListItem({
     required this.summary,
-    required this.logoLabel,
     required this.joinRequestCount,
   });
 
   final BrandSummary summary;
-  final String? logoLabel;
   final int joinRequestCount;
+
+  String? get logoLabel => summary.logoMedia?.label;
 }
 
 class ProviderBrandsData {

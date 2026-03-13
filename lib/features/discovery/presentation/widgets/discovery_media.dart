@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:reziphay_mobile/app/theme/app_spacing.dart';
+import 'package:reziphay_mobile/features/media/models/app_media_asset.dart';
 
 enum DiscoveryMediaKind { service, brand, provider, category }
 
@@ -12,6 +13,7 @@ class DiscoveryMedia extends StatelessWidget {
     this.height = 112,
     this.width = double.infinity,
     this.borderRadius,
+    this.media,
   });
 
   final String seed;
@@ -20,10 +22,66 @@ class DiscoveryMedia extends StatelessWidget {
   final double height;
   final double width;
   final BorderRadiusGeometry? borderRadius;
+  final AppMediaAsset? media;
 
   @override
   Widget build(BuildContext context) {
-    final palette = _palettes[seed.hashCode.abs() % _palettes.length];
+    final effectiveLabel = media?.label ?? label;
+    final effectiveSeed = media?.id ?? seed;
+    final palette = _palettes[effectiveSeed.hashCode.abs() % _palettes.length];
+    final radius = borderRadius ?? BorderRadius.circular(AppRadii.lg);
+
+    if (media?.hasBytes == true) {
+      return ClipRRect(
+        borderRadius: radius,
+        child: SizedBox(
+          height: height,
+          width: width,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.memory(media!.bytes!, fit: BoxFit.cover),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withValues(alpha: 0.04),
+                      Colors.black.withValues(alpha: 0.56),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: AppSpacing.md,
+                right: AppSpacing.md,
+                bottom: AppSpacing.md,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Icon(_iconForKind(kind), color: Colors.white, size: 20),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        effectiveLabel,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Container(
       height: height,
@@ -34,7 +92,7 @@ class DiscoveryMedia extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: borderRadius ?? BorderRadius.circular(AppRadii.lg),
+        borderRadius: radius,
       ),
       child: Stack(
         children: [
@@ -55,7 +113,7 @@ class DiscoveryMedia extends StatelessWidget {
                 Icon(_iconForKind(kind), color: Colors.white, size: 20),
                 const Spacer(),
                 Text(
-                  label,
+                  effectiveLabel,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(

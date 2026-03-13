@@ -469,6 +469,141 @@ Future<ReservationChangeDraft?> showReservationChangeSheet(
   );
 }
 
+Future<NoShowObjectionDraft?> showNoShowObjectionSheet(
+  BuildContext context, {
+  required String reservationLabel,
+  required String scheduledTimeLabel,
+}) {
+  final detailsController = TextEditingController();
+  var selectedReason = NoShowObjectionReason.arrivedOnTime;
+
+  return showModalBottomSheet<NoShowObjectionDraft>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          final canSubmit =
+              selectedReason != NoShowObjectionReason.other ||
+              detailsController.text.trim().isNotEmpty;
+
+          return SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.lg,
+                AppSpacing.xl,
+                MediaQuery.of(context).viewInsets.bottom + AppSpacing.xl,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Submit no-show objection',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    AppCard(
+                      color: AppColors.surfaceSoft,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reservationLabel,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: AppSpacing.xxs),
+                          Text(
+                            scheduledTimeLabel,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'What happened?',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    ...NoShowObjectionReason.values.map(
+                      (reason) => Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => setState(() => selectedReason = reason),
+                          child: AppCard(
+                            color: selectedReason == reason
+                                ? AppColors.surfaceSoft
+                                : null,
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  selectedReason == reason
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_off,
+                                  color: selectedReason == reason
+                                      ? AppColors.primary
+                                      : AppColors.textMuted,
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Text(
+                                    reason.label,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextField(
+                      controller: detailsController,
+                      maxLines: 4,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'Details',
+                        hintText: selectedReason == NoShowObjectionReason.other
+                            ? 'Explain why the no-show record is incorrect.'
+                            : 'Optional context that helps support review the objection.',
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    AppButton(
+                      label: 'Submit objection',
+                      onPressed: canSubmit
+                          ? () => Navigator.of(context).pop(
+                              NoShowObjectionDraft(
+                                reason: selectedReason,
+                                details: detailsController.text.trim(),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
 Color _bannerColor(ReservationStatus status) {
   return switch (status) {
     ReservationStatus.pendingApproval => const Color(0xFFFFF5DF),

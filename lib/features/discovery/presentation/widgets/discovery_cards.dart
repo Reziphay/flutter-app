@@ -58,6 +58,7 @@ class ServiceCard extends StatelessWidget {
               seed: service.id,
               label: service.name,
               kind: DiscoveryMediaKind.service,
+              media: service.coverMedia,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(AppRadii.lg),
               ),
@@ -141,6 +142,7 @@ class BrandCard extends StatelessWidget {
               seed: brand.id,
               label: brand.name,
               kind: DiscoveryMediaKind.brand,
+              media: brand.logoMedia,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(AppRadii.lg),
               ),
