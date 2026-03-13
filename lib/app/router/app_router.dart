@@ -20,6 +20,10 @@ import 'package:reziphay_mobile/features/discovery/presentation/pages/category_d
 import 'package:reziphay_mobile/features/discovery/presentation/pages/provider_detail_page.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/pages/service_detail_page.dart';
 import 'package:reziphay_mobile/features/provider/presentation/pages/provider_dashboard_page.dart';
+import 'package:reziphay_mobile/features/qr_completion/presentation/pages/provider_qr_page.dart';
+import 'package:reziphay_mobile/features/qr_completion/presentation/pages/qr_completion_result_page.dart';
+import 'package:reziphay_mobile/features/qr_completion/presentation/pages/qr_scan_page.dart';
+import 'package:reziphay_mobile/features/reviews/presentation/pages/review_create_page.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/pages/customer_reservation_detail_page.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/pages/customer_reservations_page.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/pages/provider_reservation_detail_page.dart';
@@ -140,8 +144,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: QrScanPage.path,
+            builder: (context, state) => QrScanPage(
+              reservationId: state.pathParameters['reservationId']!,
+            ),
+          ),
+          GoRoute(
+            path: QrCompletionResultPage.path,
+            builder: (context, state) => QrCompletionResultPage(
+              reservationId: state.pathParameters['reservationId']!,
+              status: state.pathParameters['status']!,
+            ),
+          ),
+          GoRoute(
+            path: ReviewCreatePage.path,
+            builder: (context, state) => ReviewCreatePage(
+              reservationId: state.pathParameters['reservationId']!,
+            ),
+          ),
+          GoRoute(
             path: ProviderDashboardPage.path,
             builder: (context, state) => const ProviderDashboardPage(),
+          ),
+          GoRoute(
+            path: ProviderQrPage.path,
+            builder: (context, state) => const ProviderQrPage(),
           ),
           GoRoute(
             path: _providerReservationsPath,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:reziphay_mobile/app/theme/app_colors.dart';
 import 'package:reziphay_mobile/app/theme/app_spacing.dart';
 import 'package:reziphay_mobile/core/widgets/app_button.dart';
@@ -7,6 +8,10 @@ import 'package:reziphay_mobile/core/widgets/app_card.dart';
 import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/core/widgets/section_header.dart';
 import 'package:reziphay_mobile/core/widgets/status_pill.dart';
+import 'package:reziphay_mobile/features/qr_completion/presentation/pages/provider_qr_page.dart';
+import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
+import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
+import 'package:reziphay_mobile/features/reviews/presentation/widgets/review_widgets.dart';
 import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 import 'package:reziphay_mobile/features/reservations/models/reservation_models.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/widgets/reservation_widgets.dart';
@@ -53,6 +58,9 @@ class _ProviderReservationDetailPageState
   }
 
   Widget _buildContent(BuildContext context, ReservationDetail detail) {
+    final reviewAsync = ref.watch(
+      reservationReviewProvider(widget.reservationId),
+    );
     final summary = detail.summary;
     final status = summary.effectiveStatus;
     final latestChange = detail.changeHistory.isEmpty
@@ -131,6 +139,21 @@ class _ProviderReservationDetailPageState
             ],
           ),
         ),
+        if (status == ReservationStatus.changeRequested &&
+            latestChange != null) ...[
+          const SizedBox(height: AppSpacing.xl),
+          _PendingChangeCard(
+            title: latestChange.requestedByLabel == 'Customer'
+                ? 'Customer requested a new time'
+                : 'Waiting for customer response',
+            description: latestChange.requestedByLabel == 'Customer'
+                ? 'Compare the current slot with the proposed time before accepting or countering it.'
+                : 'Your proposed time is now waiting on the customer.',
+            currentTimeLabel: summary.scheduledAtLabel,
+            proposedTimeLabel: latestChange.proposedTimeLabel,
+            statusLabel: latestChange.statusLabel,
+          ),
+        ],
         if (detail.changeHistory.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xl),
           const SectionHeader(title: 'Change requests'),
@@ -162,25 +185,61 @@ class _ProviderReservationDetailPageState
               Text(
                 status == ReservationStatus.completed
                     ? detail.completionMethod?.label ?? 'Completed'
-                    : 'Manual completion is available now. The signed QR display flow stays blocked until backend support is wired in.',
+                    : 'Display the signed provider QR for on-site completion, or fall back to manual completion if scanning fails.',
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
               ),
               const SizedBox(height: AppSpacing.md),
               AppButton(
-                label: 'Open QR guidance',
+                label: 'Open provider QR',
                 variant: AppButtonVariant.secondary,
-                onPressed: () => showReservationMessageSheet(
-                  context,
-                  title: 'Provider QR',
-                  message:
-                      'Provider QR must stay signed and backend-validated, so this surface is prepared but intentionally not faked on-device.',
-                ),
+                onPressed: () => context.go(ProviderQrPage.path),
               ),
             ],
           ),
         ),
+        if (status == ReservationStatus.completed) ...[
+          const SizedBox(height: AppSpacing.xl),
+          const SectionHeader(title: 'Customer review'),
+          const SizedBox(height: AppSpacing.md),
+          reviewAsync.when(
+            data: (review) {
+              if (review == null) {
+                return AppCard(
+                  child: Text(
+                    'The customer has not left a review yet. Replies unlock automatically after a review is posted.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                );
+              }
+
+              return AppReviewCard(
+                review: review,
+                onReply: review.reply == null
+                    ? () => _replyToReview(review)
+                    : null,
+                onReport: () => _reportReview(review),
+              );
+            },
+            loading: () => const AppCard(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+            error: (error, stackTrace) => AppCard(
+              child: Text(
+                error.toString(),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.error),
+              ),
+            ),
+          ),
+        ],
         if (detail.cancellationReason != null) ...[
           const SizedBox(height: AppSpacing.xl),
           _ReasonCard(
@@ -258,7 +317,7 @@ class _ProviderReservationDetailPageState
                     label: 'Cancel reservation',
                     variant: AppButtonVariant.destructive,
                     isLoading: _busyAction == 'cancel',
-                    onPressed: _cancelReservation,
+                    onPressed: () => _cancelReservation(detail),
                   ),
                 ],
                 if (status == ReservationStatus.confirmed) ...[
@@ -285,7 +344,7 @@ class _ProviderReservationDetailPageState
                     label: 'Cancel reservation',
                     variant: AppButtonVariant.destructive,
                     isLoading: _busyAction == 'cancel',
-                    onPressed: _cancelReservation,
+                    onPressed: () => _cancelReservation(detail),
                   ),
                 ],
                 if (awaitingCustomer)
@@ -301,7 +360,7 @@ class _ProviderReservationDetailPageState
                     label: 'Cancel reservation',
                     variant: AppButtonVariant.destructive,
                     isLoading: _busyAction == 'cancel',
-                    onPressed: _cancelReservation,
+                    onPressed: () => _cancelReservation(detail),
                   ),
                 ],
               ],
@@ -328,6 +387,7 @@ class _ProviderReservationDetailPageState
       context,
       title: 'Propose a new time',
       initialTime: detail.summary.scheduledAt,
+      reservationLabel: detail.summary.serviceName,
     );
 
     if (draft == null) {
@@ -371,12 +431,14 @@ class _ProviderReservationDetailPageState
     );
   }
 
-  Future<void> _cancelReservation() async {
+  Future<void> _cancelReservation(ReservationDetail detail) async {
     final reason = await showReservationReasonSheet(
       context,
       title: 'Cancel reservation',
       buttonLabel: 'Confirm cancellation',
       destructive: true,
+      reservationLabel: detail.summary.serviceName,
+      currentTimeLabel: detail.summary.scheduledAtLabel,
     );
 
     if (reason == null) {
@@ -392,6 +454,50 @@ class _ProviderReservationDetailPageState
             reason: reason,
           ),
       successMessage: 'Reservation cancelled.',
+    );
+  }
+
+  Future<void> _replyToReview(AppReview review) async {
+    final reply = await showReviewTextSheet(
+      context,
+      title: 'Reply to review',
+      labelText: 'Reply',
+      hintText: 'Write a short public reply for this completed reservation.',
+      buttonLabel: 'Publish reply',
+    );
+
+    if (reply == null) {
+      return;
+    }
+
+    await _runAction(
+      'reply-review',
+      () => ref
+          .read(reviewsActionsProvider)
+          .replyToReview(review: review, message: reply),
+      successMessage: 'Reply published.',
+    );
+  }
+
+  Future<void> _reportReview(AppReview review) async {
+    final reason = await showReviewTextSheet(
+      context,
+      title: 'Report review',
+      labelText: 'Reason',
+      hintText: 'Explain why this review needs moderation.',
+      buttonLabel: 'Submit report',
+    );
+
+    if (reason == null) {
+      return;
+    }
+
+    await _runAction(
+      'report-review',
+      () => ref
+          .read(reviewsActionsProvider)
+          .reportReview(review: review, reason: reason),
+      successMessage: 'Review reported.',
     );
   }
 
@@ -434,6 +540,7 @@ class _ProviderReservationDetailPageState
     ref.invalidate(providerDashboardProvider);
     ref.invalidate(customerReservationDetailProvider(widget.reservationId));
     ref.invalidate(providerReservationDetailProvider(widget.reservationId));
+    ref.invalidate(reservationReviewProvider(widget.reservationId));
   }
 }
 
@@ -513,6 +620,83 @@ class _ChangeTile extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxs),
         Text(change.reason, style: Theme.of(context).textTheme.bodyMedium),
+      ],
+    );
+  }
+}
+
+class _PendingChangeCard extends StatelessWidget {
+  const _PendingChangeCard({
+    required this.title,
+    required this.description,
+    required this.currentTimeLabel,
+    required this.proposedTimeLabel,
+    required this.statusLabel,
+  });
+
+  final String title;
+  final String description;
+  final String currentTimeLabel;
+  final String proposedTimeLabel;
+  final String statusLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      color: const Color(0xFFEFF3FF),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              StatusPill(label: statusLabel, tone: StatusPillTone.info),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            description,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _PendingChangeRow(label: 'Current', value: currentTimeLabel),
+          const SizedBox(height: AppSpacing.xs),
+          _PendingChangeRow(label: 'Proposed', value: proposedTimeLabel),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingChangeRow extends StatelessWidget {
+  const _PendingChangeRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: AppColors.textMuted),
+          ),
+        ),
+        Expanded(
+          child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
+        ),
       ],
     );
   }

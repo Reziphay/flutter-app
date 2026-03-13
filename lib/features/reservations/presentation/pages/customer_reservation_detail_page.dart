@@ -11,6 +11,11 @@ import 'package:reziphay_mobile/core/widgets/status_pill.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/pages/provider_detail_page.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/pages/service_detail_page.dart';
+import 'package:reziphay_mobile/features/qr_completion/presentation/pages/qr_scan_page.dart';
+import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
+import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
+import 'package:reziphay_mobile/features/reviews/presentation/pages/review_create_page.dart';
+import 'package:reziphay_mobile/features/reviews/presentation/widgets/review_widgets.dart';
 import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 import 'package:reziphay_mobile/features/reservations/models/reservation_models.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/widgets/reservation_widgets.dart';
@@ -57,6 +62,9 @@ class _CustomerReservationDetailPageState
   }
 
   Widget _buildContent(BuildContext context, ReservationDetail detail) {
+    final reviewAsync = ref.watch(
+      reservationReviewProvider(widget.reservationId),
+    );
     final summary = detail.summary;
     final status = summary.effectiveStatus;
     final latestChange = detail.changeHistory.isEmpty
@@ -175,6 +183,21 @@ class _CustomerReservationDetailPageState
             ],
           ),
         ),
+        if (status == ReservationStatus.changeRequested &&
+            latestChange != null) ...[
+          const SizedBox(height: AppSpacing.xl),
+          _PendingChangeCard(
+            title: latestChange.requestedByLabel == 'Provider'
+                ? 'Provider proposed a new time'
+                : 'Waiting on provider response',
+            description: latestChange.requestedByLabel == 'Provider'
+                ? 'Review the proposed time before accepting it or sending another change request.'
+                : 'Your proposed time is waiting for the provider to confirm.',
+            currentTimeLabel: summary.scheduledAtLabel,
+            proposedTimeLabel: latestChange.proposedTimeLabel,
+            statusLabel: latestChange.statusLabel,
+          ),
+        ],
         if (detail.changeHistory.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.xl),
           const SectionHeader(title: 'Change history'),
@@ -241,22 +264,42 @@ class _CustomerReservationDetailPageState
                 AppButton(
                   label: 'Open QR completion flow',
                   variant: AppButtonVariant.secondary,
-                  onPressed: () => showReservationMessageSheet(
-                    context,
-                    title: 'QR completion',
-                    message:
-                        'QR completion stays backend-signed in Reziphay. The mobile surface is ready for the entry point, but the live scanner flow waits on backend integration.',
-                  ),
+                  onPressed: () =>
+                      context.go(QrScanPage.location(widget.reservationId)),
                 ),
               if (status == ReservationStatus.completed)
-                AppButton(
-                  label: 'Leave review',
-                  variant: AppButtonVariant.secondary,
-                  onPressed: () => showReservationMessageSheet(
-                    context,
-                    title: 'Review flow',
-                    message:
-                        'Completed reservations unlock service, provider, and brand reviews. The full review composer lands in the next phase.',
+                reviewAsync.when(
+                  data: (review) {
+                    if (review == null) {
+                      return AppButton(
+                        label: 'Leave review',
+                        variant: AppButtonVariant.secondary,
+                        onPressed: () => context.go(
+                          ReviewCreatePage.location(widget.reservationId),
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: AppSpacing.xs),
+                        AppReviewCard(
+                          review: review,
+                          onDelete: () => _deleteReview(review),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                    child: CircularProgressIndicator(),
+                  ),
+                  error: (error, stackTrace) => Text(
+                    error.toString(),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppColors.error),
                   ),
                 ),
               if (status == ReservationStatus.noShow)
@@ -307,7 +350,7 @@ class _CustomerReservationDetailPageState
                     label: 'Cancel reservation',
                     variant: AppButtonVariant.destructive,
                     isLoading: _busyAction == 'cancel',
-                    onPressed: () => _cancelReservation(),
+                    onPressed: () => _cancelReservation(detail),
                   ),
                 ],
               ],
@@ -329,12 +372,14 @@ class _CustomerReservationDetailPageState
     );
   }
 
-  Future<void> _cancelReservation() async {
+  Future<void> _cancelReservation(ReservationDetail detail) async {
     final reason = await showReservationReasonSheet(
       context,
       title: 'Cancel reservation',
       buttonLabel: 'Confirm cancellation',
       destructive: true,
+      reservationLabel: detail.summary.serviceName,
+      currentTimeLabel: detail.summary.scheduledAtLabel,
     );
 
     if (reason == null) {
@@ -358,6 +403,7 @@ class _CustomerReservationDetailPageState
       context,
       title: 'Request a new time',
       initialTime: detail.summary.scheduledAt,
+      reservationLabel: detail.summary.serviceName,
     );
 
     if (draft == null) {
@@ -374,6 +420,23 @@ class _CustomerReservationDetailPageState
             reason: draft.reason,
           ),
       successMessage: 'Change request sent.',
+    );
+  }
+
+  Future<void> _deleteReview(AppReview review) async {
+    final confirmed = await showReviewDeleteConfirmationSheet(
+      context,
+      review: review,
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    await _runAction(
+      'delete-review',
+      () => ref.read(reviewsActionsProvider).deleteReview(review),
+      successMessage: 'Review deleted.',
     );
   }
 
@@ -416,6 +479,7 @@ class _CustomerReservationDetailPageState
     ref.invalidate(providerDashboardProvider);
     ref.invalidate(customerReservationDetailProvider(widget.reservationId));
     ref.invalidate(providerReservationDetailProvider(widget.reservationId));
+    ref.invalidate(reservationReviewProvider(widget.reservationId));
   }
 }
 
@@ -495,6 +559,83 @@ class _ChangeHistoryTile extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxs),
         Text(change.reason, style: Theme.of(context).textTheme.bodyMedium),
+      ],
+    );
+  }
+}
+
+class _PendingChangeCard extends StatelessWidget {
+  const _PendingChangeCard({
+    required this.title,
+    required this.description,
+    required this.currentTimeLabel,
+    required this.proposedTimeLabel,
+    required this.statusLabel,
+  });
+
+  final String title;
+  final String description;
+  final String currentTimeLabel;
+  final String proposedTimeLabel;
+  final String statusLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      color: const Color(0xFFEFF3FF),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              StatusPill(label: statusLabel, tone: StatusPillTone.info),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            description,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _PendingChangeRow(label: 'Current', value: currentTimeLabel),
+          const SizedBox(height: AppSpacing.xs),
+          _PendingChangeRow(label: 'Proposed', value: proposedTimeLabel),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingChangeRow extends StatelessWidget {
+  const _PendingChangeRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: AppColors.textMuted),
+          ),
+        ),
+        Expanded(
+          child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
+        ),
       ],
     );
   }

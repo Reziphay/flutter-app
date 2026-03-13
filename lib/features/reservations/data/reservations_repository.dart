@@ -64,6 +64,8 @@ abstract class ReservationsRepository {
     required String reason,
   });
 
+  Future<void> completeReservationViaQr(String reservationId);
+
   Future<void> completeProviderReservation(String reservationId);
 }
 
@@ -237,6 +239,13 @@ class ReservationsActions {
     await ref
         .read(reservationsRepositoryProvider)
         .completeProviderReservation(reservationId);
+    _invalidate(reservationId);
+  }
+
+  Future<void> completeReservationViaQr(String reservationId) async {
+    await ref
+        .read(reservationsRepositoryProvider)
+        .completeReservationViaQr(reservationId);
     _invalidate(reservationId);
   }
 
@@ -425,6 +434,26 @@ class MockReservationsRepository implements ReservationsRepository {
         ),
       ],
     ),
+    _ReservationRecord(
+      id: 'r_1009',
+      serviceId: 'classic-haircut',
+      customerId: 'nigar-safarli',
+      customerName: 'Nigar Safarli',
+      scheduledAt: _dateAt(-2, 17, 0),
+      status: ReservationStatus.completed,
+      approvalMode: ApprovalMode.manual,
+      createdAt: DateTime.now().subtract(const Duration(days: 4)),
+      timeline: [
+        ReservationTimelineEvent(
+          title: 'Reservation completed via QR',
+          description: 'The customer scanned the provider QR successfully.',
+          timestamp: DateTime.now().subtract(const Duration(days: 2)),
+          actorLabel: 'System',
+        ),
+      ],
+      completionMethod: CompletionMethod.qr,
+      changeHistory: [],
+    ),
   ];
 
   int _idSeed = 2000;
@@ -573,6 +602,33 @@ class MockReservationsRepository implements ReservationsRepository {
   }
 
   @override
+  Future<void> completeReservationViaQr(String reservationId) async {
+    await _delay();
+    _syncExpirations();
+    final record = _findRecord(reservationId);
+    if (record.status == ReservationStatus.completed &&
+        record.completionMethod == CompletionMethod.qr) {
+      return;
+    }
+    if (record.status != ReservationStatus.confirmed) {
+      throw const AppException('Only confirmed reservations can be completed.');
+    }
+    record.status = ReservationStatus.completed;
+    record.responseDeadline = null;
+    record.completionMethod = CompletionMethod.qr;
+    record.timeline.insert(
+      0,
+      ReservationTimelineEvent(
+        title: 'Reservation completed via QR',
+        description:
+            'The customer scanned the provider QR and the reservation was verified.',
+        timestamp: DateTime.now(),
+        actorLabel: 'System',
+      ),
+    );
+  }
+
+  @override
   Future<String> createReservation({
     required String serviceId,
     required DateTime scheduledAt,
@@ -661,16 +717,11 @@ class MockReservationsRepository implements ReservationsRepository {
     }).toList();
 
     final pending = providerReservations
-        .where(
-          (record) =>
-              record.status == ReservationStatus.pendingApproval ||
-              (record.status == ReservationStatus.changeRequested &&
-                  _latestChange(record)?.requestedByLabel == 'Customer'),
-        )
+        .where(_requiresProviderAttention)
         .map(_buildSummary)
         .toList();
     final today = providerReservations
-        .where((record) => _isToday(record.scheduledAt))
+        .where(_isOperationalToday)
         .map(_buildSummary)
         .toList();
 
@@ -864,6 +915,9 @@ class MockReservationsRepository implements ReservationsRepository {
       status: record.status,
       approvalMode: record.approvalMode,
       priceLabel: service.priceLabel,
+      latestChangeRequestedBy: _latestChange(record) == null
+          ? null
+          : _actorFromLabel(_latestChange(record)!.requestedByLabel),
       note: record.note,
       responseDeadline: record.responseDeadline,
     );
@@ -925,6 +979,28 @@ class MockReservationsRepository implements ReservationsRepository {
     return dateTime.year == now.year &&
         dateTime.month == now.month &&
         dateTime.day == now.day;
+  }
+
+  bool _isOperationalToday(_ReservationRecord record) {
+    return _isToday(record.scheduledAt) && !record.status.isTerminal;
+  }
+
+  bool _requiresProviderAttention(_ReservationRecord record) {
+    if (record.status == ReservationStatus.pendingApproval) {
+      return true;
+    }
+
+    return record.status == ReservationStatus.changeRequested &&
+        _actorFromLabel(_latestChange(record)?.requestedByLabel) ==
+            ReservationActor.customer;
+  }
+
+  ReservationActor? _actorFromLabel(String? label) {
+    return switch (label) {
+      'Customer' => ReservationActor.customer,
+      'Provider' => ReservationActor.provider,
+      _ => null,
+    };
   }
 
   Future<void> _delay() =>

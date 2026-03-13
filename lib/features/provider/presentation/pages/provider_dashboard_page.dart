@@ -8,6 +8,7 @@ import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/core/widgets/section_header.dart';
 import 'package:reziphay_mobile/core/widgets/status_pill.dart';
 import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
+import 'package:reziphay_mobile/features/qr_completion/presentation/pages/provider_qr_page.dart';
 import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/pages/provider_reservation_detail_page.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/pages/provider_reservations_page.dart';
@@ -197,16 +198,11 @@ class ProviderDashboardPage extends ConsumerWidget {
                     onTap: () => context.go(ProviderReservationsPage.path),
                   ),
                   _QuickActionCard(
-                    title: 'QR guidance',
+                    title: 'Provider QR',
                     description:
-                        'Signed QR completion stays blocked until backend wiring exists.',
+                        'Open the signed QR surface customers use to complete confirmed reservations.',
                     icon: Icons.qr_code_2_outlined,
-                    onTap: () => showReservationMessageSheet(
-                      context,
-                      title: 'Provider QR',
-                      message:
-                          'QR completion must stay backend-signed, so the dashboard only exposes the entry point and guidance for now.',
-                    ),
+                    onTap: () => context.go(ProviderQrPage.path),
                   ),
                   _QuickActionCard(
                     title: 'Services',

@@ -14,6 +14,9 @@ import 'package:reziphay_mobile/features/discovery/presentation/pages/provider_d
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_cards.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_media.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_notice_sheet.dart';
+import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
+import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
+import 'package:reziphay_mobile/features/reviews/presentation/widgets/review_widgets.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/pages/reservation_request_page.dart';
 
 class ServiceDetailPage extends ConsumerWidget {
@@ -32,7 +35,22 @@ class ServiceDetailPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(),
       body: detailAsync.when(
-        data: (detail) => _ServiceDetailContent(detail: detail),
+        data: (detail) {
+          final dynamicReviewsAsync = ref.watch(
+            entityReviewsProvider(
+              ReviewEntityKey(
+                type: ReviewTargetType.service,
+                entityId: detail.summary.id,
+              ),
+            ),
+          );
+
+          return _ServiceDetailContent(
+            detail: detail,
+            dynamicReviewsAsync: dynamicReviewsAsync,
+            onReport: (review) => _reportReview(context, ref, review),
+          );
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => Padding(
           padding: const EdgeInsets.all(AppSpacing.xl),
@@ -47,9 +65,15 @@ class ServiceDetailPage extends ConsumerWidget {
 }
 
 class _ServiceDetailContent extends StatelessWidget {
-  const _ServiceDetailContent({required this.detail});
+  const _ServiceDetailContent({
+    required this.detail,
+    required this.dynamicReviewsAsync,
+    required this.onReport,
+  });
 
   final ServiceDetail detail;
+  final AsyncValue<List<AppReview>> dynamicReviewsAsync;
+  final ValueChanged<AppReview> onReport;
 
   @override
   Widget build(BuildContext context) {
@@ -286,22 +310,11 @@ class _ServiceDetailContent extends StatelessWidget {
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
-          Text('Reviews', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: AppSpacing.md),
-          if (detail.reviews.isEmpty)
-            const EmptyState(
-              title: 'No reviews yet',
-              description: 'Completed reservations unlock the review flow.',
-            )
-          else
-            ...detail.reviews
-                .take(2)
-                .map(
-                  (review) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: ReviewCard(review: review),
-                  ),
-                ),
+          EntityReviewsSection(
+            staticReviews: detail.reviews,
+            dynamicReviewsAsync: dynamicReviewsAsync,
+            onReport: onReport,
+          ),
           TextButton.icon(
             onPressed: () => showDiscoveryNoticeSheet(
               context,
@@ -315,5 +328,45 @@ class _ServiceDetailContent extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+Future<void> _reportReview(
+  BuildContext context,
+  WidgetRef ref,
+  AppReview review,
+) async {
+  final reason = await showReviewTextSheet(
+    context,
+    title: 'Report review',
+    labelText: 'Reason',
+    hintText: 'Explain why this comment should be reviewed.',
+    buttonLabel: 'Submit report',
+  );
+
+  if (reason == null) {
+    return;
+  }
+
+  try {
+    await ref
+        .read(reviewsActionsProvider)
+        .reportReview(review: review, reason: reason);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Review reported.')));
+  } catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error.toString())));
   }
 }

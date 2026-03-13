@@ -71,7 +71,9 @@ class _ReservationRequestPageState
                   ? 'Send request'
                   : 'Confirm reservation',
               isLoading: _isSubmitting,
-              onPressed: () => _submit(detail),
+              onPressed: detail.requestableSlots.any((slot) => slot.available)
+                  ? () => _submit(detail)
+                  : null,
             ),
           ),
         ),
@@ -165,6 +167,27 @@ class _ReservationRequestPageState
               )
               .toList(),
         ),
+        if (selectedTime != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          AppCard(
+            color: AppColors.surfaceSoft,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.event_available_outlined,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Selected time: ${_formatSelectedTime(selectedTime)}',
+                    style: textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         if (selectedTime == null) ...[
           const SizedBox(height: AppSpacing.md),
           const EmptyState(
@@ -235,6 +258,12 @@ class _ReservationRequestPageState
         ),
       ],
     );
+  }
+
+  String _formatSelectedTime(DateTime selectedTime) {
+    final hour = selectedTime.hour.toString().padLeft(2, '0');
+    final minute = selectedTime.minute.toString().padLeft(2, '0');
+    return '${selectedTime.day}/${selectedTime.month} · $hour:$minute';
   }
 
   Future<void> _submit(ServiceDetail detail) async {

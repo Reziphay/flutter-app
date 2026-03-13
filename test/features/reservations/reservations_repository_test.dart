@@ -141,5 +141,64 @@ void main() {
         );
       },
     );
+
+    test(
+      'provider dashboard does not treat provider-originated changes as urgent',
+      () async {
+        final reservationId = await repository.createReservation(
+          serviceId: 'classic-haircut',
+          scheduledAt: DateTime.now().add(const Duration(days: 1)),
+          note: '',
+          customerId: 'current-user',
+          customerName: 'Test Customer',
+        );
+
+        await repository.requestProviderChange(
+          reservationId: reservationId,
+          proposedTime: DateTime.now().add(const Duration(days: 1, hours: 2)),
+          reason: 'Need to move this slightly later.',
+        );
+
+        final dashboard = await repository.getProviderDashboard(
+          'rauf-mammadov',
+        );
+
+        expect(
+          dashboard.pendingRequests.any(
+            (reservation) => reservation.id == reservationId,
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'provider dashboard today list excludes cancelled reservations',
+      () async {
+        final reservationId = await repository.createReservation(
+          serviceId: 'classic-haircut',
+          scheduledAt: DateTime.now().add(const Duration(hours: 2)),
+          note: '',
+          customerId: 'current-user',
+          customerName: 'Test Customer',
+        );
+
+        await repository.cancelProviderReservation(
+          reservationId: reservationId,
+          reason: 'Closed for the afternoon.',
+        );
+
+        final dashboard = await repository.getProviderDashboard(
+          'rauf-mammadov',
+        );
+
+        expect(
+          dashboard.todayReservations.any(
+            (reservation) => reservation.id == reservationId,
+          ),
+          isFalse,
+        );
+      },
+    );
   });
 }

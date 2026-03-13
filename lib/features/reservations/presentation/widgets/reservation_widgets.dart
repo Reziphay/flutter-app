@@ -293,6 +293,8 @@ Future<String?> showReservationReasonSheet(
   required String title,
   required String buttonLabel,
   required bool destructive,
+  String? reservationLabel,
+  String? currentTimeLabel,
 }) {
   final controller = TextEditingController();
 
@@ -316,6 +318,31 @@ Future<String?> showReservationReasonSheet(
             children: [
               Text(title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: AppSpacing.sm),
+              if (reservationLabel != null || currentTimeLabel != null) ...[
+                AppCard(
+                  color: AppColors.surfaceSoft,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (reservationLabel != null)
+                        Text(
+                          reservationLabel,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      if (currentTimeLabel != null) ...[
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(
+                          currentTimeLabel,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textMuted),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
               TextField(
                 controller: controller,
                 maxLines: 4,
@@ -345,6 +372,7 @@ Future<ReservationChangeDraft?> showReservationChangeSheet(
   BuildContext context, {
   required String title,
   required DateTime initialTime,
+  String? reservationLabel,
 }) {
   final reasonController = TextEditingController();
   var selectedTime = initialTime.add(const Duration(hours: 2));
@@ -371,6 +399,28 @@ Future<ReservationChangeDraft?> showReservationChangeSheet(
                 children: [
                   Text(title, style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: AppSpacing.md),
+                  if (reservationLabel != null) ...[
+                    AppCard(
+                      color: AppColors.surfaceSoft,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reservationLabel,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: AppSpacing.xxs),
+                          Text(
+                            'Current time: ${initialTime.month}/${initialTime.day} · ${initialTime.hour.toString().padLeft(2, '0')}:${initialTime.minute.toString().padLeft(2, '0')}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
                   Wrap(
                     spacing: AppSpacing.xs,
                     runSpacing: AppSpacing.xs,

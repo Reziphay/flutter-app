@@ -157,19 +157,15 @@ extension on _ProviderReservationFilter {
 
   bool matches(ReservationSummary summary) {
     final now = DateTime.now();
-    final today =
-        summary.scheduledAt.year == now.year &&
-        summary.scheduledAt.month == now.month &&
-        summary.scheduledAt.day == now.day;
     final status = summary.effectiveStatus;
 
     return switch (this) {
-      _ProviderReservationFilter.incoming =>
-        status == ReservationStatus.pendingApproval ||
-            status == ReservationStatus.changeRequested,
-      _ProviderReservationFilter.today => today,
+      _ProviderReservationFilter.incoming => summary.isAwaitingProviderAction,
+      _ProviderReservationFilter.today => summary.isActiveToday,
       _ProviderReservationFilter.upcoming =>
-        status == ReservationStatus.confirmed && !today,
+        status == ReservationStatus.confirmed &&
+            summary.scheduledAt.isAfter(now) &&
+            !summary.isActiveToday,
       _ProviderReservationFilter.completed =>
         status == ReservationStatus.completed,
       _ProviderReservationFilter.closed =>

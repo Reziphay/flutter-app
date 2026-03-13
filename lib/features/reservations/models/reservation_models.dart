@@ -52,6 +52,35 @@ extension ReservationStatusX on ReservationStatus {
   };
 }
 
+extension ReservationSummaryX on ReservationSummary {
+  bool get isAwaitingProviderAction {
+    if (effectiveStatus == ReservationStatus.pendingApproval) {
+      return true;
+    }
+
+    return effectiveStatus == ReservationStatus.changeRequested &&
+        latestChangeRequestedBy == ReservationActor.customer;
+  }
+
+  bool get isAwaitingCustomerAction {
+    return effectiveStatus == ReservationStatus.changeRequested &&
+        latestChangeRequestedBy == ReservationActor.provider;
+  }
+
+  bool get isActiveToday {
+    if (effectiveStatus.isTerminal) {
+      return false;
+    }
+
+    final now = DateTime.now();
+    return scheduledAt.year == now.year &&
+        scheduledAt.month == now.month &&
+        scheduledAt.day == now.day;
+  }
+}
+
+enum ReservationActor { customer, provider }
+
 enum CompletionMethod { qr, manual }
 
 extension CompletionMethodX on CompletionMethod {
@@ -112,6 +141,7 @@ class ReservationSummary {
     required this.status,
     required this.approvalMode,
     required this.priceLabel,
+    this.latestChangeRequestedBy,
     this.brandId,
     this.brandName,
     this.note,
@@ -130,6 +160,7 @@ class ReservationSummary {
   final ReservationStatus status;
   final ApprovalMode approvalMode;
   final String priceLabel;
+  final ReservationActor? latestChangeRequestedBy;
   final String? brandId;
   final String? brandName;
   final String? note;

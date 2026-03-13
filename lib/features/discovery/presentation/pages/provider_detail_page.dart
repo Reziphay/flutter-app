@@ -13,6 +13,9 @@ import 'package:reziphay_mobile/features/discovery/presentation/pages/service_de
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_cards.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_media.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/widgets/discovery_notice_sheet.dart';
+import 'package:reziphay_mobile/features/reviews/data/reviews_repository.dart';
+import 'package:reziphay_mobile/features/reviews/models/review_models.dart';
+import 'package:reziphay_mobile/features/reviews/presentation/widgets/review_widgets.dart';
 
 class ProviderDetailPage extends ConsumerWidget {
   const ProviderDetailPage({required this.providerId, super.key});
@@ -30,141 +33,148 @@ class ProviderDetailPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(),
       body: detailAsync.when(
-        data: (detail) => ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            const DiscoveryMedia(
-              seed: 'provider-detail',
-              label: 'Provider',
-              kind: DiscoveryMediaKind.provider,
-              height: 180,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              detail.summary.name,
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
-              children: [
-                StatusPill(
-                  label: detail.summary.availableNow
-                      ? 'Available now'
-                      : 'Next availability later',
-                  tone: detail.summary.availableNow
-                      ? StatusPillTone.success
-                      : StatusPillTone.neutral,
-                ),
-                for (final label in detail.summary.visibilityLabels)
-                  StatusPill(
-                    label: label.label,
-                    tone: switch (label) {
-                      VisibilityLabel.common => StatusPillTone.neutral,
-                      VisibilityLabel.vip => StatusPillTone.info,
-                      VisibilityLabel.bestOfMonth => StatusPillTone.success,
-                      VisibilityLabel.sponsored => StatusPillTone.warning,
-                    },
-                  ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            RatingRow(
-              rating: detail.summary.rating,
-              reviewCount: detail.summary.reviewCount,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Trust and stats',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    detail.summary.bio,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  DetailFactRow(
-                    icon: Icons.check_circle_outline,
-                    label: 'Completed reservations',
-                    value: detail.summary.completedReservations.toString(),
-                  ),
-                  DetailFactRow(
-                    icon: Icons.timer_outlined,
-                    label: 'Response reliability',
-                    value: detail.summary.responseReliability,
-                  ),
-                  DetailFactRow(
-                    icon: Icons.near_me_outlined,
-                    label: 'Distance',
-                    value:
-                        '${detail.summary.distanceKm.toStringAsFixed(1)} km away',
-                  ),
-                ],
+        data: (detail) {
+          final dynamicReviewsAsync = ref.watch(
+            entityReviewsProvider(
+              ReviewEntityKey(
+                type: ReviewTargetType.provider,
+                entityId: detail.summary.id,
               ),
             ),
-            if (detail.associatedBrands.isNotEmpty) ...[
+          );
+
+          return ListView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            children: [
+              const DiscoveryMedia(
+                seed: 'provider-detail',
+                label: 'Provider',
+                kind: DiscoveryMediaKind.provider,
+                height: 180,
+              ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                'Associated brands',
-                style: Theme.of(context).textTheme.titleMedium,
+                detail.summary.name,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  StatusPill(
+                    label: detail.summary.availableNow
+                        ? 'Available now'
+                        : 'Next availability later',
+                    tone: detail.summary.availableNow
+                        ? StatusPillTone.success
+                        : StatusPillTone.neutral,
+                  ),
+                  for (final label in detail.summary.visibilityLabels)
+                    StatusPill(
+                      label: label.label,
+                      tone: switch (label) {
+                        VisibilityLabel.common => StatusPillTone.neutral,
+                        VisibilityLabel.vip => StatusPillTone.info,
+                        VisibilityLabel.bestOfMonth => StatusPillTone.success,
+                        VisibilityLabel.sponsored => StatusPillTone.warning,
+                      },
+                    ),
+                ],
               ),
               const SizedBox(height: AppSpacing.md),
-              ...detail.associatedBrands.map(
-                (brand) => Padding(
+              RatingRow(
+                rating: detail.summary.rating,
+                reviewCount: detail.summary.reviewCount,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Trust and stats',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      detail.summary.bio,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    DetailFactRow(
+                      icon: Icons.check_circle_outline,
+                      label: 'Completed reservations',
+                      value: detail.summary.completedReservations.toString(),
+                    ),
+                    DetailFactRow(
+                      icon: Icons.timer_outlined,
+                      label: 'Response reliability',
+                      value: detail.summary.responseReliability,
+                    ),
+                    DetailFactRow(
+                      icon: Icons.near_me_outlined,
+                      label: 'Distance',
+                      value:
+                          '${detail.summary.distanceKm.toStringAsFixed(1)} km away',
+                    ),
+                  ],
+                ),
+              ),
+              if (detail.associatedBrands.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Associated brands',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ...detail.associatedBrands.map(
+                  (brand) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: BrandCard(
+                      brand: brand,
+                      width: double.infinity,
+                      onTap: () =>
+                          context.go(BrandDetailPage.location(brand.id)),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              Text('Services', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: AppSpacing.md),
+              ...detail.services.map(
+                (service) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: BrandCard(
-                    brand: brand,
+                  child: ServiceCard(
+                    service: service,
                     width: double.infinity,
-                    onTap: () => context.go(BrandDetailPage.location(brand.id)),
+                    onTap: () =>
+                        context.go(ServiceDetailPage.location(service.id)),
                   ),
                 ),
               ),
-            ],
-            const SizedBox(height: AppSpacing.md),
-            Text('Services', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.md),
-            ...detail.services.map(
-              (service) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: ServiceCard(
-                  service: service,
-                  width: double.infinity,
-                  onTap: () =>
-                      context.go(ServiceDetailPage.location(service.id)),
-                ),
+              const SizedBox(height: AppSpacing.md),
+              EntityReviewsSection(
+                staticReviews: detail.reviews,
+                dynamicReviewsAsync: dynamicReviewsAsync,
+                onReport: (review) => _reportReview(context, ref, review),
               ),
-            ),
-            if (detail.reviews.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.md),
-              Text('Reviews', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: AppSpacing.md),
-              ...detail.reviews.map(
-                (review) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: ReviewCard(review: review),
+              TextButton.icon(
+                onPressed: () => showDiscoveryNoticeSheet(
+                  context,
+                  title: 'Report provider',
+                  message:
+                      'The report sheet is planned for the trust-and-safety flow.',
                 ),
+                icon: const Icon(Icons.flag_outlined),
+                label: const Text('Report this provider'),
               ),
             ],
-            TextButton.icon(
-              onPressed: () => showDiscoveryNoticeSheet(
-                context,
-                title: 'Report provider',
-                message:
-                    'The report sheet is planned for the trust-and-safety flow.',
-              ),
-              icon: const Icon(Icons.flag_outlined),
-              label: const Text('Report this provider'),
-            ),
-          ],
-        ),
+          );
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => Padding(
           padding: const EdgeInsets.all(AppSpacing.xl),
@@ -175,5 +185,45 @@ class ProviderDetailPage extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+Future<void> _reportReview(
+  BuildContext context,
+  WidgetRef ref,
+  AppReview review,
+) async {
+  final reason = await showReviewTextSheet(
+    context,
+    title: 'Report review',
+    labelText: 'Reason',
+    hintText: 'Explain why this review should be reviewed.',
+    buttonLabel: 'Submit report',
+  );
+
+  if (reason == null) {
+    return;
+  }
+
+  try {
+    await ref
+        .read(reviewsActionsProvider)
+        .reportReview(review: review, reason: reason);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Review reported.')));
+  } catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error.toString())));
   }
 }

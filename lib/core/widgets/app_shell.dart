@@ -38,6 +38,12 @@ class AppShell extends ConsumerWidget {
     final navigationLocation = switch (location) {
       SettingsPage.path => ProfilePage.path,
       RoleSwitchPage.path => ProfilePage.path,
+      _ when location.startsWith('/customer/reservations') =>
+        _customerReservationsPath,
+      _ when location.startsWith('/reviews/') => _customerReservationsPath,
+      _ when location.startsWith('/provider/reservations') =>
+        _providerReservationsPath,
+      _ when location.startsWith('/provider/qr') => ProviderDashboardPage.path,
       _
           when location.startsWith('/customer/search') ||
               location.startsWith('/customer/category/') ||
