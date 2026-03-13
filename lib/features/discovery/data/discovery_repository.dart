@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:reziphay_mobile/core/network/app_exception.dart';
 import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 
 abstract class DiscoveryRepository {
   List<DiscoveryCategory> get categories;
@@ -18,6 +19,59 @@ abstract class DiscoveryRepository {
   Future<BrandDetail> getBrandDetail(String id);
 
   Future<ProviderDetail> getProviderDetail(String id);
+
+  Future<ProviderServicesData> getProviderServices(String providerId);
+
+  Future<ProviderManagedService> getProviderService({
+    required String serviceId,
+    required String providerId,
+  });
+
+  Future<String> createProviderService({
+    required String providerId,
+    required ProviderServiceDraft draft,
+  });
+
+  Future<void> updateProviderService({
+    required String providerId,
+    required String serviceId,
+    required ProviderServiceDraft draft,
+  });
+
+  Future<void> archiveProviderService({
+    required String providerId,
+    required String serviceId,
+  });
+
+  Future<ProviderBrandsData> getProviderBrands(String providerId);
+
+  Future<ProviderManagedBrand> getProviderBrand({
+    required String brandId,
+    required String providerId,
+  });
+
+  Future<String> createProviderBrand({
+    required String providerId,
+    required ProviderBrandDraft draft,
+  });
+
+  Future<void> updateProviderBrand({
+    required String providerId,
+    required String brandId,
+    required ProviderBrandDraft draft,
+  });
+
+  Future<void> acceptBrandJoinRequest({
+    required String providerId,
+    required String brandId,
+    required String requestId,
+  });
+
+  Future<void> rejectBrandJoinRequest({
+    required String providerId,
+    required String brandId,
+    required String requestId,
+  });
 }
 
 final discoveryRepositoryProvider = Provider<DiscoveryRepository>(
@@ -92,7 +146,7 @@ class MockDiscoveryRepository implements DiscoveryRepository {
     ),
   ];
 
-  final List<BrandSummary> _brands = const [
+  final List<BrandSummary> _brands = List.of(const [
     BrandSummary(
       id: 'studio-north',
       name: 'Studio North',
@@ -138,9 +192,9 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       popularityScore: 83,
       openNow: false,
     ),
-  ];
+  ]);
 
-  final List<ProviderSummary> _providers = const [
+  final List<ProviderSummary> _providers = List.of(const [
     ProviderSummary(
       id: 'rauf-mammadov',
       name: 'Rauf Mammadov',
@@ -210,9 +264,9 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       popularityScore: 71,
       availableNow: true,
     ),
-  ];
+  ]);
 
-  final List<ServiceSummary> _services = const [
+  final List<ServiceSummary> _services = List.of(const [
     ServiceSummary(
       id: 'classic-haircut',
       name: 'Classic haircut',
@@ -342,9 +396,9 @@ class MockDiscoveryRepository implements DiscoveryRepository {
       descriptionSnippet:
           'Independent consulting with flexible requestable windows.',
     ),
-  ];
+  ]);
 
-  final Map<String, List<ReviewPreview>> _reviewsByEntity = const {
+  final Map<String, List<ReviewPreview>> _reviewsByEntity = Map.of(const {
     'classic-haircut': [
       ReviewPreview(
         authorName: 'Murad',
@@ -441,7 +495,222 @@ class MockDiscoveryRepository implements DiscoveryRepository {
         dateLabel: '10 days ago',
       ),
     ],
+  });
+
+  final Map<String, _BrandMeta> _brandMetaById = Map.of(const {
+    'studio-north': _BrandMeta(
+      description:
+          'Studio North keeps the grooming experience calm and intentionally lightweight. Reservations stay flexible, but response times are visible and reliable.',
+      mapHint:
+          'Map preview will connect to the geolocation abstraction in a later pass.',
+      logoLabel: 'SN mark',
+    ),
+    'luna-dental': _BrandMeta(
+      description:
+          'Luna Dental uses Reziphay to make discovery and coordination easier without pretending every clinical visit fits a rigid slot engine.',
+      mapHint:
+          'Map preview will connect to the geolocation abstraction in a later pass.',
+      logoLabel: 'LD crest',
+    ),
+    'form-and-flare': _BrandMeta(
+      description:
+          'Form & Flare focuses on studio-quality beauty sessions with careful review signals and clear availability communication.',
+      mapHint:
+          'Map preview will connect to the geolocation abstraction in a later pass.',
+      logoLabel: 'F&F monogram',
+    ),
+  });
+
+  final Map<String, _ServiceMeta> _serviceMetaById = {
+    'classic-haircut': _ServiceMeta(
+      about:
+          'A clean grooming service for customers who care about reliability more than artificial instant-booking theatrics. Manual approval keeps the provider in control of real schedule conflicts.',
+      availabilitySummary:
+          'Selectable times remain requestable until the provider responds. If no response arrives in 5 minutes, the request expires.',
+      requestableSlots: [
+        AvailabilityWindow(
+          startsAt: _dateAt(0, 14, 0),
+          label: 'Today · 14:00',
+          available: true,
+          note: 'Manual approval',
+        ),
+        AvailabilityWindow(
+          startsAt: _dateAt(0, 16, 0),
+          label: 'Today · 16:00',
+          available: true,
+          note: 'Manual approval',
+        ),
+        AvailabilityWindow(
+          startsAt: _dateAt(1, 11, 30),
+          label: 'Tomorrow · 11:30',
+          available: true,
+        ),
+      ],
+      waitingTimeMinutes: 10,
+      freeCancellationHours: 2,
+      leadTimeHours: 1,
+      serviceType: ManagedServiceType.solo,
+      galleryLabels: ['Studio chair', 'Clean finish', 'Product shelf'],
+      exceptionNotes: ['Closed every Sunday morning.'],
+    ),
+    'precision-beard-trim': _ServiceMeta(
+      about:
+          'Focused grooming session with lighter setup and faster turnaround. Auto approval is enabled because the provider keeps buffers elsewhere.',
+      availabilitySummary:
+          'Available times can confirm immediately when still open.',
+      requestableSlots: [
+        AvailabilityWindow(
+          startsAt: _dateAt(0, 16, 30),
+          label: 'Today · 16:30',
+          available: true,
+          note: 'Auto confirm',
+        ),
+        AvailabilityWindow(
+          startsAt: _dateAt(0, 17, 0),
+          label: 'Today · 17:00',
+          available: true,
+          note: 'Auto confirm',
+        ),
+        AvailabilityWindow(
+          startsAt: _dateAt(1, 12, 0),
+          label: 'Tomorrow · 12:00',
+          available: true,
+        ),
+      ],
+      waitingTimeMinutes: 10,
+      freeCancellationHours: 2,
+      leadTimeHours: 0,
+      serviceType: ManagedServiceType.solo,
+      galleryLabels: ['Beard line', 'Chair setup', 'Finishing tools'],
+      exceptionNotes: const [],
+    ),
+    'dental-consultation': _ServiceMeta(
+      about:
+          'Initial consultation, examination, and treatment direction. Manual approval helps the clinic sequence prep time and follow-ups safely.',
+      availabilitySummary:
+          'Selectable times remain requestable until the provider responds. If no response arrives in 5 minutes, the request expires.',
+      requestableSlots: [
+        AvailabilityWindow(
+          startsAt: _dateAt(1, 11, 0),
+          label: 'Tomorrow · 11:00',
+          available: true,
+          note: 'Manual approval',
+        ),
+        AvailabilityWindow(
+          startsAt: _dateAt(1, 13, 30),
+          label: 'Tomorrow · 13:30',
+          available: true,
+          note: 'Manual approval',
+        ),
+        AvailabilityWindow(
+          startsAt: _dateAt(5, 9, 30),
+          label: 'Friday · 09:30',
+          available: false,
+          note: 'Filled',
+        ),
+      ],
+      waitingTimeMinutes: 15,
+      freeCancellationHours: 12,
+      leadTimeHours: 4,
+      serviceType: ManagedServiceType.multi,
+      galleryLabels: ['Clinic room', 'Reception', 'Care setup'],
+      exceptionNotes: ['Closed for sterilization every Monday 09:00-10:00.'],
+    ),
+    'professional-cleaning': _ServiceMeta(
+      about:
+          'Routine hygiene service designed for faster confirmation and lower coordination overhead.',
+      availabilitySummary:
+          'Available times can confirm immediately when still open.',
+      requestableSlots: [
+        AvailabilityWindow(
+          startsAt: _dateAt(5, 10, 30),
+          label: 'Friday · 10:30',
+          available: true,
+          note: 'Auto confirm',
+        ),
+        AvailabilityWindow(
+          startsAt: _dateAt(5, 12, 0),
+          label: 'Friday · 12:00',
+          available: true,
+          note: 'Auto confirm',
+        ),
+      ],
+      waitingTimeMinutes: 15,
+      freeCancellationHours: 12,
+      leadTimeHours: 4,
+      serviceType: ManagedServiceType.multi,
+      galleryLabels: ['Procedure room', 'Clean tools', 'Aftercare desk'],
+      exceptionNotes: const [],
+    ),
+    'signature-skin-reset': _ServiceMeta(
+      about:
+          'Longer beauty session with a more curated workflow, so the provider prefers manual approval and clearer lead-time control.',
+      availabilitySummary:
+          'Selectable times remain requestable until the provider responds. If no response arrives in 5 minutes, the request expires.',
+      requestableSlots: [
+        AvailabilityWindow(
+          startsAt: _dateAt(6, 13, 0),
+          label: 'Saturday · 13:00',
+          available: true,
+          note: 'Manual approval',
+        ),
+        AvailabilityWindow(
+          startsAt: _dateAt(6, 16, 0),
+          label: 'Saturday · 16:00',
+          available: true,
+          note: 'Manual approval',
+        ),
+      ],
+      waitingTimeMinutes: 10,
+      freeCancellationHours: 2,
+      leadTimeHours: 6,
+      serviceType: ManagedServiceType.solo,
+      galleryLabels: ['Treatment room', 'Lighting', 'Product detail'],
+      exceptionNotes: ['Unavailable after 18:00 on weekdays.'],
+    ),
+    'strategy-session': _ServiceMeta(
+      about:
+          'Independent advisory session with flexible request windows. Times stay requestable because many meetings require light adjustment before confirmation.',
+      availabilitySummary:
+          'Selectable times remain requestable until the provider responds. If no response arrives in 5 minutes, the request expires.',
+      requestableSlots: [
+        AvailabilityWindow(
+          startsAt: _dateAt(7, 18, 0),
+          label: 'Monday · 18:00',
+          available: true,
+          note: 'Requestable',
+        ),
+        AvailabilityWindow(
+          startsAt: _dateAt(8, 10, 0),
+          label: 'Tuesday · 10:00',
+          available: true,
+          note: 'Requestable',
+        ),
+      ],
+      waitingTimeMinutes: 5,
+      freeCancellationHours: 6,
+      leadTimeHours: 12,
+      serviceType: ManagedServiceType.solo,
+      galleryLabels: ['Overview', 'Space', 'Result'],
+      exceptionNotes: ['Remote-only on Fridays.'],
+    ),
   };
+
+  final Map<String, List<BrandJoinRequest>> _brandJoinRequestsByBrandId = {
+    'studio-north': List.of(const [
+      BrandJoinRequest(
+        id: 'join_2001',
+        applicantName: 'Murad Karimov',
+        note:
+            'Independent barber looking to join under the Studio North brand.',
+        requestedAtLabel: 'Today · 09:20',
+      ),
+    ]),
+  };
+
+  final Set<String> _archivedServiceIds = {};
+  int _brandIdSeed = 4000;
+  int _serviceIdSeed = 5000;
 
   Map<String, BrandSummary> get _brandsById => {
     for (final brand in _brands) brand.id: brand,
@@ -454,6 +723,10 @@ class MockDiscoveryRepository implements DiscoveryRepository {
   Map<String, ServiceSummary> get _servicesById => {
     for (final service in _services) service.id: service,
   };
+
+  List<ServiceSummary> get _discoverableServices => _services
+      .where((service) => !_archivedServiceIds.contains(service.id))
+      .toList();
 
   @override
   DiscoveryCategory? categoryById(String id) {
@@ -471,51 +744,23 @@ class MockDiscoveryRepository implements DiscoveryRepository {
   @override
   Future<BrandDetail> getBrandDetail(String id) async {
     await _delay();
-
-    final brand = _brandsById[id];
-    if (brand == null) {
-      throw const AppException('Brand not found.');
-    }
-
-    final members = _providers
-        .where((provider) => provider.brandIds.contains(id))
-        .toList();
-    final services = _services
-        .where((service) => service.brandId == id)
-        .toList();
-
-    return BrandDetail(
-      summary: brand,
-      description: switch (brand.id) {
-        'studio-north' =>
-          'Studio North keeps the grooming experience calm and intentionally lightweight. Reservations stay flexible, but response times are visible and reliable.',
-        'luna-dental' =>
-          'Luna Dental uses Reziphay to make discovery and coordination easier without pretending every clinical visit fits a rigid slot engine.',
-        _ =>
-          'Form & Flare focuses on studio-quality beauty sessions with careful review signals and clear availability communication.',
-      },
-      mapHint:
-          'Map preview will connect to the geolocation abstraction in a later pass.',
-      members: members,
-      services: services,
-      reviews: _reviewsByEntity[id] ?? const [],
-    );
+    return _buildBrandDetail(id);
   }
 
   @override
   Future<CustomerHomeData> getCustomerHomeData() async {
     await _delay();
 
-    final nearYou = List<ServiceSummary>.of(_services)
+    final nearYou = List<ServiceSummary>.of(_discoverableServices)
       ..sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
-    final featured = _services
+    final featured = _discoverableServices
         .where(
           (service) =>
               service.visibilityLabels.contains(VisibilityLabel.vip) ||
               service.visibilityLabels.contains(VisibilityLabel.sponsored),
         )
         .toList();
-    final bestOfMonth = _services
+    final bestOfMonth = _discoverableServices
         .where(
           (service) =>
               service.visibilityLabels.contains(VisibilityLabel.bestOfMonth),
@@ -549,7 +794,7 @@ class MockDiscoveryRepository implements DiscoveryRepository {
         .map((brandId) => _brandsById[brandId])
         .whereType<BrandSummary>()
         .toList();
-    final services = _services
+    final services = _discoverableServices
         .where((service) => service.providerId == id)
         .toList();
 
@@ -568,7 +813,7 @@ class MockDiscoveryRepository implements DiscoveryRepository {
     final normalizedQuery = request.query.trim().toLowerCase();
 
     final services =
-        List<ServiceSummary>.of(_services)
+        List<ServiceSummary>.of(_discoverableServices)
             .where((service) => _matchesServiceQuery(service, normalizedQuery))
             .where(
               (service) => _matchesServiceFilters(service, request.filters),
@@ -604,77 +849,379 @@ class MockDiscoveryRepository implements DiscoveryRepository {
   @override
   Future<ServiceDetail> getServiceDetail(String id) async {
     await _delay();
+    return _buildServiceDetail(id);
+  }
 
-    final service = _servicesById[id];
-    if (service == null) {
-      throw const AppException('Service not found.');
-    }
+  @override
+  Future<ProviderServicesData> getProviderServices(String providerId) async {
+    await _delay();
+    final services =
+        _discoverableServices
+            .where((service) => service.providerId == providerId)
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
 
-    final provider = _providersById[service.providerId];
-    if (provider == null) {
-      throw const AppException('Provider not found for this service.');
-    }
+    final items = services.map((service) {
+      final meta = _metaForService(service);
+      return ProviderManagedServiceListItem(
+        summary: service,
+        serviceType: meta.serviceType,
+        waitingTimeMinutes: meta.waitingTimeMinutes,
+        leadTimeHours: meta.leadTimeHours,
+        exceptionCount: meta.exceptionNotes.length,
+        canArchive: _canArchiveService(service.id),
+      );
+    }).toList();
 
-    final brand = service.brandId == null
-        ? null
-        : _brandsById[service.brandId!];
-
-    return ServiceDetail(
-      summary: service,
-      description:
-          service.descriptionSnippet ??
-          'Flexible reservation flow with clear approval messaging.',
-      about: switch (service.id) {
-        'classic-haircut' =>
-          'A clean grooming service for customers who care about reliability more than artificial instant-booking theatrics. Manual approval keeps the provider in control of real schedule conflicts.',
-        'precision-beard-trim' =>
-          'Focused grooming session with lighter setup and faster turnaround. Auto approval is enabled because the provider keeps buffers elsewhere.',
-        'dental-consultation' =>
-          'Initial consultation, examination, and treatment direction. Manual approval helps the clinic sequence prep time and follow-ups safely.',
-        'professional-cleaning' =>
-          'Routine hygiene service designed for faster confirmation and lower coordination overhead.',
-        'signature-skin-reset' =>
-          'Longer beauty session with a more curated workflow, so the provider prefers manual approval and clearer lead-time control.',
-        _ =>
-          'Independent advisory session with flexible request windows. Times stay requestable because many meetings require light adjustment before confirmation.',
-      },
-      availabilitySummary: service.approvalMode == ApprovalMode.manual
-          ? 'Selectable times remain requestable until the provider responds. If no response arrives in 5 minutes, the request expires.'
-          : 'Available times can confirm immediately when still open.',
-      requestableSlots: _availabilityForService(service.id),
-      waitingTimeLabel: switch (service.categoryId) {
-        'dentist' => '15-minute arrival tolerance',
-        'beauty' => '10-minute arrival tolerance',
-        'consulting' => '5-minute arrival tolerance',
-        _ => '10-minute arrival tolerance',
-      },
-      freeCancellationLabel: switch (service.categoryId) {
-        'dentist' => 'Free cancellation up to 12 hours before',
-        'consulting' => 'Free cancellation up to 6 hours before',
-        _ => 'Free cancellation up to 2 hours before',
-      },
-      galleryLabels: switch (service.id) {
-        'classic-haircut' => const [
-          'Studio chair',
-          'Clean finish',
-          'Product shelf',
-        ],
-        'dental-consultation' => const [
-          'Clinic room',
-          'Reception',
-          'Care setup',
-        ],
-        'signature-skin-reset' => const [
-          'Treatment room',
-          'Lighting',
-          'Product detail',
-        ],
-        _ => const ['Overview', 'Space', 'Result'],
-      },
-      provider: provider,
-      brand: brand,
-      reviews: _reviewsByEntity[id] ?? const [],
+    return ProviderServicesData(
+      services: items,
+      activeCount: services.where((service) => service.isAvailable).length,
+      manualApprovalCount: services
+          .where((service) => service.approvalMode == ApprovalMode.manual)
+          .length,
+      brandLinkedCount: services
+          .where((service) => service.brandId != null)
+          .length,
     );
+  }
+
+  @override
+  Future<ProviderManagedService> getProviderService({
+    required String serviceId,
+    required String providerId,
+  }) async {
+    await _delay();
+    final service = _servicesById[serviceId];
+    if (service == null || service.providerId != providerId) {
+      throw const AppException('Service not found for this provider.');
+    }
+
+    return ProviderManagedService(
+      detail: _buildServiceDetail(serviceId),
+      draft: _draftFromService(service),
+      canArchive: _canArchiveService(serviceId),
+    );
+  }
+
+  @override
+  Future<String> createProviderService({
+    required String providerId,
+    required ProviderServiceDraft draft,
+  }) async {
+    await _delay();
+    final provider = _providersById[providerId];
+    if (provider == null) {
+      throw const AppException('Provider not found.');
+    }
+
+    final brand = draft.brandId == null
+        ? null
+        : _requireOwnedBrand(brandId: draft.brandId!, providerId: providerId);
+    final category = categoryById(draft.categoryId);
+    if (category == null) {
+      throw const AppException('Category not found.');
+    }
+
+    final serviceId = 'service_${_serviceIdSeed++}';
+    final summary = ServiceSummary(
+      id: serviceId,
+      name: draft.name.trim(),
+      categoryId: category.id,
+      categoryName: category.name,
+      providerId: providerId,
+      providerName: provider.name,
+      brandId: brand?.id,
+      brandName: brand?.name,
+      addressLine: draft.addressLine.trim(),
+      distanceKm: provider.distanceKm,
+      rating: provider.rating,
+      reviewCount: 0,
+      visibilityLabels: draft.visibilityLabels,
+      approvalMode: draft.approvalMode,
+      isAvailable: draft.isAvailable,
+      popularityScore: (provider.popularityScore - 12).clamp(20, 99),
+      nextAvailabilityLabel: _nextAvailabilityLabel(draft.requestableSlots),
+      price: draft.price,
+      descriptionSnippet: draft.descriptionSnippet.trim(),
+    );
+
+    _services.add(summary);
+    _serviceMetaById[serviceId] = _serviceMetaFromDraft(draft);
+
+    _refreshBrandSummary(brand?.id);
+    _refreshProviderSummary(providerId);
+    return serviceId;
+  }
+
+  @override
+  Future<void> updateProviderService({
+    required String providerId,
+    required String serviceId,
+    required ProviderServiceDraft draft,
+  }) async {
+    await _delay();
+    final existing = _servicesById[serviceId];
+    if (existing == null || existing.providerId != providerId) {
+      throw const AppException('Service not found for this provider.');
+    }
+
+    final brand = draft.brandId == null
+        ? null
+        : _requireOwnedBrand(brandId: draft.brandId!, providerId: providerId);
+    final category = categoryById(draft.categoryId);
+    if (category == null) {
+      throw const AppException('Category not found.');
+    }
+
+    _replaceService(
+      ServiceSummary(
+        id: existing.id,
+        name: draft.name.trim(),
+        categoryId: category.id,
+        categoryName: category.name,
+        providerId: existing.providerId,
+        providerName: existing.providerName,
+        brandId: brand?.id,
+        brandName: brand?.name,
+        addressLine: draft.addressLine.trim(),
+        distanceKm: existing.distanceKm,
+        rating: existing.rating,
+        reviewCount: existing.reviewCount,
+        visibilityLabels: draft.visibilityLabels,
+        approvalMode: draft.approvalMode,
+        isAvailable: draft.isAvailable,
+        popularityScore: existing.popularityScore,
+        nextAvailabilityLabel: _nextAvailabilityLabel(draft.requestableSlots),
+        price: draft.price,
+        descriptionSnippet: draft.descriptionSnippet.trim(),
+      ),
+    );
+    _serviceMetaById[serviceId] = _serviceMetaFromDraft(draft);
+
+    _refreshBrandSummary(existing.brandId);
+    _refreshBrandSummary(brand?.id);
+    _refreshProviderSummary(providerId);
+  }
+
+  @override
+  Future<void> archiveProviderService({
+    required String providerId,
+    required String serviceId,
+  }) async {
+    await _delay();
+    final service = _servicesById[serviceId];
+    if (service == null || service.providerId != providerId) {
+      throw const AppException('Service not found for this provider.');
+    }
+    if (!_canArchiveService(serviceId)) {
+      throw const AppException(
+        'Only provider-created services can be deleted in this MVP flow.',
+      );
+    }
+
+    _archivedServiceIds.add(serviceId);
+    _refreshBrandSummary(service.brandId);
+    _refreshProviderSummary(providerId);
+  }
+
+  @override
+  Future<ProviderBrandsData> getProviderBrands(String providerId) async {
+    await _delay();
+    final provider = _providersById[providerId];
+    if (provider == null) {
+      throw const AppException('Provider not found.');
+    }
+
+    final brands =
+        provider.brandIds
+            .map((brandId) => _brandsById[brandId])
+            .whereType<BrandSummary>()
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
+
+    return ProviderBrandsData(
+      brands: brands
+          .map(
+            (brand) => ProviderManagedBrandListItem(
+              summary: brand,
+              logoLabel: _brandMetaById[brand.id]?.logoLabel,
+              joinRequestCount:
+                  _brandJoinRequestsByBrandId[brand.id]?.length ?? 0,
+            ),
+          )
+          .toList(),
+      totalServiceCount: brands.fold<int>(
+        0,
+        (total, brand) => total + brand.serviceCount,
+      ),
+      pendingJoinRequestCount: brands.fold<int>(
+        0,
+        (total, brand) =>
+            total + (_brandJoinRequestsByBrandId[brand.id]?.length ?? 0),
+      ),
+    );
+  }
+
+  @override
+  Future<ProviderManagedBrand> getProviderBrand({
+    required String brandId,
+    required String providerId,
+  }) async {
+    await _delay();
+    _requireOwnedBrand(brandId: brandId, providerId: providerId);
+
+    return ProviderManagedBrand(
+      detail: _buildBrandDetail(brandId),
+      draft: _draftFromBrand(_brandsById[brandId]!),
+      joinRequests: List<BrandJoinRequest>.of(
+        _brandJoinRequestsByBrandId[brandId] ?? const [],
+      ),
+    );
+  }
+
+  @override
+  Future<String> createProviderBrand({
+    required String providerId,
+    required ProviderBrandDraft draft,
+  }) async {
+    await _delay();
+    final provider = _providersById[providerId];
+    if (provider == null) {
+      throw const AppException('Provider not found.');
+    }
+
+    final brandId = 'brand_${_brandIdSeed++}';
+    final summary = BrandSummary(
+      id: brandId,
+      name: draft.name.trim(),
+      headline: draft.headline.trim(),
+      addressLine: draft.addressLine.trim(),
+      distanceKm: provider.distanceKm,
+      rating: provider.rating,
+      reviewCount: 0,
+      serviceCount: 0,
+      memberCount: 1,
+      categoryIds: List<String>.of(provider.categoryIds),
+      visibilityLabels: draft.visibilityLabels,
+      popularityScore: (provider.popularityScore - 8).clamp(20, 99),
+      openNow: draft.openNow,
+    );
+
+    _brands.add(summary);
+    _brandMetaById[brandId] = _BrandMeta(
+      description: draft.description.trim(),
+      mapHint: draft.mapHint.trim(),
+      logoLabel: draft.logoLabel?.trim(),
+    );
+    _brandJoinRequestsByBrandId[brandId] = [];
+
+    _replaceProvider(
+      ProviderSummary(
+        id: provider.id,
+        name: provider.name,
+        headline: provider.headline,
+        bio: provider.bio,
+        distanceKm: provider.distanceKm,
+        rating: provider.rating,
+        reviewCount: provider.reviewCount,
+        completedReservations: provider.completedReservations,
+        responseReliability: provider.responseReliability,
+        brandIds: [...provider.brandIds, brandId],
+        categoryIds: provider.categoryIds,
+        visibilityLabels: provider.visibilityLabels,
+        popularityScore: provider.popularityScore,
+        availableNow: provider.availableNow,
+      ),
+    );
+
+    return brandId;
+  }
+
+  @override
+  Future<void> updateProviderBrand({
+    required String providerId,
+    required String brandId,
+    required ProviderBrandDraft draft,
+  }) async {
+    await _delay();
+    final existing = _requireOwnedBrand(
+      brandId: brandId,
+      providerId: providerId,
+    );
+
+    _replaceBrand(
+      BrandSummary(
+        id: existing.id,
+        name: draft.name.trim(),
+        headline: draft.headline.trim(),
+        addressLine: draft.addressLine.trim(),
+        distanceKm: existing.distanceKm,
+        rating: existing.rating,
+        reviewCount: existing.reviewCount,
+        serviceCount: existing.serviceCount,
+        memberCount: existing.memberCount,
+        categoryIds: existing.categoryIds,
+        visibilityLabels: draft.visibilityLabels,
+        popularityScore: existing.popularityScore,
+        openNow: draft.openNow,
+      ),
+    );
+    _brandMetaById[brandId] = _BrandMeta(
+      description: draft.description.trim(),
+      mapHint: draft.mapHint.trim(),
+      logoLabel: draft.logoLabel?.trim(),
+    );
+    _refreshBrandSummary(brandId);
+  }
+
+  @override
+  Future<void> acceptBrandJoinRequest({
+    required String providerId,
+    required String brandId,
+    required String requestId,
+  }) async {
+    await _delay();
+    final brand = _requireOwnedBrand(brandId: brandId, providerId: providerId);
+    final requests = _brandJoinRequestsByBrandId[brandId];
+    if (requests == null ||
+        requests.every((request) => request.id != requestId)) {
+      throw const AppException('Join request not found.');
+    }
+
+    requests.removeWhere((request) => request.id == requestId);
+    _replaceBrand(
+      BrandSummary(
+        id: brand.id,
+        name: brand.name,
+        headline: brand.headline,
+        addressLine: brand.addressLine,
+        distanceKm: brand.distanceKm,
+        rating: brand.rating,
+        reviewCount: brand.reviewCount,
+        serviceCount: brand.serviceCount,
+        memberCount: brand.memberCount + 1,
+        categoryIds: brand.categoryIds,
+        visibilityLabels: brand.visibilityLabels,
+        popularityScore: brand.popularityScore,
+        openNow: brand.openNow,
+      ),
+    );
+  }
+
+  @override
+  Future<void> rejectBrandJoinRequest({
+    required String providerId,
+    required String brandId,
+    required String requestId,
+  }) async {
+    await _delay();
+    _requireOwnedBrand(brandId: brandId, providerId: providerId);
+    final requests = _brandJoinRequestsByBrandId[brandId];
+    if (requests == null ||
+        requests.every((request) => request.id != requestId)) {
+      throw const AppException('Join request not found.');
+    }
+    requests.removeWhere((request) => request.id == requestId);
   }
 
   List<AvailabilityWindow> _availabilityForService(String serviceId) {
@@ -779,6 +1326,290 @@ class MockDiscoveryRepository implements DiscoveryRepository {
           note: 'Requestable',
         ),
       ],
+    };
+  }
+
+  BrandDetail _buildBrandDetail(String brandId) {
+    final brand = _brandsById[brandId];
+    if (brand == null) {
+      throw const AppException('Brand not found.');
+    }
+
+    final members = _providers
+        .where((provider) => provider.brandIds.contains(brandId))
+        .toList();
+    final services = _discoverableServices
+        .where((service) => service.brandId == brandId)
+        .toList();
+    final meta = _brandMetaById[brandId];
+
+    return BrandDetail(
+      summary: brand,
+      description:
+          meta?.description ??
+          'This brand keeps its positioning clear, flexible, and review-driven.',
+      mapHint:
+          meta?.mapHint ??
+          'Map preview will connect to the geolocation abstraction in a later pass.',
+      members: members,
+      services: services,
+      reviews: _reviewsByEntity[brandId] ?? const [],
+    );
+  }
+
+  ServiceDetail _buildServiceDetail(String serviceId) {
+    final service = _servicesById[serviceId];
+    if (service == null) {
+      throw const AppException('Service not found.');
+    }
+
+    final provider = _providersById[service.providerId];
+    if (provider == null) {
+      throw const AppException('Provider not found for this service.');
+    }
+
+    final brand = service.brandId == null
+        ? null
+        : _brandsById[service.brandId!];
+    final meta = _metaForService(service);
+
+    return ServiceDetail(
+      summary: service,
+      description:
+          service.descriptionSnippet ??
+          'Flexible reservation flow with clear approval messaging.',
+      about: meta.about,
+      availabilitySummary: meta.availabilitySummary,
+      requestableSlots: meta.requestableSlots,
+      waitingTimeLabel: '${meta.waitingTimeMinutes}-minute arrival tolerance',
+      freeCancellationLabel:
+          'Free cancellation up to ${meta.freeCancellationHours} hours before',
+      galleryLabels: meta.galleryLabels,
+      provider: provider,
+      brand: brand,
+      reviews: _reviewsByEntity[serviceId] ?? const [],
+    );
+  }
+
+  ProviderServiceDraft _draftFromService(ServiceSummary service) {
+    final meta = _metaForService(service);
+    return ProviderServiceDraft(
+      name: service.name,
+      categoryId: service.categoryId,
+      categoryName: service.categoryName,
+      addressLine: service.addressLine,
+      descriptionSnippet: service.descriptionSnippet ?? '',
+      about: meta.about,
+      approvalMode: service.approvalMode,
+      isAvailable: service.isAvailable,
+      serviceType: meta.serviceType,
+      waitingTimeMinutes: meta.waitingTimeMinutes,
+      leadTimeHours: meta.leadTimeHours,
+      freeCancellationHours: meta.freeCancellationHours,
+      visibilityLabels: service.visibilityLabels,
+      requestableSlots: meta.requestableSlots,
+      exceptionNotes: meta.exceptionNotes,
+      galleryLabels: meta.galleryLabels,
+      brandId: service.brandId,
+      brandName: service.brandName,
+      price: service.price,
+    );
+  }
+
+  ProviderBrandDraft _draftFromBrand(BrandSummary brand) {
+    final meta = _brandMetaById[brand.id];
+    return ProviderBrandDraft(
+      name: brand.name,
+      headline: brand.headline,
+      addressLine: brand.addressLine,
+      description:
+          meta?.description ??
+          'This brand keeps its positioning clear, flexible, and review-driven.',
+      mapHint:
+          meta?.mapHint ??
+          'Map preview will connect to the geolocation abstraction in a later pass.',
+      visibilityLabels: brand.visibilityLabels,
+      openNow: brand.openNow,
+      logoLabel: meta?.logoLabel,
+    );
+  }
+
+  _ServiceMeta _metaForService(ServiceSummary service) {
+    return _serviceMetaById[service.id] ??
+        _ServiceMeta(
+          about:
+              'Flexible reservation flow with clear availability and approval settings.',
+          availabilitySummary: service.approvalMode == ApprovalMode.manual
+              ? 'Selectable times remain requestable until the provider responds. If no response arrives in 5 minutes, the request expires.'
+              : 'Available times can confirm immediately when still open.',
+          requestableSlots: _availabilityForService(service.id),
+          waitingTimeMinutes: _defaultWaitingTimeFor(service.categoryId),
+          freeCancellationHours: _defaultCancellationHoursFor(
+            service.categoryId,
+          ),
+          leadTimeHours: 1,
+          serviceType: ManagedServiceType.solo,
+          galleryLabels: const ['Overview', 'Space', 'Result'],
+          exceptionNotes: const [],
+        );
+  }
+
+  _ServiceMeta _serviceMetaFromDraft(ProviderServiceDraft draft) {
+    final slots = List<AvailabilityWindow>.of(draft.requestableSlots)
+      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    return _ServiceMeta(
+      about: draft.about.trim(),
+      availabilitySummary: draft.approvalMode == ApprovalMode.manual
+          ? 'Selectable times remain requestable until the provider responds. If no response arrives in 5 minutes, the request expires.'
+          : 'Available times can confirm immediately when still open.',
+      requestableSlots: slots,
+      waitingTimeMinutes: draft.waitingTimeMinutes,
+      freeCancellationHours: draft.freeCancellationHours,
+      leadTimeHours: draft.leadTimeHours,
+      serviceType: draft.serviceType,
+      galleryLabels: draft.galleryLabels
+          .map((label) => label.trim())
+          .where((label) => label.isNotEmpty)
+          .toList(),
+      exceptionNotes: draft.exceptionNotes
+          .map((note) => note.trim())
+          .where((note) => note.isNotEmpty)
+          .toList(),
+    );
+  }
+
+  BrandSummary _requireOwnedBrand({
+    required String brandId,
+    required String providerId,
+  }) {
+    final brand = _brandsById[brandId];
+    final provider = _providersById[providerId];
+    if (brand == null ||
+        provider == null ||
+        !provider.brandIds.contains(brandId)) {
+      throw const AppException('Brand not found for this provider.');
+    }
+    return brand;
+  }
+
+  void _refreshBrandSummary(String? brandId) {
+    if (brandId == null) {
+      return;
+    }
+
+    final brand = _brandsById[brandId];
+    if (brand == null) {
+      return;
+    }
+
+    final activeServices = _discoverableServices
+        .where((service) => service.brandId == brandId)
+        .toList();
+    final categoryIds = activeServices
+        .map((service) => service.categoryId)
+        .toSet()
+        .toList();
+
+    _replaceBrand(
+      BrandSummary(
+        id: brand.id,
+        name: brand.name,
+        headline: brand.headline,
+        addressLine: brand.addressLine,
+        distanceKm: brand.distanceKm,
+        rating: brand.rating,
+        reviewCount: brand.reviewCount,
+        serviceCount: activeServices.length,
+        memberCount: brand.memberCount,
+        categoryIds: categoryIds.isEmpty ? brand.categoryIds : categoryIds,
+        visibilityLabels: brand.visibilityLabels,
+        popularityScore: brand.popularityScore,
+        openNow: brand.openNow,
+      ),
+    );
+  }
+
+  void _refreshProviderSummary(String providerId) {
+    final provider = _providersById[providerId];
+    if (provider == null) {
+      return;
+    }
+
+    final services = _discoverableServices
+        .where((service) => service.providerId == providerId)
+        .toList();
+    final categoryIds = services
+        .map((service) => service.categoryId)
+        .toSet()
+        .toList();
+
+    _replaceProvider(
+      ProviderSummary(
+        id: provider.id,
+        name: provider.name,
+        headline: provider.headline,
+        bio: provider.bio,
+        distanceKm: provider.distanceKm,
+        rating: provider.rating,
+        reviewCount: provider.reviewCount,
+        completedReservations: provider.completedReservations,
+        responseReliability: provider.responseReliability,
+        brandIds: provider.brandIds,
+        categoryIds: categoryIds.isEmpty ? provider.categoryIds : categoryIds,
+        visibilityLabels: provider.visibilityLabels,
+        popularityScore: provider.popularityScore,
+        availableNow: services.any((service) => service.isAvailable),
+      ),
+    );
+  }
+
+  void _replaceBrand(BrandSummary updated) {
+    final index = _brands.indexWhere((brand) => brand.id == updated.id);
+    if (index >= 0) {
+      _brands[index] = updated;
+    }
+  }
+
+  void _replaceProvider(ProviderSummary updated) {
+    final index = _providers.indexWhere(
+      (provider) => provider.id == updated.id,
+    );
+    if (index >= 0) {
+      _providers[index] = updated;
+    }
+  }
+
+  void _replaceService(ServiceSummary updated) {
+    final index = _services.indexWhere((service) => service.id == updated.id);
+    if (index >= 0) {
+      _services[index] = updated;
+    }
+  }
+
+  bool _canArchiveService(String serviceId) => serviceId.startsWith('service_');
+
+  String _nextAvailabilityLabel(List<AvailabilityWindow> slots) {
+    final available = slots.where((slot) => slot.available).toList()
+      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    if (available.isEmpty) {
+      return 'Availability on request';
+    }
+    return available.first.label;
+  }
+
+  int _defaultWaitingTimeFor(String categoryId) {
+    return switch (categoryId) {
+      'dentist' => 15,
+      'consulting' => 5,
+      _ => 10,
+    };
+  }
+
+  int _defaultCancellationHoursFor(String categoryId) {
+    return switch (categoryId) {
+      'dentist' => 12,
+      'consulting' => 6,
+      _ => 2,
     };
   }
 
@@ -931,6 +1762,42 @@ class MockDiscoveryRepository implements DiscoveryRepository {
 
   Future<void> _delay() =>
       Future<void>.delayed(const Duration(milliseconds: 220));
+}
+
+class _BrandMeta {
+  const _BrandMeta({
+    required this.description,
+    required this.mapHint,
+    this.logoLabel,
+  });
+
+  final String description;
+  final String mapHint;
+  final String? logoLabel;
+}
+
+class _ServiceMeta {
+  const _ServiceMeta({
+    required this.about,
+    required this.availabilitySummary,
+    required this.requestableSlots,
+    required this.waitingTimeMinutes,
+    required this.freeCancellationHours,
+    required this.leadTimeHours,
+    required this.serviceType,
+    required this.galleryLabels,
+    required this.exceptionNotes,
+  });
+
+  final String about;
+  final String availabilitySummary;
+  final List<AvailabilityWindow> requestableSlots;
+  final int waitingTimeMinutes;
+  final int freeCancellationHours;
+  final int leadTimeHours;
+  final ManagedServiceType serviceType;
+  final List<String> galleryLabels;
+  final List<String> exceptionNotes;
 }
 
 DateTime _dateAt(int dayOffset, int hour, int minute) {

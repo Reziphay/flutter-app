@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
+import 'package:reziphay_mobile/features/discovery/models/discovery_models.dart';
+import 'package:reziphay_mobile/features/provider_management/models/provider_management_models.dart';
 import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 import 'package:reziphay_mobile/features/reservations/models/reservation_models.dart';
 
@@ -198,6 +200,69 @@ void main() {
           ),
           isFalse,
         );
+      },
+    );
+
+    test(
+      'provider dashboard service and brand counts reflect provider management changes',
+      () async {
+        final discoveryRepository = MockDiscoveryRepository();
+        repository = MockReservationsRepository(
+          discoveryRepository: discoveryRepository,
+        );
+
+        final brandId = await discoveryRepository.createProviderBrand(
+          providerId: 'rauf-mammadov',
+          draft: const ProviderBrandDraft(
+            name: 'North Collective',
+            headline:
+                'Second provider-owned brand for dashboard count coverage.',
+            addressLine: '9 Sahil Rd, Baku',
+            description: 'Brand created during test coverage.',
+            mapHint: 'Third floor studio.',
+            visibilityLabels: [VisibilityLabel.common],
+            openNow: true,
+          ),
+        );
+
+        await discoveryRepository.createProviderService(
+          providerId: 'rauf-mammadov',
+          draft: ProviderServiceDraft(
+            name: 'Deluxe lineup',
+            categoryId: 'barber',
+            categoryName: 'Barber',
+            addressLine: '9 Sahil Rd, Baku',
+            descriptionSnippet: 'New dashboard count service.',
+            about: 'Service used to confirm dashboard counts.',
+            approvalMode: ApprovalMode.manual,
+            isAvailable: true,
+            serviceType: ManagedServiceType.solo,
+            waitingTimeMinutes: 10,
+            leadTimeHours: 2,
+            freeCancellationHours: 3,
+            visibilityLabels: const [VisibilityLabel.common],
+            requestableSlots: [
+              AvailabilityWindow(
+                startsAt: DateTime.now().add(const Duration(days: 3)),
+                label: 'In 3 days · 12:00',
+                available: true,
+                note: 'Manual approval',
+              ),
+            ],
+            exceptionNotes: const [],
+            galleryLabels: const ['Lineup station'],
+            brandId: brandId,
+            brandName: 'North Collective',
+            price: 42,
+          ),
+        );
+
+        final dashboard = await repository.getProviderDashboard(
+          'rauf-mammadov',
+        );
+
+        expect(dashboard.serviceCount, 3);
+        expect(dashboard.brandCount, 2);
       },
     );
   });

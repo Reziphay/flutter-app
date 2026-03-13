@@ -725,17 +725,9 @@ class MockReservationsRepository implements ReservationsRepository {
         .map(_buildSummary)
         .toList();
 
-    final serviceIds = <String>{};
-    final brandIds = <String>{};
-    for (final record in providerReservations) {
-      final service = _discoveryRepository.serviceSummaryById(record.serviceId);
-      if (service != null) {
-        serviceIds.add(service.id);
-        if (service.brandId != null) {
-          brandIds.add(service.brandId!);
-        }
-      }
-    }
+    final providerProfile = await _discoveryRepository.getProviderDetail(
+      providerId,
+    );
 
     return ProviderDashboardData(
       pendingRequests: pending,
@@ -746,8 +738,8 @@ class MockReservationsRepository implements ReservationsRepository {
             (reservation) => reservation.status == ReservationStatus.confirmed,
           )
           .length,
-      serviceCount: serviceIds.length,
-      brandCount: brandIds.length,
+      serviceCount: providerProfile.services.length,
+      brandCount: providerProfile.associatedBrands.length,
     );
   }
 

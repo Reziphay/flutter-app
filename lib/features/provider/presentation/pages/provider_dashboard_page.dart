@@ -8,6 +8,8 @@ import 'package:reziphay_mobile/core/widgets/empty_state.dart';
 import 'package:reziphay_mobile/core/widgets/section_header.dart';
 import 'package:reziphay_mobile/core/widgets/status_pill.dart';
 import 'package:reziphay_mobile/features/discovery/data/discovery_repository.dart';
+import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_brand_detail_page.dart';
+import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_service_form_page.dart';
 import 'package:reziphay_mobile/features/qr_completion/presentation/pages/provider_qr_page.dart';
 import 'package:reziphay_mobile/features/reservations/data/reservations_repository.dart';
 import 'package:reziphay_mobile/features/reservations/presentation/pages/provider_reservation_detail_page.dart';
@@ -205,18 +207,18 @@ class ProviderDashboardPage extends ConsumerWidget {
                     onTap: () => context.go(ProviderQrPage.path),
                   ),
                   _QuickActionCard(
-                    title: 'Services',
+                    title: 'Create service',
                     description:
-                        'Service creation and editing are still queued for Phase 4.',
-                    icon: Icons.design_services_outlined,
-                    onTap: () => context.go('/provider/services'),
+                        'Publish a new service with approval mode, availability windows, and reservation settings.',
+                    icon: Icons.add_business_outlined,
+                    onTap: () => context.go(ProviderServiceFormPage.createPath),
                   ),
                   _QuickActionCard(
-                    title: 'Brands',
+                    title: 'Create brand',
                     description:
-                        'Brand management lands after reservation operations are stable.',
-                    icon: Icons.storefront_outlined,
-                    onTap: () => context.go('/provider/brands'),
+                        'Create a provider-owned brand and start grouping services under it.',
+                    icon: Icons.add_home_work_outlined,
+                    onTap: () => context.go(ProviderBrandDetailPage.createPath),
                   ),
                 ],
               ),

@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:reziphay_mobile/core/auth/session_controller.dart';
 import 'package:reziphay_mobile/core/auth/session_state.dart';
 import 'package:reziphay_mobile/core/widgets/app_shell.dart';
-import 'package:reziphay_mobile/core/widgets/feature_placeholder_page.dart';
 import 'package:reziphay_mobile/features/auth/presentation/pages/email_link_result_page.dart';
 import 'package:reziphay_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:reziphay_mobile/features/auth/presentation/pages/otp_verification_page.dart';
@@ -20,6 +19,10 @@ import 'package:reziphay_mobile/features/discovery/presentation/pages/category_d
 import 'package:reziphay_mobile/features/discovery/presentation/pages/provider_detail_page.dart';
 import 'package:reziphay_mobile/features/discovery/presentation/pages/service_detail_page.dart';
 import 'package:reziphay_mobile/features/provider/presentation/pages/provider_dashboard_page.dart';
+import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_brand_detail_page.dart';
+import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_brands_page.dart';
+import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_service_form_page.dart';
+import 'package:reziphay_mobile/features/provider_management/presentation/pages/provider_services_page.dart';
 import 'package:reziphay_mobile/features/qr_completion/presentation/pages/provider_qr_page.dart';
 import 'package:reziphay_mobile/features/qr_completion/presentation/pages/qr_completion_result_page.dart';
 import 'package:reziphay_mobile/features/qr_completion/presentation/pages/qr_scan_page.dart';
@@ -182,18 +185,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: _providerServicesPath,
-            builder: (context, state) => const FeaturePlaceholderPage(
-              title: 'Services',
-              description:
-                  'Service creation and availability editing are queued for Phase 4 after the shared data layer is in place.',
+            builder: (context, state) => const ProviderServicesPage(),
+          ),
+          GoRoute(
+            path: ProviderServiceFormPage.createPath,
+            builder: (context, state) => const ProviderServiceFormPage(),
+          ),
+          GoRoute(
+            path: ProviderServiceFormPage.editPath,
+            builder: (context, state) => ProviderServiceFormPage(
+              serviceId: state.pathParameters['serviceId']!,
             ),
           ),
           GoRoute(
             path: _providerBrandsPath,
-            builder: (context, state) => const FeaturePlaceholderPage(
-              title: 'Brands',
-              description:
-                  'Brand creation, memberships, and join requests are planned for Phase 4.',
+            builder: (context, state) => const ProviderBrandsPage(),
+          ),
+          GoRoute(
+            path: ProviderBrandDetailPage.createPath,
+            builder: (context, state) => const ProviderBrandDetailPage(),
+          ),
+          GoRoute(
+            path: ProviderBrandDetailPage.path,
+            builder: (context, state) => ProviderBrandDetailPage(
+              brandId: state.pathParameters['brandId']!,
             ),
           ),
           GoRoute(
