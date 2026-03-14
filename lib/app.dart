@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'core/network/endpoints.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/otp_screen.dart';
 import 'features/auth/phone_entry_screen.dart';
@@ -17,11 +16,27 @@ import 'features/onboarding/onboarding_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'state/app_state.dart';
 
+// MARK: - Router Notifier
+
+/// Bridges Riverpod auth state → GoRouter refresh.
+/// Whenever [AuthStatus] changes, GoRouter re-evaluates redirect.
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(Ref ref) {
+    ref.listen(
+      appStateProvider.select((s) => s.authStatus),
+      (_, __) => notifyListeners(),
+    );
+  }
+}
+
 // MARK: - Router
 
 final _routerProvider = Provider<GoRouter>((ref) {
+  final notifier = _RouterNotifier(ref);
+
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: notifier,
     redirect: (context, state) {
       final authStatus = ref.read(appStateProvider).authStatus;
       final location   = state.matchedLocation;
@@ -64,14 +79,20 @@ final _routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
           return OtpScreen(
-            phone:   extra?['phone']   as String? ?? '',
-            purpose: extra?['purpose'] as OtpPurpose? ?? OtpPurpose.login,
+            phone:     extra?['phone']     as String? ?? '',
+            debugCode: extra?['debugCode'] as String?,
           );
         },
       ),
       GoRoute(
         path: '/auth/register',
-        builder: (_, __) => const RegisterScreen(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return RegisterScreen(
+            registrationToken: extra?['registrationToken'] as String? ?? '',
+            phone:             extra?['phone']             as String? ?? '',
+          );
+        },
       ),
 
       // Main App (Shell Route for TabBar)

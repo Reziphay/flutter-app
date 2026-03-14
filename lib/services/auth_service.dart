@@ -21,40 +21,63 @@ class AuthService {
   Future<OtpRequestResponse> requestOtp({
     required String phone,
     required OtpPurpose purpose,
-    String? fullName,
-    String? email,
-  }) async {
-    final body = <String, dynamic>{
-      'phone':   phone,
-      'purpose': purpose.value,
-    };
-    if (fullName != null) body['fullName'] = fullName;
-    if (email    != null) body['email']    = email;
-
+  }) {
     return _client.post(
       Endpoints.requestPhoneOtp,
-      data: body,
+      data: {'phone': phone, 'purpose': purpose.value},
       fromJson: OtpRequestResponse.fromJson,
     );
   }
 
-  Future<OtpVerifyResponse> verifyOtp({
+  /// Verifies OTP (AUTHENTICATE purpose).
+  /// Returns [OtpVerifyResult] — either fully authenticated or registration required.
+  Future<OtpVerifyResult> verifyOtp({
     required String phone,
     required String code,
-    required OtpPurpose purpose,
   }) async {
-    final response = await _client.post(
+    final result = await _client.post(
       Endpoints.verifyPhoneOtp,
-      data: {'phone': phone, 'code': code, 'purpose': purpose.value},
-      fromJson: OtpVerifyResponse.fromJson,
+      data: {
+        'phone':   phone,
+        'code':    code,
+        'purpose': OtpPurpose.authenticate.value,
+      },
+      fromJson: OtpVerifyResult.fromJson,
+    );
+
+    if (result.isAuthenticated) {
+      final session = result.session!;
+      await _storage.saveTokens(
+        accessToken:  session.accessToken,
+        refreshToken: session.refreshToken,
+      );
+    }
+
+    return result;
+  }
+
+  /// Called after [verifyOtp] returns [OtpVerifyResult.requiresRegistration].
+  Future<AuthSession> completeRegistration({
+    required String registrationToken,
+    required String fullName,
+    required String email,
+  }) async {
+    final session = await _client.post(
+      Endpoints.completeRegistration,
+      data: {
+        'registrationToken': registrationToken,
+        'fullName':          fullName,
+        'email':             email,
+      },
+      fromJson: AuthSession.fromJson,
     );
 
     await _storage.saveTokens(
-      accessToken:  response.accessToken,
-      refreshToken: response.refreshToken,
+      accessToken:  session.accessToken,
+      refreshToken: session.refreshToken,
     );
 
-    return response;
+    return session;
   }
 
   // MARK: - Session
@@ -62,6 +85,8 @@ class AuthService {
   Future<void> logout() async {
     try {
       await _client.postEmpty(Endpoints.logout);
+    } catch (_) {
+      // Session may already be revoked on the server — that's fine
     } finally {
       await _storage.clearTokens();
     }
@@ -73,7 +98,7 @@ class AuthService {
     try {
       return await _client.get(
         Endpoints.authMe,
-        fromJson: User.fromJson,
+        fromJson: (json) => User.fromJson(json['user'] as Map<String, dynamic>),
       );
     } catch (_) {
       return null;

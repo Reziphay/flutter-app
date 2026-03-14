@@ -4,6 +4,7 @@
 // Author: Vugar Safarzada (@vugarsafarzada)
 
 enum OtpPurpose {
+  authenticate('AUTHENTICATE'),
   login('LOGIN'),
   register('REGISTER');
 
@@ -16,11 +17,12 @@ abstract final class Endpoints {
   static String get baseUrl => _base;
 
   // Auth
-  static const String requestPhoneOtp  = '/auth/request-phone-otp';
-  static const String verifyPhoneOtp   = '/auth/verify-phone-otp';
-  static const String refreshToken     = '/auth/refresh';
-  static const String logout           = '/auth/logout';
-  static const String authMe           = '/auth/me';
+  static const String requestPhoneOtp      = '/auth/request-phone-otp';
+  static const String verifyPhoneOtp       = '/auth/verify-phone-otp';
+  static const String completeRegistration = '/auth/complete-registration';
+  static const String refreshToken         = '/auth/refresh';
+  static const String logout               = '/auth/logout';
+  static const String authMe               = '/auth/me';
 
   // User
   static const String userMe       = '/users/me';

@@ -80,7 +80,9 @@ class ExplorePlaceholderScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded),
-            onPressed: () => ref.read(appStateProvider.notifier).logout(),
+            onPressed: () async {
+                await ref.read(appStateProvider.notifier).logout();
+              },
             tooltip: 'Logout',
           ),
         ],

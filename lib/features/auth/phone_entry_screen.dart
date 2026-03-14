@@ -21,16 +21,10 @@ class PhoneEntryScreen extends ConsumerStatefulWidget {
 }
 
 class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
-  final _phoneCtrl    = TextEditingController();
-  final _fullNameCtrl = TextEditingController();
-  final _emailCtrl    = TextEditingController();
+  final _phoneCtrl  = TextEditingController();
+  final _phoneFocus = FocusNode();
 
-  final _phoneFocus    = FocusNode();
-  final _fullNameFocus = FocusNode();
-  final _emailFocus    = FocusNode();
-
-  bool _isLoading  = false;
-  bool _isNewUser  = false;
+  bool    _isLoading = false;
   String? _error;
 
   @override
@@ -44,66 +38,29 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
   @override
   void dispose() {
     _phoneCtrl.dispose();
-    _fullNameCtrl.dispose();
-    _emailCtrl.dispose();
     _phoneFocus.dispose();
-    _fullNameFocus.dispose();
-    _emailFocus.dispose();
     super.dispose();
   }
 
   String get _formattedPhone => '+994${_phoneCtrl.text.trim()}';
-
-  bool get _canProceed {
-    if (_phoneCtrl.text.length != 9) return false;
-    if (_isNewUser) {
-      return _fullNameCtrl.text.trim().length >= 2 &&
-          _emailCtrl.text.trim().contains('@');
-    }
-    return true;
-  }
+  bool get _canProceed => _phoneCtrl.text.length == 9;
 
   Future<void> _handleSendCode() async {
     setState(() { _isLoading = true; _error = null; });
 
     try {
-      if (_isNewUser) {
-        await AuthService.instance.requestOtp(
-          phone:    _formattedPhone,
-          purpose:  OtpPurpose.register,
-          fullName: _fullNameCtrl.text.trim(),
-          email:    _emailCtrl.text.trim().toLowerCase(),
-        );
-        if (!mounted) return;
-        context.push('/auth/otp', extra: {
-          'phone':   _formattedPhone,
-          'purpose': OtpPurpose.register,
-        });
-      } else {
-        await AuthService.instance.requestOtp(
-          phone:   _formattedPhone,
-          purpose: OtpPurpose.login,
-        );
-        if (!mounted) return;
-        context.push('/auth/otp', extra: {
-          'phone':   _formattedPhone,
-          'purpose': OtpPurpose.login,
-        });
-      }
+      final res = await AuthService.instance.requestOtp(
+        phone:   _formattedPhone,
+        purpose: OtpPurpose.authenticate,
+      );
+      if (!mounted) return;
+      context.push('/auth/otp', extra: {
+        'phone':     _formattedPhone,
+        'debugCode': res.debugCode,
+      });
     } on NetworkException catch (e) {
-      if (e.isUnauthorized) {
-        // User not found → switch to register mode
-        setState(() {
-          _isNewUser = true;
-          _error     = null;
-        });
-        Future.delayed(const Duration(milliseconds: 200), () {
-          _fullNameFocus.requestFocus();
-        });
-      } else {
-        setState(() => _error = e.message);
-      }
-    } catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
       setState(() => _error = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -125,7 +82,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
       ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,22 +91,14 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
               _buildHeader(role),
               const SizedBox(height: 40),
               _buildPhoneField(),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                child: _isNewUser ? _buildRegisterFields() : const SizedBox.shrink(),
-              ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 _buildError(),
               ],
-              const SizedBox(height: 40),
+              const Spacer(),
               _buildSendButton(),
               const SizedBox(height: 16),
-              if (_isNewUser)
-                _buildSwitchNumberButton()
-              else
-                _buildTermsText(),
+              _buildTermsText(),
               const SizedBox(height: 32),
             ],
           ),
@@ -180,31 +129,18 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: Text(
-            _isNewUser ? 'Create your account' : 'Enter your phone number',
-            key: ValueKey(_isNewUser),
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+        const Text(
+          'Enter your phone number',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: Text(
-            _isNewUser
-                ? 'Fill in your details to get started'
-                : "We'll send you a one-time code to verify your identity",
-            key: ValueKey(_isNewUser),
-            style: const TextStyle(
-              fontSize: 15,
-              color: AppColors.textSecondary,
-            ),
-          ),
+        const Text(
+          "We'll send you a one-time code to verify your identity",
+          style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
         ),
       ],
     );
@@ -227,7 +163,6 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            // Country code badge
             Container(
               height: 54,
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -246,7 +181,6 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            // Phone input
             Expanded(
               child: TextField(
                 controller: _phoneCtrl,
@@ -256,7 +190,6 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(9),
                 ],
-                enabled: !_isNewUser,
                 style: const TextStyle(fontSize: 17),
                 decoration: InputDecoration(
                   hintText: 'XX 123 45 67',
@@ -286,91 +219,6 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
               ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  // MARK: - Register Fields
-
-  Widget _buildRegisterFields() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Column(
-        children: [
-          _buildTextField(
-            label: 'Full Name',
-            placeholder: 'Your full name',
-            controller: _fullNameCtrl,
-            focusNode: _fullNameFocus,
-            textCapitalization: TextCapitalization.words,
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            label: 'Email',
-            placeholder: 'your@email.com',
-            controller: _emailCtrl,
-            focusNode: _emailFocus,
-            keyboardType: TextInputType.emailAddress,
-            textCapitalization: TextCapitalization.none,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required String placeholder,
-    required TextEditingController controller,
-    required FocusNode focusNode,
-    TextInputType keyboardType = TextInputType.text,
-    TextCapitalization textCapitalization = TextCapitalization.sentences,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          focusNode: focusNode,
-          keyboardType: keyboardType,
-          textCapitalization: textCapitalization,
-          autocorrect: false,
-          style: const TextStyle(fontSize: 17),
-          decoration: InputDecoration(
-            hintText: placeholder,
-            filled: true,
-            fillColor: AppColors.secondaryBackground,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 1.5,
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-          ),
-          onChanged: (_) => setState(() {}),
         ),
       ],
     );
@@ -426,25 +274,6 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                   color: Colors.white,
                 ),
               ),
-      ),
-    );
-  }
-
-  Widget _buildSwitchNumberButton() {
-    return Center(
-      child: TextButton(
-        onPressed: () => setState(() {
-          _isNewUser = false;
-          _error     = null;
-        }),
-        child: const Text(
-          'Use a different number',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.primary,
-          ),
-        ),
       ),
     );
   }

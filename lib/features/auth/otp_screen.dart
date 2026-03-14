@@ -18,11 +18,11 @@ class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({
     super.key,
     required this.phone,
-    required this.purpose,
+    this.debugCode,
   });
 
   final String phone;
-  final OtpPurpose purpose;
+  final String? debugCode;
 
   @override
   ConsumerState<OtpScreen> createState() => _OtpScreenState();
@@ -42,6 +42,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   int  _resendTimer = 30;
   Timer? _timer;
   String? _error;
+  String? _debugCode;
 
   String get _otpCode => _controllers.map((c) => c.text).join();
   bool get _isComplete => _otpCode.length == _otpLength;
@@ -49,10 +50,23 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   @override
   void initState() {
     super.initState();
+    _debugCode = widget.debugCode;
     _startTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNodes.first.requestFocus();
+      _fillDebugCode(_debugCode);
     });
+  }
+
+  void _fillDebugCode(String? code) {
+    if (code != null && code.length == _otpLength) {
+      final digits = code.split('');
+      for (var i = 0; i < _otpLength; i++) {
+        _controllers[i].text = digits[i];
+      }
+      if (mounted) setState(() {});
+    } else {
+      _focusNodes.first.requestFocus();
+    }
   }
 
   @override
@@ -118,20 +132,22 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     setState(() { _isLoading = true; _error = null; });
 
     try {
-      final response = await AuthService.instance.verifyOtp(
-        phone:   widget.phone,
-        code:    _otpCode,
-        purpose: widget.purpose,
+      final result = await AuthService.instance.verifyOtp(
+        phone: widget.phone,
+        code:  _otpCode,
       );
 
       if (!mounted) return;
 
-      ref.read(appStateProvider.notifier).onSessionCreated(user: response.user);
-
-      // New user with incomplete profile → go to register
-      if (response.user.isNewUser && !response.user.isProfileComplete) {
-        context.pushReplacement('/auth/register');
+      if (result.requiresRegistration) {
+        // New user — collect fullName + email
+        context.pushReplacement('/auth/register', extra: {
+          'registrationToken': result.registrationPending!.registrationToken,
+          'phone':             widget.phone,
+        });
       } else {
+        final session = result.session!;
+        ref.read(appStateProvider.notifier).onSessionCreated(user: session.user);
         context.go('/home');
       }
     } on NetworkException catch (e) {
@@ -147,11 +163,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _resendOtp() async {
     try {
-      await AuthService.instance.requestOtp(
+      final res = await AuthService.instance.requestOtp(
         phone:   widget.phone,
-        purpose: widget.purpose,
+        purpose: OtpPurpose.authenticate,
       );
       _startTimer();
+      _clearOtp();
+      _debugCode = res.debugCode;
+      _fillDebugCode(_debugCode);
     } on NetworkException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {

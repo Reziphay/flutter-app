@@ -78,7 +78,9 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     final rolesList = (json['roles'] as List<dynamic>?)
-            ?.map((r) => UserRoleItem.fromJson(r as Map<String, dynamic>))
+            ?.map((r) => r is String
+                ? UserRoleItem(role: AppRole.fromString(r), id: '')
+                : UserRoleItem.fromJson(r as Map<String, dynamic>))
             .toList() ??
         [];
 
