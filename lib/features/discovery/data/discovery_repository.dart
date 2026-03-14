@@ -147,8 +147,6 @@ final providerDetailProvider = FutureProvider.autoDispose
           ref.watch(discoveryRepositoryProvider).getProviderDetail(providerId),
     );
 
-
-
 class BackendDiscoveryRepository implements DiscoveryRepository {
   BackendDiscoveryRepository({
     required ApiClient apiClient,
@@ -1590,73 +1588,88 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
     final brandId = _readString(item, ['brand.id', 'brandId', 'brand_id']);
     final brandName = _readString(item, ['brand.name', 'brandName']);
 
-    return ServiceSummary(
-      id: _readString(item, ['id'])!,
-      name: _readString(item, ['name', 'title'])!,
-      categoryId: categoryId,
-      categoryName: categoryName,
-      providerId: providerId,
-      providerName: providerName,
-      addressLine:
-          _readString(item, [
-            'addressLine',
-            'address.fullAddress',
-            'address.addressLine',
-            'serviceAddress.addressLine',
-            'brand.primaryAddress.fullAddress',
-            'brand.addressLine',
-          ]) ??
-          'Address not specified',
-      distanceKm:
-          _readDouble(item, ['distanceKm', 'distance_km']) ??
-          _metersToKm(
-            _readDouble(item, ['distanceMeters', 'distance_meters']),
-          ) ??
-          0,
-      rating:
-          _readDouble(item, [
-            'rating',
-            'ratingStats.averageRating',
-            'stats.averageRating',
-          ]) ??
-          0,
-      reviewCount:
-          _readInt(item, [
-            'reviewCount',
-            'ratingStats.reviewCount',
-            'stats.reviewCount',
-          ]) ??
-          0,
-      visibilityLabels: _parseVisibilityLabels(
-        _readList(item, [
-          'visibilityLabels',
-          'activeVisibilityLabels',
-          'visibility.labels',
-        ]),
-      ),
-      approvalMode: _parseApprovalMode(item),
-      isAvailable:
-          _readBool(item, ['isAvailable', 'available', 'openNow', 'isOpen']) ??
-          true,
-      popularityScore:
-          _readInt(item, ['popularityScore', 'stats.popularityScore']) ?? 0,
-      nextAvailabilityLabel:
-          _readString(item, [
-            'nextAvailabilityLabel',
-            'nextAvailability',
-            'availability.nextLabel',
-          ]) ??
-          (_readBool(item, ['isAvailable', 'available']) == true
-              ? 'Availability from backend'
-              : 'Check availability'),
-      brandId: brandId,
-      brandName: brandName,
-      price: _readDouble(item, ['price', 'price.amount', 'priceAmount']),
-      descriptionSnippet: content.summary,
-      coverMedia:
-          _parsePrimaryMediaAsset(item, ['coverMedia', 'cover', 'heroMedia']) ??
-          _parseMediaAssets(item).firstOrNull,
-    );
+    try {
+      return ServiceSummary(
+        id: _readString(item, ['id'])!,
+        name: _readString(item, ['name', 'title'])!,
+        categoryId: categoryId,
+        categoryName: categoryName,
+        providerId: providerId,
+        providerName: providerName,
+        addressLine:
+            _readString(item, [
+              'addressLine',
+              'address.fullAddress',
+              'address.addressLine',
+              'serviceAddress.addressLine',
+              'brand.primaryAddress.fullAddress',
+              'brand.addressLine',
+            ]) ??
+            'Address not specified',
+        distanceKm:
+            _readDouble(item, ['distanceKm', 'distance_km']) ??
+            _metersToKm(
+              _readDouble(item, ['distanceMeters', 'distance_meters']),
+            ) ??
+            0,
+        rating:
+            _readDouble(item, [
+              'rating',
+              'ratingStats.averageRating',
+              'stats.averageRating',
+            ]) ??
+            0,
+        reviewCount:
+            _readInt(item, [
+              'reviewCount',
+              'ratingStats.reviewCount',
+              'stats.reviewCount',
+            ]) ??
+            0,
+        visibilityLabels: _parseVisibilityLabels(
+          _readList(item, [
+            'visibilityLabels',
+            'activeVisibilityLabels',
+            'visibility.labels',
+          ]),
+        ),
+        approvalMode: _parseApprovalMode(item),
+        isAvailable:
+            _readBool(item, [
+              'isAvailable',
+              'available',
+              'openNow',
+              'isOpen',
+            ]) ??
+            true,
+        popularityScore:
+            _readInt(item, ['popularityScore', 'stats.popularityScore']) ?? 0,
+        nextAvailabilityLabel:
+            _readString(item, [
+              'nextAvailabilityLabel',
+              'nextAvailability',
+              'availability.nextLabel',
+            ]) ??
+            (_readBool(item, ['isAvailable', 'available']) == true
+                ? 'Availability from backend'
+                : 'Check availability'),
+        brandId: brandId,
+        brandName: brandName,
+        price: _readDouble(item, ['price', 'price.amount', 'priceAmount']),
+        descriptionSnippet: content.summary,
+        coverMedia:
+            _parsePrimaryMediaAsset(item, [
+              'coverMedia',
+              'cover',
+              'heroMedia',
+            ]) ??
+            _parseMediaAssets(item).firstOrNull,
+      );
+    } catch (e, st) {
+      print('Failed parsing service summary: $e');
+      print(st);
+      rethrow;
+    }
   }
 
   BrandSummary? _tryParseBrandSummary(dynamic raw) {
@@ -1769,6 +1782,7 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       'responseTimeMinutes',
     ]);
 
+    try{
     return ProviderSummary(
       id: _readString(item, ['id'])!,
       name: _readString(item, ['fullName', 'name'])!,
@@ -1822,6 +1836,11 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
       availableNow:
           _readBool(item, ['availableNow', 'isAvailable', 'openNow']) ?? true,
     );
+    } catch (e, st) {
+       print('Failed parsing provider summary: $e');
+       print(st);
+       rethrow;
+    }
   }
 
   ProviderSummary? _parseNestedProvider(JsonMap item) {
@@ -2167,6 +2186,40 @@ class BackendDiscoveryRepository implements DiscoveryRepository {
 
   void _rememberService(ServiceSummary service) {
     _serviceSummaryCache[service.id] = service;
+  }
+
+  DiscoverySearchResponse testParseSearchResponse(dynamic payload) {
+    print('Testing parsing services map...');
+    final servicesPayload = _extractItems(payload, ['services']);
+    print('Read ${servicesPayload.length} services.');
+    final services = <ServiceSummary>[];
+    for (var i = 0; i < servicesPayload.length; i++) {
+      print('Parsing ${asJsonMap(servicesPayload[i])['id']}');
+      services.add(_parseServiceSummary(asJsonMap(servicesPayload[i])));
+    }
+
+    print('Testing parsing brands map...');
+    final brandsPayload = _extractItems(payload, ['brands']);
+    print('Read ${brandsPayload.length} brands.');
+    final brands = <BrandSummary>[];
+    for (var i = 0; i < brandsPayload.length; i++) {
+      print('Parsing ${asJsonMap(brandsPayload[i])['id']}');
+      brands.add(_parseBrandSummary(asJsonMap(brandsPayload[i])));
+    }
+
+    print('Testing parsing providers map...');
+    final providersPayload = _extractItems(payload, ['providers']);
+    print('Read ${providersPayload.length} providers.');
+    final providers = <ProviderSummary>[];
+    for (var i = 0; i < providersPayload.length; i++) {
+      print('Parsing ${asJsonMap(providersPayload[i])['id']}');
+      providers.add(_parseProviderSummary(asJsonMap(providersPayload[i])));
+    }
+    return DiscoverySearchResponse(
+      services: services,
+      brands: brands,
+      providers: providers,
+    );
   }
 
   void _rememberBrand(BrandSummary brand) {

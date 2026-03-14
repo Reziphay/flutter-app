@@ -1133,6 +1133,15 @@ class BackendReservationsRepository implements ReservationsRepository {
     }
     return const [];
   }
+  
+  void testParseCustomerReservations(dynamic payload) {
+      final items = _extractItems(payload, ['items', 'reservations']);
+      print('Items parsed: ${items.length}');
+      
+      for (var item in items) {
+           _parseReservationSummary(asJsonMap(item));
+      }
+  }
 
   JsonMap _extractEntity(dynamic payload, List<String> keys) {
     if (payload is Map) {

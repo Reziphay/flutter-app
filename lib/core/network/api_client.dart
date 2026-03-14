@@ -155,6 +155,9 @@ class ApiClient {
       return mapper(envelope);
     } on DioException catch (error) {
       throw mapDioException(error);
+    } catch (e, st) {
+      debugPrint('Unhandled ApiClient Error: $e\n$st');
+      rethrow;
     }
   }
 }
