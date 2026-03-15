@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../state/explore_providers.dart';
 import '../explore/widgets/rating_row.dart';
 import '../explore/widgets/service_card.dart';
@@ -23,27 +24,28 @@ class BrandDetailScreen extends ConsumerWidget {
     final brandAsync    = ref.watch(brandDetailProvider(brandId));
     final servicesAsync = ref.watch(brandServicesProvider(brandId));
 
+    final dc = context.dc;
     return Scaffold(
-      backgroundColor: AppColors.secondaryBackground,
+      backgroundColor: dc.secondaryBackground,
       body: brandAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text(e.toString(),
-              style: const TextStyle(color: AppColors.textSecondary)),
+              style: TextStyle(color: dc.textSecondary)),
         ),
         data: (brand) => CustomScrollView(
           slivers: [
             // App Bar
             SliverAppBar(
               expandedHeight: 200,
-              backgroundColor: AppColors.background,
+              backgroundColor: dc.background,
               pinned: true,
               leading: _BackButton(),
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
-                  color: AppColors.secondaryBackground,
-                  child: const Center(
-                    child: Icon(Iconsax.shop, size: 72, color: AppColors.textTertiary),
+                  color: dc.secondaryBackground,
+                  child: Center(
+                    child: Icon(Iconsax.shop, size: 72, color: dc.textTertiary),
                   ),
                 ),
               ),
@@ -52,7 +54,7 @@ class BrandDetailScreen extends ConsumerWidget {
             // Brand Info
             SliverToBoxAdapter(
               child: Container(
-                color: AppColors.background,
+                color: dc.background,
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,10 +65,10 @@ class BrandDetailScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             brand.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                              color: dc.textPrimary,
                             ),
                           ),
                         ),
@@ -84,16 +86,16 @@ class BrandDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Iconsax.location,
-                              size: 14, color: AppColors.textTertiary),
+                          Icon(Iconsax.location,
+                              size: 14, color: dc.textTertiary),
                           const SizedBox(width: 4),
                           Text(
                             brand.address!.city.isNotEmpty
                                 ? '${brand.address!.city}, ${brand.address!.country}'
                                 : brand.address!.fullAddress,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppColors.textSecondary,
+                              color: dc.textSecondary,
                             ),
                           ),
                         ],
@@ -103,9 +105,9 @@ class BrandDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       Text(
                         brand.description!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
-                          color: AppColors.textSecondary,
+                          color: dc.textSecondary,
                           height: 1.5,
                         ),
                       ),
@@ -116,15 +118,15 @@ class BrandDetailScreen extends ConsumerWidget {
             ),
 
             // Services section
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 24, 20, 8),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
                 child: Text(
                   'Services',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: dc.textPrimary,
                   ),
                 ),
               ),
@@ -142,13 +144,13 @@ class BrandDetailScreen extends ConsumerWidget {
               error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
               data: (result) {
                 if (result.items.isEmpty) {
-                  return const SliverToBoxAdapter(
+                  return SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(24),
                       child: Center(
                         child: Text(
                           'No services yet',
-                          style: TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(color: dc.textSecondary),
                         ),
                       ),
                     ),
@@ -180,23 +182,19 @@ class BrandDetailScreen extends ConsumerWidget {
 class _BackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Padding(
       padding: const EdgeInsets.all(8),
       child: GestureDetector(
         onTap: () => context.pop(),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: dc.cardBackground,
             shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 8,
-              ),
-            ],
+            border: Border.all(color: dc.divider, width: 1),
           ),
           padding: const EdgeInsets.all(6),
-          child: const Icon(Iconsax.arrow_left_2, size: 20, color: AppColors.textPrimary),
+          child: Icon(Iconsax.arrow_left_2, size: 20, color: dc.textPrimary),
         ),
       ),
     );
