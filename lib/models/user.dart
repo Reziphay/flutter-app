@@ -59,6 +59,7 @@ class User {
     this.activeRole,
     this.roles = const [],
     this.isNewUser = false,
+    this.avatarUrl,
   });
 
   final String id;
@@ -70,6 +71,7 @@ class User {
   final String? activeRole;
   final List<UserRoleItem> roles;
   final bool isNewUser;
+  final String? avatarUrl;
 
   bool get hasUsoRole => roles.any((r) => r.role == AppRole.uso);
   bool get hasUcrRole => roles.any((r) => r.role == AppRole.ucr);
@@ -94,6 +96,7 @@ class User {
       activeRole:       json['activeRole'] as String?,
       roles:            rolesList,
       isNewUser:        json['isNewUser'] as bool? ?? false,
+      avatarUrl:        json['avatarUrl'] as String?,
     );
   }
 
@@ -104,6 +107,8 @@ class User {
     String? phone,
     String? activeRole,
     List<UserRoleItem>? roles,
+    String? avatarUrl,
+    bool clearAvatar = false,
   }) {
     return User(
       id:          id          ?? this.id,
@@ -112,6 +117,7 @@ class User {
       phone:       phone       ?? this.phone,
       activeRole:  activeRole  ?? this.activeRole,
       roles:       roles       ?? this.roles,
+      avatarUrl:   clearAvatar ? null : (avatarUrl ?? this.avatarUrl),
     );
   }
 

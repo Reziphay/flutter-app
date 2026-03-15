@@ -3,6 +3,8 @@
 //
 // Author: Vugar Safarzada (@vugarsafarzada)
 
+import 'dart:io';
+
 import '../core/network/api_client.dart';
 import '../core/network/endpoints.dart';
 import '../core/storage/secure_storage.dart';
@@ -111,11 +113,23 @@ class AuthService {
 
   Future<User> getMe() => _client.get(Endpoints.userMe, fromJson: User.fromJson);
 
-  Future<User> updateProfile({String? fullName, String? email}) async {
+  Future<User> updateProfile({String? fullName}) async {
     final body = <String, dynamic>{};
     if (fullName != null) body['fullName'] = fullName;
-    if (email    != null) body['email']    = email;
-    return _client.patch(Endpoints.userMe, data: body, fromJson: User.fromJson);
+    return _client.patch(
+      Endpoints.userMe,
+      data: body,
+      fromJson: (json) => User.fromJson(json['user'] as Map<String, dynamic>),
+    );
+  }
+
+  Future<User> uploadAvatar(File imageFile) async {
+    final raw = await _client.postMultipart(
+      Endpoints.userMeAvatar,
+      file: imageFile,
+      fieldName: 'file',
+    );
+    return User.fromJson(raw['user'] as Map<String, dynamic>);
   }
 
   Future<AuthSession> activateUso() async {

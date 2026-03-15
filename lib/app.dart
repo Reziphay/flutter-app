@@ -16,6 +16,7 @@ import 'features/explore/explore_screen.dart';
 import 'features/main/ucr_shell.dart';
 import 'features/main/uso_shell.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/profile/profile_edit_screen.dart';
 import 'features/profile/ucr_profile_screen.dart';
 import 'features/profile/uso_profile_screen.dart';
 import 'features/provider_profile/provider_profile_screen.dart';
@@ -177,6 +178,12 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (_, __) => const SettingsScreen(),
+      ),
+
+      // ── Profile Edit (shared — UCR & USO) ──────────────────────────────
+      GoRoute(
+        path: '/profile/edit',
+        builder: (_, __) => const ProfileEditScreen(),
       ),
 
       // ── UCR Favorites ──────────────────────────────────────────────────

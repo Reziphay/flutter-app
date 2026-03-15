@@ -3,6 +3,7 @@
 //
 // Author: Vugar Safarzada (@vugarsafarzada)
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -106,23 +107,10 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
             padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 24),
             child: Column(
               children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: primary.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      _initials(user?.fullName),
-                      style: TextStyle(
-                        fontSize:   28,
-                        fontWeight: FontWeight.w700,
-                        color:      primary,
-                      ),
-                    ),
-                  ),
+                _ProfileAvatar(
+                  user:    user,
+                  primary: primary,
+                  size:    80,
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -141,6 +129,19 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
               ],
             ),
           ),
+
+          const SizedBox(height: 16),
+
+          // ── Edit Profile ──────────────────────────────────────────────────
+          _SectionCard(dc: dc, children: [
+            _ActionRow(
+              icon:  Iconsax.edit,
+              label: 'Edit Profile',
+              color: dc.textPrimary,
+              dc:    dc,
+              onTap: () => context.push('/profile/edit'),
+            ),
+          ]),
 
           const SizedBox(height: 16),
 
@@ -250,11 +251,66 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
     );
   }
 
+}
+
+// ── Profile Avatar (shows photo if set, else initials) ────────────────────────
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({
+    required this.user,
+    required this.primary,
+    required this.size,
+  });
+
+  final dynamic user;
+  final Color  primary;
+  final double size;
+
   String _initials(String? name) {
     if (name == null || name.isEmpty) return '?';
     final parts = name.trim().split(' ');
     if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     return name[0].toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final avatarUrl = user?.avatarUrl as String?;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: primary.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: avatarUrl != null && avatarUrl.isNotEmpty
+          ? CachedNetworkImage(
+              imageUrl: avatarUrl,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => const SizedBox.shrink(),
+              errorWidget: (_, __, ___) => Center(
+                child: Text(
+                  _initials(user?.fullName as String?),
+                  style: TextStyle(
+                    fontSize:   size * 0.35,
+                    fontWeight: FontWeight.w700,
+                    color:      primary,
+                  ),
+                ),
+              ),
+            )
+          : Center(
+              child: Text(
+                _initials(user?.fullName as String?),
+                style: TextStyle(
+                  fontSize:   size * 0.35,
+                  fontWeight: FontWeight.w700,
+                  color:      primary,
+                ),
+              ),
+            ),
+    );
   }
 }
 

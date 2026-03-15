@@ -26,6 +26,7 @@ abstract final class Endpoints {
 
   // User
   static const String userMe       = '/users/me';
+  static const String userMeAvatar = '/users/me/avatar';
   static const String activateUso  = '/users/me/activate-uso';
   static const String getRoles     = '/users/me/roles';
   static const String switchRole   = '/users/me/switch-role';
