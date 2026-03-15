@@ -28,6 +28,10 @@ class AppStateData {
   bool get isUnauthenticated  => authStatus == AuthStatus.unauthenticated;
   bool get isUnknown          => authStatus == AuthStatus.unknown;
 
+  /// True when the authenticated user's active session role is USO.
+  bool get isUso => currentUser?.activeRole?.toUpperCase() == 'USO';
+  bool get isUcr => !isUso;
+
   AppStateData copyWith({
     AuthStatus? authStatus,
     User? currentUser,

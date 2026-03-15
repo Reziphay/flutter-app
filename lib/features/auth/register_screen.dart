@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/network_exception.dart';
+import '../../core/theme/app_palette.dart';
 import '../../services/auth_service.dart';
 import '../../state/app_state.dart';
 
@@ -61,10 +62,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     setState(() { _isLoading = true; _error = null; });
 
     try {
+      final selectedRole = ref.read(appStateProvider).selectedRole;
       final session = await AuthService.instance.completeRegistration(
         registrationToken: widget.registrationToken,
         fullName:          _fullNameCtrl.text.trim(),
         email:             _emailCtrl.text.trim().toLowerCase(),
+        role:              selectedRole?.value,
       );
 
       if (!mounted) return;
@@ -215,7 +218,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: BorderSide(color: context.palette.primary, width: 1.5),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -255,8 +258,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       child: ElevatedButton(
         onPressed: _canProceed && !_isLoading ? _handleComplete : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+          backgroundColor: context.palette.primary,
+          disabledBackgroundColor: context.palette.primary.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),

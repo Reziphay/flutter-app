@@ -41,9 +41,20 @@ abstract final class Endpoints {
   static String serviceById(String id) => '/services/$id';
   static String brandById(String id)   => '/brands/$id';
 
-  // Reservations
+  // Reservations — UCR
   static const String reservations          = '/reservations';
   static const String myReservations        = '/reservations/my';
   static String reservationById(String id)  => '/reservations/$id';
   static String cancelReservation(String id)=> '/reservations/$id/cancel-by-customer';
+
+  // Reservations — USO
+  static const String incomingReservations      = '/reservations/incoming';
+  static const String incomingReservationStats  = '/reservations/incoming/stats';
+  static String acceptReservation(String id)    => '/reservations/$id/accept';
+  static String rejectReservation(String id)    => '/reservations/$id/reject';
+  static String cancelByOwner(String id)        => '/reservations/$id/cancel-by-owner';
+  static String completeManually(String id)     => '/reservations/$id/complete-manually';
+
+  // Services — USO
+  static const String myServices = '/services/mine';
 }

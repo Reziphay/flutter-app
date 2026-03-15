@@ -5,19 +5,23 @@
 
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import 'app_palette.dart';
 
 abstract final class AppTheme {
-  static ThemeData get light {
+  /// Builds a [ThemeData] from the given [AppPalette].
+  /// Call this with the result of [appPaletteProvider].
+  static ThemeData build(AppPalette palette) {
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        primary: AppColors.primary,
-        onPrimary: Colors.white,
-        surface: AppColors.background,
-        onSurface: AppColors.textPrimary,
-        error: AppColors.error,
+        seedColor:  palette.primary,
+        primary:    palette.primary,
+        onPrimary:  Colors.white,
+        surface:    AppColors.background,
+        onSurface:  AppColors.textPrimary,
+        error:      AppColors.error,
       ),
+      extensions: [palette],
       scaffoldBackgroundColor: AppColors.background,
       fontFamily: 'SF Pro Display',
 
@@ -35,10 +39,10 @@ abstract final class AppTheme {
         ),
       ),
 
-      // ElevatedButton
+      // ElevatedButton — uses colorScheme.primary → dynamic
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: palette.primary,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(54),
           shape: RoundedRectangleBorder(
@@ -55,12 +59,12 @@ abstract final class AppTheme {
       // OutlinedButton
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
+          foregroundColor: palette.primary,
           minimumSize: const Size.fromHeight(54),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          side: const BorderSide(color: AppColors.primary),
+          side: BorderSide(color: palette.primary),
           textStyle: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -82,7 +86,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: palette.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -99,34 +103,19 @@ abstract final class AppTheme {
 
       // TextTheme
       textTheme: const TextTheme(
-        displayLarge: TextStyle(
-          fontSize: 34, fontWeight: FontWeight.bold, color: AppColors.textPrimary,
-        ),
-        headlineLarge: TextStyle(
-          fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary,
-        ),
-        headlineMedium: TextStyle(
-          fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary,
-        ),
-        titleLarge: TextStyle(
-          fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.textPrimary,
-        ),
-        titleMedium: TextStyle(
-          fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary,
-        ),
-        bodyLarge: TextStyle(
-          fontSize: 17, fontWeight: FontWeight.normal, color: AppColors.textPrimary,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 15, fontWeight: FontWeight.normal, color: AppColors.textPrimary,
-        ),
-        bodySmall: TextStyle(
-          fontSize: 13, fontWeight: FontWeight.normal, color: AppColors.textSecondary,
-        ),
-        labelMedium: TextStyle(
-          fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary,
-        ),
+        displayLarge: TextStyle(fontSize: 34, fontWeight: FontWeight.bold,    color: AppColors.textPrimary),
+        headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold,   color: AppColors.textPrimary),
+        headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,  color: AppColors.textPrimary),
+        titleLarge: TextStyle(fontSize: 17, fontWeight: FontWeight.w600,      color: AppColors.textPrimary),
+        titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w500,     color: AppColors.textPrimary),
+        bodyLarge: TextStyle(fontSize: 17, fontWeight: FontWeight.normal,     color: AppColors.textPrimary),
+        bodyMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.normal,    color: AppColors.textPrimary),
+        bodySmall: TextStyle(fontSize: 13, fontWeight: FontWeight.normal,     color: AppColors.textSecondary),
+        labelMedium: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,     color: AppColors.textSecondary),
       ),
     );
   }
+
+  /// Neutral fallback (unauthenticated state).
+  static ThemeData get neutral => build(AppPalette.neutral);
 }

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/endpoints.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/network/network_exception.dart';
 import '../../services/auth_service.dart';
 import '../../state/app_state.dart';
@@ -110,6 +111,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
   // MARK: - Header
 
   Widget _buildHeader(dynamic role) {
+    final primary = context.palette.primary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -117,14 +119,14 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
+            color: primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
             role?.value == 'USO'
                 ? Icons.work_rounded
                 : Icons.person_rounded,
-            color: AppColors.primary,
+            color: primary,
             size: 28,
           ),
         ),
@@ -205,8 +207,8 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
+                    borderSide: BorderSide(
+                      color: context.palette.primary,
                       width: 1.5,
                     ),
                   ),
@@ -250,8 +252,8 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
       child: ElevatedButton(
         onPressed: _canProceed && !_isLoading ? _handleSendCode : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+          backgroundColor: context.palette.primary,
+          disabledBackgroundColor: context.palette.primary.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),

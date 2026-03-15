@@ -16,29 +16,21 @@ class OnboardingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.darkBg, AppColors.darkBgEnd],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const Spacer(),
-                _HeroSection(),
-                const Spacer(),
-                _RoleCardsSection(onRoleSelected: (role) {
-                  ref.read(appStateProvider.notifier).selectRole(role);
-                  context.push('/auth/phone');
-                }),
-                const SizedBox(height: 48),
-              ],
-            ),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              const Spacer(),
+              const _HeroSection(),
+              const Spacer(),
+              _RoleCardsSection(onRoleSelected: (role) {
+                ref.read(appStateProvider.notifier).selectRole(role);
+                context.push('/auth/phone');
+              }),
+              const SizedBox(height: 48),
+            ],
           ),
         ),
       ),
@@ -49,39 +41,27 @@ class OnboardingScreen extends ConsumerWidget {
 // MARK: - Hero
 
 class _HeroSection extends StatelessWidget {
+  const _HeroSection();
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 96,
-          height: 96,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.calendar_month_rounded,
-            size: 44,
-            color: AppColors.primaryLight,
-          ),
-        ),
-        const SizedBox(height: 24),
         const Text(
-          'Reziphay',
+          'Reziphay.',
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: AppColors.textPrimary,
             letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           'Book smarter, live better',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: AppColors.textSecondary,
           ),
         ),
       ],
@@ -100,13 +80,13 @@ class _RoleCardsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
+        const Text(
           'How would you like to continue?',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Colors.white.withValues(alpha: 0.5),
+            color: AppColors.textSecondary,
           ),
         ),
         const SizedBox(height: 16),
@@ -114,7 +94,7 @@ class _RoleCardsSection extends StatelessWidget {
           icon: Icons.person_rounded,
           title: "I'm a Customer",
           subtitle: 'Discover and book services near you',
-          color: const Color(0xFF4A8FFF),
+          color: const Color(0xFFC71F37),
           onTap: () => onRoleSelected(UserRole.ucr),
         ),
         const SizedBox(height: 12),
@@ -122,7 +102,7 @@ class _RoleCardsSection extends StatelessWidget {
           icon: Icons.work_rounded,
           title: "I'm a Service Provider",
           subtitle: 'Manage your services and bookings',
-          color: AppColors.primary,
+          color: const Color(0xFF0466C8),
           onTap: () => onRoleSelected(UserRole.uso),
         ),
       ],
@@ -155,20 +135,20 @@ class _RoleCardState extends State<_RoleCard> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown:   (_) => setState(() => _pressed = true),
-      onTapUp:     (_) => setState(() => _pressed = false),
-      onTapCancel: ()  => setState(() => _pressed = false),
-      onTap:       widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.onTap,
       child: AnimatedScale(
-        scale:    _pressed ? 0.97 : 1.0,
+        scale: _pressed ? 0.97 : 1.0,
         duration: const Duration(milliseconds: 120),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: AppColors.secondaryBackground,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.10),
+              color: AppColors.tertiaryBackground,
             ),
           ),
           child: Row(
@@ -177,7 +157,7 @@ class _RoleCardState extends State<_RoleCard> {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: widget.color.withValues(alpha: 0.15),
+                  color: widget.color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(widget.icon, color: widget.color, size: 26),
@@ -192,23 +172,23 @@ class _RoleCardState extends State<_RoleCard> {
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       widget.subtitle,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.55),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
+              const Icon(
                 Icons.chevron_right_rounded,
-                color: Colors.white.withValues(alpha: 0.3),
+                color: AppColors.textTertiary,
                 size: 22,
               ),
             ],

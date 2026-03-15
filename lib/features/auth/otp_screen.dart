@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/endpoints.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/network/network_exception.dart';
 import '../../services/auth_service.dart';
 import '../../state/app_state.dart';
@@ -231,12 +232,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
+            color: context.palette.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.message_rounded,
-            color: AppColors.primary,
+            color: context.palette.primary,
             size: 28,
           ),
         ),
@@ -299,8 +300,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       child: ElevatedButton(
         onPressed: _isComplete && !_isLoading ? _verifyOtp : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+          backgroundColor: context.palette.primary,
+          disabledBackgroundColor: context.palette.primary.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -332,12 +333,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       child: _canResend
           ? TextButton(
               onPressed: _resendOtp,
-              child: const Text(
+              child: Text(
                 'Resend Code',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
+                  color: context.palette.primary,
                 ),
               ),
             )
@@ -385,6 +386,7 @@ class _OtpDigitCellState extends State<_OtpDigitCell> {
     final focused = widget.focusNode.hasFocus;
     final hasValue = widget.controller.text.isNotEmpty;
 
+    final primary = context.palette.primary;
     return Container(
       width: 48,
       height: 60,
@@ -392,7 +394,7 @@ class _OtpDigitCellState extends State<_OtpDigitCell> {
         color: AppColors.secondaryBackground,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: focused ? AppColors.primary : Colors.transparent,
+          color: focused ? primary : Colors.transparent,
           width: 2,
         ),
       ),
@@ -405,7 +407,7 @@ class _OtpDigitCellState extends State<_OtpDigitCell> {
               height: 2,
               decoration: BoxDecoration(
                 color: focused
-                    ? AppColors.primary
+                    ? primary
                     : AppColors.textSecondary.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(1),
               ),

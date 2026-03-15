@@ -50,12 +50,70 @@ class ReservationService {
         fromJson: (json) => ReservationItem.fromJson(json),
       );
 
-  // ── Cancel ─────────────────────────────────────────────────────────────────
+  // ── Cancel (UCR) ──────────────────────────────────────────────────────────
 
   Future<ReservationItem> cancelReservation(String id, String reason) =>
       _client.post(
         Endpoints.cancelReservation(id),
         data: {'reason': reason},
+        fromJson: (json) => ReservationItem.fromJson(json),
+      );
+
+  // ── USO — Incoming reservations ────────────────────────────────────────
+
+  Future<List<ReservationItem>> fetchIncomingReservations({
+    ReservationStatus? status,
+  }) async {
+    final Map<String, dynamic> params = {};
+    if (status != null) params['status'] = status.name.toUpperCase();
+
+    return _client.get(
+      Endpoints.incomingReservations,
+      queryParameters: params.isEmpty ? null : params,
+      fromJson: (json) {
+        final items = json['items'] as List<dynamic>? ?? [];
+        return items
+            .map((e) => ReservationItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+      },
+    );
+  }
+
+  Future<Map<String, int>> fetchIncomingStats() =>
+      _client.get(
+        Endpoints.incomingReservationStats,
+        fromJson: (json) => Map<String, int>.from(
+          (json).map(
+            (k, v) => MapEntry(k, (v as num).toInt()),
+          ),
+        ),
+      );
+
+  // ── USO — Accept / Reject / Complete ───────────────────────────────────
+
+  Future<ReservationItem> acceptReservation(String id) =>
+      _client.post(
+        Endpoints.acceptReservation(id),
+        fromJson: (json) => ReservationItem.fromJson(json),
+      );
+
+  Future<ReservationItem> rejectReservation(String id, String reason) =>
+      _client.post(
+        Endpoints.rejectReservation(id),
+        data: {'reason': reason},
+        fromJson: (json) => ReservationItem.fromJson(json),
+      );
+
+  Future<ReservationItem> cancelByOwner(String id, String reason) =>
+      _client.post(
+        Endpoints.cancelByOwner(id),
+        data: {'reason': reason},
+        fromJson: (json) => ReservationItem.fromJson(json),
+      );
+
+  Future<ReservationItem> completeManually(String id) =>
+      _client.post(
+        Endpoints.completeManually(id),
         fromJson: (json) => ReservationItem.fromJson(json),
       );
 }

@@ -98,7 +98,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ),
               const SizedBox(height: 24),
               const Text(
-                'Reziphay',
+                'Reziphay.',
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,

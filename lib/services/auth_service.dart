@@ -61,6 +61,7 @@ class AuthService {
     required String registrationToken,
     required String fullName,
     required String email,
+    String? role,
   }) async {
     final session = await _client.post(
       Endpoints.completeRegistration,
@@ -68,6 +69,7 @@ class AuthService {
         'registrationToken': registrationToken,
         'fullName':          fullName,
         'email':             email,
+        if (role != null) 'initialRole': role,
       },
       fromJson: AuthSession.fromJson,
     );
