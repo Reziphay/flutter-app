@@ -40,4 +40,10 @@ abstract final class Endpoints {
 
   static String serviceById(String id) => '/services/$id';
   static String brandById(String id)   => '/brands/$id';
+
+  // Reservations
+  static const String reservations          = '/reservations';
+  static const String myReservations        = '/reservations/my';
+  static String reservationById(String id)  => '/reservations/$id';
+  static String cancelReservation(String id)=> '/reservations/$id/cancel-by-customer';
 }

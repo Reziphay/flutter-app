@@ -78,16 +78,25 @@ class ApiClient {
       final response = await call();
       return _unwrap(response, fromJson);
     } on DioException catch (e) {
-      // On 401, try token refresh once then retry
-      if (e.response?.statusCode == 401 &&
+      final status = e.response?.statusCode;
+      final isRefreshPath =
+          e.requestOptions.path.contains(Endpoints.refreshToken);
+
+      // On 401 or 403 (some backends return 403 for expired/missing tokens),
+      // attempt a single token refresh then retry.
+      if ((status == 401 || status == 403) &&
           retryOnUnauthorized &&
-          !(e.requestOptions.path.contains(Endpoints.refreshToken))) {
+          !isRefreshPath) {
         final refreshed = await _tryRefreshToken();
         if (refreshed) {
           return _execute(call, fromJson, retryOnUnauthorized: false);
         }
+        // Refresh failed — session is dead
         await _storage.clearTokens();
-        throw const NetworkException('Session expired. Please log in again.', statusCode: 401);
+        throw const NetworkException(
+          'Session expired. Please log in again.',
+          statusCode: 401,
+        );
       }
       throw _mapError(e);
     }
@@ -120,6 +129,12 @@ class ApiClient {
         if (statusCode == 401) {
           return NetworkException(message ?? 'Unauthorized.', statusCode: 401);
         }
+        if (statusCode == 403) {
+          return NetworkException(
+            message ?? 'Access denied.',
+            statusCode: 403,
+          );
+        }
         if (statusCode == 404) {
           return const NetworkException.notFound();
         }
@@ -135,12 +150,22 @@ class ApiClient {
 
   String? _extractMessage(Response? response) {
     try {
-      final data = response?.data;
-      if (data is Map<String, dynamic>) {
-        final msg = data['message'];
-        if (msg is String) return msg;
+      final raw = response?.data;
+      // Direct JSON body: { "message": "...", ... }
+      if (raw is Map<String, dynamic>) {
+        final msg = raw['message'];
+        if (msg is String && msg.isNotEmpty) return msg;
         if (msg is List && msg.isNotEmpty) return msg.first as String?;
+        // Some backends wrap in { "error": { "message": "..." } }
+        final err = raw['error'];
+        if (err is Map) {
+          final m = err['message'];
+          if (m is String && m.isNotEmpty) return m;
+        }
+        if (err is String && err.isNotEmpty) return err;
       }
+      // Body is a plain string (rare but possible)
+      if (raw is String && raw.isNotEmpty && raw.length < 200) return raw;
     } catch (_) {}
     return null;
   }

@@ -12,6 +12,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
 import '../explore/widgets/rating_row.dart';
+import '../reservations/create_reservation_sheet.dart';
 
 class ServiceDetailScreen extends ConsumerWidget {
   const ServiceDetailScreen({super.key, required this.serviceId});
@@ -340,11 +341,16 @@ class _BookButton extends StatelessWidget {
       child: SizedBox(
         height: 52,
         child: FilledButton(
-          onPressed: () {
-            // Phase 3: Reservation flow
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Booking coming in Phase 3')),
-            );
+          onPressed: () async {
+            final booked = await showCreateReservationSheet(context, service);
+            if (booked && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Reservation created!'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            }
           },
           child: Text(
             service.approvalMode == 'AUTO' ? 'Book Now' : 'Request Booking',

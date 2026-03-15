@@ -44,7 +44,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onTabTapped,
         backgroundColor: AppColors.background,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+        indicatorColor: Colors.transparent,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         destinations: _tabs.map((tab) => NavigationDestination(
           icon: Icon(tab.icon, color: AppColors.textSecondary),
@@ -68,18 +68,7 @@ class _TabItem {
   final String route;
 }
 
-// MARK: - Placeholder screens (Phase 3+)
-
-class ReservationsPlaceholderScreen extends StatelessWidget {
-  const ReservationsPlaceholderScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => const _PlaceholderView(
-    icon: Iconsax.calendar,
-    title: 'Reservations',
-    subtitle: 'Booking management coming in Phase 3',
-  );
-}
+// MARK: - Placeholder screens (Phase 4+)
 
 class NotificationsPlaceholderScreen extends StatelessWidget {
   const NotificationsPlaceholderScreen({super.key});

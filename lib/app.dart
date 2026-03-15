@@ -16,6 +16,8 @@ import 'features/explore/explore_screen.dart';
 import 'features/main/main_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/provider_profile/provider_profile_screen.dart';
+import 'features/reservations/reservation_detail_screen.dart';
+import 'features/reservations/reservations_screen.dart';
 import 'features/search/search_screen.dart';
 import 'features/service_detail/service_detail_screen.dart';
 import 'features/splash/splash_screen.dart';
@@ -110,7 +112,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/home/reservations',
-            builder: (_, __) => const ReservationsPlaceholderScreen(),
+            builder: (_, __) => const ReservationsScreen(),
           ),
           GoRoute(
             path: '/home/notifications',
@@ -151,6 +153,11 @@ final _routerProvider = Provider<GoRouter>((ref) {
         path: '/provider/:id',
         builder: (context, state) =>
             ProviderProfileScreen(providerId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/reservation/:id',
+        builder: (context, state) =>
+            ReservationDetailScreen(reservationId: state.pathParameters['id']!),
       ),
     ],
   );
