@@ -31,6 +31,12 @@ dependencies:
   # Icons
   cupertino_icons: ^1.0.8
 
+  # Location
+  geolocator: ^13.0.2
+
+  # Network images
+  cached_network_image: ^3.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -39,10 +39,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: NavigationBar(
+        height: 60,
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onTabTapped,
         backgroundColor: AppColors.background,
         indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         destinations: _tabs.map((tab) => NavigationDestination(
           icon: Icon(tab.icon, color: AppColors.textSecondary),
           selectedIcon: Icon(tab.icon, color: AppColors.primary),
@@ -65,57 +67,7 @@ class _TabItem {
   final String route;
 }
 
-// MARK: - Placeholder screens (Phase 2+)
-
-class ExplorePlaceholderScreen extends ConsumerWidget {
-  const ExplorePlaceholderScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(appStateProvider).currentUser;
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Explore'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () async {
-                await ref.read(appStateProvider.notifier).logout();
-              },
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.search_rounded,
-              size: 64,
-              color: AppColors.textTertiary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Welcome, ${user?.fullName ?? 'there'}!',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Discovery coming in Phase 2',
-              style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// MARK: - Placeholder screens (Phase 3+)
 
 class ReservationsPlaceholderScreen extends StatelessWidget {
   const ReservationsPlaceholderScreen({super.key});
@@ -139,15 +91,34 @@ class NotificationsPlaceholderScreen extends StatelessWidget {
   );
 }
 
-class ProfilePlaceholderScreen extends StatelessWidget {
+class ProfilePlaceholderScreen extends ConsumerWidget {
   const ProfilePlaceholderScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => const _PlaceholderView(
-    icon: Icons.person_rounded,
-    title: 'Profile',
-    subtitle: 'Profile management coming in Phase 7',
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () async {
+              await ref.read(appStateProvider.notifier).logout();
+            },
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      body: const Center(
+        child: _PlaceholderView(
+          icon: Icons.person_rounded,
+          title: 'Profile',
+          subtitle: 'Profile management coming in Phase 7',
+        ),
+      ),
+    );
+  }
 }
 
 class _PlaceholderView extends StatelessWidget {
@@ -165,7 +136,6 @@ class _PlaceholderView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text(title)),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

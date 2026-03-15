@@ -29,4 +29,15 @@ abstract final class Endpoints {
   static const String activateUso  = '/users/activate-uso';
   static const String getRoles     = '/users/roles';
   static const String switchRole   = '/users/switch-role';
+
+  // Discovery & Search
+  static const String search         = '/search';
+  static const String nearbyServices = '/services/nearby';
+  static const String serviceOwners  = '/service-owners';
+  static const String services       = '/services';
+  static const String brands         = '/brands';
+  static const String categories     = '/categories';
+
+  static String serviceById(String id) => '/services/$id';
+  static String brandById(String id)   => '/brands/$id';
 }

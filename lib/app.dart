@@ -11,8 +11,13 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/otp_screen.dart';
 import 'features/auth/phone_entry_screen.dart';
 import 'features/auth/register_screen.dart';
+import 'features/brand_detail/brand_detail_screen.dart';
+import 'features/explore/explore_screen.dart';
 import 'features/main/main_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/provider_profile/provider_profile_screen.dart';
+import 'features/search/search_screen.dart';
+import 'features/service_detail/service_detail_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'state/app_state.dart';
 
@@ -101,7 +106,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/home/explore',
-            builder: (_, __) => const ExplorePlaceholderScreen(),
+            builder: (_, __) => const ExploreScreen(),
           ),
           GoRoute(
             path: '/home/reservations',
@@ -122,6 +127,30 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/home',
         redirect: (_, __) => '/home/explore',
+      ),
+
+      // Discovery routes (outside shell — full-screen)
+      GoRoute(
+        path: '/search',
+        builder: (context, state) {
+          final tab = state.uri.queryParameters['tab'];
+          return SearchScreen(initialTab: tab);
+        },
+      ),
+      GoRoute(
+        path: '/service/:id',
+        builder: (context, state) =>
+            ServiceDetailScreen(serviceId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/brand/:id',
+        builder: (context, state) =>
+            BrandDetailScreen(brandId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/provider/:id',
+        builder: (context, state) =>
+            ProviderProfileScreen(providerId: state.pathParameters['id']!),
       ),
     ],
   );
