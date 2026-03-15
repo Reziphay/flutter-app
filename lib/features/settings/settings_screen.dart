@@ -199,18 +199,8 @@ class _ThemeSegmentedControl extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 margin: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: isSelected ? primary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(9),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color:  primary.withValues(alpha: 0.3),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -218,15 +208,15 @@ class _ThemeSegmentedControl extends StatelessWidget {
                     Icon(
                       icon,
                       size: 15,
-                      color: isSelected ? Colors.white : dc.textSecondary,
+                      color: isSelected ? primary : dc.textSecondary,
                     ),
                     const SizedBox(width: 5),
                     Text(
                       mode.label,
                       style: TextStyle(
                         fontSize:   13,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : dc.textSecondary,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? primary : dc.textSecondary,
                       ),
                     ),
                   ],
