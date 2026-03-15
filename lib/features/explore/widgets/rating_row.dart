@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../models/discovery.dart';
 
 class RatingRow extends StatelessWidget {
@@ -27,14 +28,14 @@ class RatingRow extends StatelessWidget {
           style: TextStyle(
             fontSize: size,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: context.dc.textPrimary,
           ),
         ),
         if (stats.reviewCount > 0) ...[
           const SizedBox(width: 3),
           Text(
             '(${stats.reviewCount})',
-            style: TextStyle(fontSize: size - 1, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: size - 1, color: context.dc.textSecondary),
           ),
         ],
       ],

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../models/user.dart';
 import '../../state/app_state.dart';
 
@@ -16,7 +17,7 @@ class OnboardingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.dc.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -45,23 +46,24 @@ class _HeroSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Column(
       children: [
-        const Text(
+        Text(
           'Reziphay.',
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: dc.textPrimary,
             letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Book smarter, live better',
           style: TextStyle(
             fontSize: 16,
-            color: AppColors.textSecondary,
+            color: dc.textSecondary,
           ),
         ),
       ],
@@ -77,16 +79,17 @@ class _RoleCardsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'How would you like to continue?',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
+            color: dc.textSecondary,
           ),
         ),
         const SizedBox(height: 16),
@@ -134,6 +137,7 @@ class _RoleCardState extends State<_RoleCard> {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
@@ -145,11 +149,9 @@ class _RoleCardState extends State<_RoleCard> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.secondaryBackground,
+            color: dc.cardBackground,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: AppColors.tertiaryBackground,
-            ),
+            border: Border.all(color: dc.divider),
           ),
           child: Row(
             children: [
@@ -169,26 +171,26 @@ class _RoleCardState extends State<_RoleCard> {
                   children: [
                     Text(
                       widget.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: dc.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       widget.subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: dc.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.textTertiary,
+                color: dc.textTertiary,
                 size: 22,
               ),
             ],

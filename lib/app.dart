@@ -23,11 +23,14 @@ import 'features/reservations/reservation_detail_screen.dart';
 import 'features/reservations/reservations_screen.dart';
 import 'features/search/search_screen.dart';
 import 'features/service_detail/service_detail_screen.dart';
+import 'features/settings/settings_screen.dart';
 import 'features/splash/splash_screen.dart';
+import 'features/ucr/favorites/favorites_screen.dart';
 import 'features/uso/incoming_reservations/incoming_reservations_screen.dart';
 import 'features/uso/my_services/create_edit_service_screen.dart';
 import 'features/uso/my_services/my_services_screen.dart';
 import 'state/app_state.dart';
+import 'state/settings_provider.dart';
 import 'state/theme_provider.dart';
 
 // MARK: - Router Notifier
@@ -170,6 +173,18 @@ final _routerProvider = Provider<GoRouter>((ref) {
             CreateEditServiceScreen(serviceId: state.pathParameters['id']),
       ),
 
+      // ── Settings (shared — UCR & USO) ──────────────────────────────────
+      GoRoute(
+        path: '/settings',
+        builder: (_, __) => const SettingsScreen(),
+      ),
+
+      // ── UCR Favorites ──────────────────────────────────────────────────
+      GoRoute(
+        path: '/ucr/favorites',
+        builder: (_, __) => const FavoritesScreen(),
+      ),
+
       // ── Shared full-screen routes ───────────────────────────────────────
       GoRoute(
         path: '/search',
@@ -216,13 +231,21 @@ class ReziphayApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router  = ref.watch(_routerProvider);
-    final palette = ref.watch(appPaletteProvider);
+    final router   = ref.watch(_routerProvider);
+    final palette  = ref.watch(appPaletteProvider);
+    final settings = ref.watch(settingsProvider);
 
     return MaterialApp.router(
-      title: 'Reziphay',
+      title:                     'Reziphay',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.build(palette),
+      // Light theme (existing appearance)
+      theme:     AppTheme.build(palette),
+      // Dark theme — same role palette, dark brightness
+      darkTheme: AppTheme.buildDark(palette),
+      // Follows system / user preference from settings
+      themeMode: settings.flutterThemeMode,
+      // Locale from language setting
+      locale:    settings.locale,
       routerConfig: router,
     );
   }

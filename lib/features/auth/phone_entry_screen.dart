@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/endpoints.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/network/network_exception.dart';
 import '../../services/auth_service.dart';
@@ -72,10 +73,11 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
   Widget build(BuildContext context) {
     final role = ref.watch(appStateProvider).selectedRole;
 
+    final dc = context.dc;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: dc.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: dc.background,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => context.pop(),
@@ -131,18 +133,18 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           'Enter your phone number',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: context.dc.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           "We'll send you a one-time code to verify your identity",
-          style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 15, color: context.dc.textSecondary),
         ),
       ],
     );
@@ -154,12 +156,12 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Phone Number',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
+            color: context.dc.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -169,16 +171,16 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
               height: 54,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
-                color: AppColors.secondaryBackground,
+                color: context.dc.secondaryBackground,
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.center,
-              child: const Text(
+              child: Text(
                 '+994',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+                  color: context.dc.textPrimary,
                 ),
               ),
             ),
@@ -192,11 +194,11 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(9),
                 ],
-                style: const TextStyle(fontSize: 17),
+                style: TextStyle(fontSize: 17, color: context.dc.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'XX 123 45 67',
                   filled: true,
-                  fillColor: AppColors.secondaryBackground,
+                  fillColor: context.dc.secondaryBackground,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -281,11 +283,11 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
   }
 
   Widget _buildTermsText() {
-    return const Center(
+    return Center(
       child: Text(
         'By continuing, you agree to our Terms of Service\nand Privacy Policy',
         textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+        style: TextStyle(fontSize: 12, color: context.dc.textTertiary),
       ),
     );
   }

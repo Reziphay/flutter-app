@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../state/explore_providers.dart';
 
 const _sortOptions = [
@@ -67,10 +68,11 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: dc.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         child: Column(
@@ -82,7 +84,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.tertiaryBackground,
+                color: dc.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -93,12 +95,12 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  const Text(
+                  Text(
                     'Filters',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: dc.textPrimary,
                     ),
                   ),
                   const Spacer(),
@@ -119,12 +121,12 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Sort by
-                    const Text(
+                    Text(
                       'Sort by',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: dc.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -139,13 +141,13 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                           onSelected: (_) => setState(() => _sortBy = opt.value),
                           selectedColor: AppColors.primary.withValues(alpha: 0.12),
                           labelStyle: TextStyle(
-                            color: selected ? AppColors.primary : AppColors.textPrimary,
+                            color: selected ? AppColors.primary : dc.textPrimary,
                             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                           ),
                           side: BorderSide(
-                            color: selected ? AppColors.primary : AppColors.tertiaryBackground,
+                            color: selected ? AppColors.primary : dc.divider,
                           ),
-                          backgroundColor: AppColors.background,
+                          backgroundColor: dc.background,
                         );
                       }).toList(),
                     ),
@@ -155,12 +157,12 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                     // Price range
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'Price range',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                            color: dc.textPrimary,
                           ),
                         ),
                         const Spacer(),
@@ -175,9 +177,9 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                       const SizedBox(height: 4),
                       Text(
                         '\$${_priceRange.start.toStringAsFixed(0)} – \$${_priceRange.end.toStringAsFixed(0)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textSecondary,
+                          color: dc.textSecondary,
                         ),
                       ),
                       RangeSlider(
@@ -186,7 +188,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                         max: 1000,
                         divisions: 20,
                         activeColor: AppColors.primary,
-                        inactiveColor: AppColors.tertiaryBackground,
+                        inactiveColor: dc.divider,
                         onChanged: (v) => setState(() => _priceRange = v),
                       ),
                     ],

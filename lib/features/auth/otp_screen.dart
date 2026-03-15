@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/endpoints.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/network/network_exception.dart';
 import '../../services/auth_service.dart';
@@ -186,10 +187,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: dc.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: dc.background,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => context.pop(),
@@ -242,18 +244,18 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           'Verify your number',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: context.dc.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Enter the 6-digit code sent to ${widget.phone}',
-          style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 15, color: context.dc.textSecondary),
         ),
       ],
     );
@@ -344,9 +346,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             )
           : Text(
               'Resend in ${_resendTimer}s',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
-                color: AppColors.textSecondary,
+                color: context.dc.textSecondary,
               ),
             ),
     );
@@ -387,11 +389,12 @@ class _OtpDigitCellState extends State<_OtpDigitCell> {
     final hasValue = widget.controller.text.isNotEmpty;
 
     final primary = context.palette.primary;
+    final dc = context.dc;
     return Container(
       width: 48,
       height: 60,
       decoration: BoxDecoration(
-        color: AppColors.secondaryBackground,
+        color: dc.secondaryBackground,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: focused ? primary : Colors.transparent,
@@ -408,17 +411,17 @@ class _OtpDigitCellState extends State<_OtpDigitCell> {
               decoration: BoxDecoration(
                 color: focused
                     ? primary
-                    : AppColors.textSecondary.withValues(alpha: 0.3),
+                    : dc.textSecondary.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(1),
               ),
             )
           else
             Text(
               widget.controller.text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: dc.textPrimary,
               ),
             ),
 

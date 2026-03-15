@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/network/network_exception.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../services/auth_service.dart';
 import '../../state/app_state.dart';
@@ -85,10 +86,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: dc.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: dc.background,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => context.pop(),
@@ -156,18 +158,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           'Almost there!',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: context.dc.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           'Phone verified: ${widget.phone}',
-          style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 15, color: context.dc.textSecondary),
         ),
       ],
     );
@@ -189,10 +191,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
+            color: context.dc.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -203,11 +205,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           textCapitalization: capitalization,
           textInputAction: onNext != null ? TextInputAction.next : TextInputAction.done,
           autocorrect: false,
-          style: const TextStyle(fontSize: 17),
+          style: TextStyle(fontSize: 17, color: context.dc.textPrimary),
           decoration: InputDecoration(
             hintText: placeholder,
             filled: true,
-            fillColor: AppColors.secondaryBackground,
+            fillColor: context.dc.secondaryBackground,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

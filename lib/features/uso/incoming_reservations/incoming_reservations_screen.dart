@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../models/reservation.dart';
 import '../../../services/reservation_service.dart';
@@ -68,7 +69,7 @@ class _IncomingReservationsScreenState
     final primary = context.palette.primary;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.dc.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -122,11 +123,11 @@ class _Header extends ConsumerWidget {
                         color: primary,
                       ),
                     ),
-                    const Text(
+                    Text(
                       'Manage your bookings',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textSecondary,
+                        color: context.dc.textSecondary,
                       ),
                     ),
                   ],
@@ -154,10 +155,10 @@ class _Header extends ConsumerWidget {
         TabBar(
           controller: tabs,
           labelColor: primary,
-          unselectedLabelColor: AppColors.textSecondary,
+          unselectedLabelColor: context.dc.textSecondary,
           indicatorColor: primary,
           indicatorSize: TabBarIndicatorSize.label,
-          dividerColor: AppColors.tertiaryBackground,
+          dividerColor: context.dc.divider,
           tabs: const [
             Tab(text: 'Pending'),
             Tab(text: 'Confirmed'),
@@ -181,22 +182,26 @@ class _IncomingList extends ConsumerWidget {
 
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Iconsax.warning_2, size: 48, color: AppColors.textTertiary),
-            const SizedBox(height: 12),
-            const Text('Something went wrong'),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => ref.read(_incomingProvider.notifier).refresh(),
-              child: const Text('Try again'),
-            ),
-          ],
-        ),
-      ),
+      error: (e, _) {
+        final dc = context.dc;
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Iconsax.warning_2, size: 48, color: dc.textTertiary),
+              const SizedBox(height: 12),
+              Text('Something went wrong', style: TextStyle(color: dc.textPrimary)),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => ref.read(_incomingProvider.notifier).refresh(),
+                child: const Text('Try again'),
+              ),
+            ],
+          ),
+        );
+      },
       data: (items) {
+        final dc = context.dc;
         final filtered = pending
             ? items.where((r) => r.status == ReservationStatus.pending).toList()
             : items.where((r) => r.status == ReservationStatus.confirmed).toList();
@@ -209,12 +214,12 @@ class _IncomingList extends ConsumerWidget {
                 Icon(
                   pending ? Iconsax.clock : Iconsax.calendar_tick,
                   size: 56,
-                  color: AppColors.textTertiary,
+                  color: dc.textTertiary,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   pending ? 'No pending requests' : 'No confirmed bookings',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: dc.textSecondary),
                 ),
               ],
             ),
@@ -250,20 +255,15 @@ class _IncomingCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primary = context.palette.primary;
+    final dc      = context.dc;
     final r = reservation;
     final isPending = r.status == ReservationStatus.pending;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: dc.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: dc.divider, width: 1),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -279,9 +279,10 @@ class _IncomingCard extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       r.service.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
+                        color: dc.textPrimary,
                       ),
                     ),
                   ),
@@ -292,13 +293,13 @@ class _IncomingCard extends ConsumerWidget {
               // Customer
               Row(
                 children: [
-                  const Icon(Iconsax.user, size: 14, color: AppColors.textSecondary),
+                  Icon(Iconsax.user, size: 14, color: dc.textSecondary),
                   const SizedBox(width: 6),
                   Text(
                     r.customer.fullName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: dc.textSecondary,
                     ),
                   ),
                 ],
@@ -307,13 +308,13 @@ class _IncomingCard extends ConsumerWidget {
               // Date/time
               Row(
                 children: [
-                  const Icon(Iconsax.calendar, size: 14, color: AppColors.textSecondary),
+                  Icon(Iconsax.calendar, size: 14, color: dc.textSecondary),
                   const SizedBox(width: 6),
                   Text(
                   _formatDateTime(r.requestedStartAt),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: dc.textSecondary,
                     ),
                   ),
                 ],
@@ -323,13 +324,13 @@ class _IncomingCard extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Iconsax.money, size: 14, color: AppColors.textSecondary),
+                    Icon(Iconsax.money, size: 14, color: dc.textSecondary),
                     const SizedBox(width: 6),
                     Text(
                       r.service.priceDisplay,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: dc.textSecondary,
                       ),
                     ),
                   ],

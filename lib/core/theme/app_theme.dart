@@ -5,41 +5,66 @@
 
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import 'app_dynamic_colors.dart';
 import 'app_palette.dart';
 
 abstract final class AppTheme {
-  /// Builds a [ThemeData] from the given [AppPalette].
-  /// Call this with the result of [appPaletteProvider].
-  static ThemeData build(AppPalette palette) {
+  /// Light [ThemeData] from the given [AppPalette].
+  static ThemeData build(AppPalette palette) =>
+      _build(palette, Brightness.light);
+
+  /// Dark [ThemeData] from the given [AppPalette].
+  static ThemeData buildDark(AppPalette palette) =>
+      _build(palette, Brightness.dark);
+
+  /// Neutral fallback (unauthenticated state).
+  static ThemeData get neutral => build(AppPalette.neutral);
+
+  // ── Internal builder ────────────────────────────────────────────────────
+
+  static ThemeData _build(AppPalette palette, Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    final dc     = isDark ? AppDynamicColors.dark : AppDynamicColors.light;
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
+      brightness:   brightness,
+      colorScheme:  ColorScheme.fromSeed(
+        brightness: brightness,
         seedColor:  palette.primary,
         primary:    palette.primary,
         onPrimary:  Colors.white,
-        surface:    AppColors.background,
-        onSurface:  AppColors.textPrimary,
+        surface:    dc.background,
+        onSurface:  dc.textPrimary,
         error:      AppColors.error,
       ),
-      extensions: [palette],
-      scaffoldBackgroundColor: AppColors.background,
+      extensions: [palette, dc],
+      scaffoldBackgroundColor: dc.background,
       fontFamily: 'SF Pro Display',
 
-      // AppBar
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
+      // ── AppBar ──────────────────────────────────────────────────────────
+      appBarTheme: AppBarTheme(
+        backgroundColor:        dc.background,
+        foregroundColor:        dc.textPrimary,
+        elevation:              0,
         scrolledUnderElevation: 0,
-        centerTitle: true,
+        centerTitle:            true,
         titleTextStyle: TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 17,
+          color:      dc.textPrimary,
+          fontSize:   17,
           fontWeight: FontWeight.w600,
+          fontFamily: 'SF Pro Display',
         ),
       ),
 
-      // ElevatedButton — uses colorScheme.primary → dynamic
+      // ── NavigationBar (bottom tab bar) ──────────────────────────────────
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: dc.background,
+        indicatorColor:  Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+      ),
+
+      // ── ElevatedButton ──────────────────────────────────────────────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: palette.primary,
@@ -49,14 +74,14 @@ abstract final class AppTheme {
             borderRadius: BorderRadius.circular(14),
           ),
           textStyle: const TextStyle(
-            fontSize: 17,
+            fontSize:   17,
             fontWeight: FontWeight.w600,
           ),
           elevation: 0,
         ),
       ),
 
-      // OutlinedButton
+      // ── OutlinedButton ──────────────────────────────────────────────────
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: palette.primary,
@@ -66,16 +91,16 @@ abstract final class AppTheme {
           ),
           side: BorderSide(color: palette.primary),
           textStyle: const TextStyle(
-            fontSize: 17,
+            fontSize:   17,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
 
-      // InputDecoration
+      // ── InputDecoration ─────────────────────────────────────────────────
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.secondaryBackground,
+        filled:    true,
+        fillColor: dc.secondaryBackground,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -97,25 +122,29 @@ abstract final class AppTheme {
           borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        labelStyle: const TextStyle(color: AppColors.textSecondary),
-        hintStyle: const TextStyle(color: AppColors.textTertiary),
+        labelStyle: TextStyle(color: dc.textSecondary),
+        hintStyle:  TextStyle(color: dc.textTertiary),
       ),
 
-      // TextTheme
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(fontSize: 34, fontWeight: FontWeight.bold,    color: AppColors.textPrimary),
-        headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold,   color: AppColors.textPrimary),
-        headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,  color: AppColors.textPrimary),
-        titleLarge: TextStyle(fontSize: 17, fontWeight: FontWeight.w600,      color: AppColors.textPrimary),
-        titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w500,     color: AppColors.textPrimary),
-        bodyLarge: TextStyle(fontSize: 17, fontWeight: FontWeight.normal,     color: AppColors.textPrimary),
-        bodyMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.normal,    color: AppColors.textPrimary),
-        bodySmall: TextStyle(fontSize: 13, fontWeight: FontWeight.normal,     color: AppColors.textSecondary),
-        labelMedium: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,     color: AppColors.textSecondary),
+      // ── Divider ─────────────────────────────────────────────────────────
+      dividerTheme: DividerThemeData(
+        color: dc.divider,
+        thickness: 1,
+        space: 1,
+      ),
+
+      // ── TextTheme ───────────────────────────────────────────────────────
+      textTheme: TextTheme(
+        displayLarge:   TextStyle(fontSize: 34, fontWeight: FontWeight.bold,   color: dc.textPrimary),
+        headlineLarge:  TextStyle(fontSize: 28, fontWeight: FontWeight.bold,   color: dc.textPrimary),
+        headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,   color: dc.textPrimary),
+        titleLarge:     TextStyle(fontSize: 17, fontWeight: FontWeight.w600,   color: dc.textPrimary),
+        titleMedium:    TextStyle(fontSize: 15, fontWeight: FontWeight.w500,   color: dc.textPrimary),
+        bodyLarge:      TextStyle(fontSize: 17, fontWeight: FontWeight.normal, color: dc.textPrimary),
+        bodyMedium:     TextStyle(fontSize: 15, fontWeight: FontWeight.normal, color: dc.textPrimary),
+        bodySmall:      TextStyle(fontSize: 13, fontWeight: FontWeight.normal, color: dc.textSecondary),
+        labelMedium:    TextStyle(fontSize: 13, fontWeight: FontWeight.w500,   color: dc.textSecondary),
       ),
     );
   }
-
-  /// Neutral fallback (unauthenticated state).
-  static ThemeData get neutral => build(AppPalette.neutral);
 }

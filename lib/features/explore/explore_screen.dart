@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../state/app_state.dart';
 import '../../state/explore_providers.dart';
 import 'widgets/brand_card.dart';
@@ -25,10 +26,14 @@ class ExploreScreen extends ConsumerWidget {
     final user = ref.watch(appStateProvider).currentUser;
     final topPadding = MediaQuery.of(context).padding.top;
 
+    final dc = context.dc;
+    final brightness = Theme.of(context).brightness;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
+      value: brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: AppColors.secondaryBackground,
+        backgroundColor: dc.secondaryBackground,
         body: RefreshIndicator(
           color: AppColors.primary,
           displacement: topPadding + 60,
@@ -85,8 +90,9 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Container(
-      color: AppColors.background,
+      color: dc.background,
       padding: EdgeInsets.fromLTRB(20, topPadding + 16, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,19 +100,19 @@ class _Header extends StatelessWidget {
           // Greeting
           Text(
             'Hello, ${userName ?? 'there'} 👋',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              color: dc.textPrimary,
               height: 1.2,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Find the best services near you',
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: dc.textSecondary,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -127,25 +133,26 @@ class _SearchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 50,
         decoration: BoxDecoration(
-          color: AppColors.secondaryBackground,
+          color: dc.secondaryBackground,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.tertiaryBackground),
+          border: Border.all(color: dc.divider),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Iconsax.search_normal, color: AppColors.textSecondary, size: 20),
-            SizedBox(width: 10),
+            Icon(Iconsax.search_normal, color: dc.textSecondary, size: 20),
+            const SizedBox(width: 10),
             Text(
               'Search services, brands…',
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: dc.textSecondary,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -388,7 +395,7 @@ class _ShimmerBoxState extends State<_ShimmerBox>
         height: widget.height,
         margin: widget.margin,
         decoration: BoxDecoration(
-          color: AppColors.tertiaryBackground.withValues(alpha: _anim.value),
+          color: context.dc.tertiaryBackground.withValues(alpha: _anim.value),
           borderRadius: BorderRadius.circular(widget.radius),
         ),
       ),

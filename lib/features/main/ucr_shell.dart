@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 
 class UcrShell extends ConsumerStatefulWidget {
@@ -54,17 +55,19 @@ class _UcrShellState extends ConsumerState<UcrShell> {
   Widget build(BuildContext context) {
     final primary = context.palette.primary;
 
+    final dc = context.dc;
+
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: NavigationBar(
         height: 60,
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onTabTapped,
-        backgroundColor: AppColors.background,
+        backgroundColor: dc.background,
         indicatorColor: Colors.transparent,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         destinations: _tabs.map((tab) => NavigationDestination(
-          icon:         Icon(tab.icon, color: AppColors.textSecondary),
+          icon:         Icon(tab.icon, color: dc.textSecondary),
           selectedIcon: Icon(tab.icon, color: primary),
           label:        tab.label,
         )).toList(),
@@ -116,14 +119,15 @@ class _PlaceholderView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 64, color: AppColors.textTertiary),
+        Icon(icon, size: 64, color: dc.textTertiary),
         const SizedBox(height: 16),
-        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        Text(title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: dc.textPrimary)),
         const SizedBox(height: 8),
-        Text(subtitle, style: const TextStyle(fontSize: 15, color: AppColors.textSecondary)),
+        Text(subtitle, style: TextStyle(fontSize: 15, color: dc.textSecondary)),
       ],
     );
   }

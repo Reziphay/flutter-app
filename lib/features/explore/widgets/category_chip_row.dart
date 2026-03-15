@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../state/explore_providers.dart';
 
 class CategoryChipRow extends ConsumerWidget {
@@ -81,7 +82,7 @@ class _Chip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.secondaryBackground,
+          color: selected ? AppColors.primary : context.dc.secondaryBackground,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Text(
@@ -90,7 +91,7 @@ class _Chip extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: selected ? Colors.white : AppColors.textPrimary,
+            color: selected ? Colors.white : context.dc.textPrimary,
             height: 1.0,
           ),
         ),

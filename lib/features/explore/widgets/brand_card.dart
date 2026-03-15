@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../models/discovery.dart';
 import 'rating_row.dart';
 
@@ -21,35 +22,30 @@ class BrandCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 140,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: dc.cardBackground,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: dc.divider, width: 1),
         ),
         child: Column(
           children: [
             // Logo
             Container(
               height: 80,
-              decoration: const BoxDecoration(
-                color: AppColors.secondaryBackground,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              decoration: BoxDecoration(
+                color: dc.secondaryBackground,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Stack(
                 children: [
-                  const Center(
-                    child: Icon(Iconsax.shop, size: 32, color: AppColors.textTertiary),
+                  Center(
+                    child: Icon(Iconsax.shop, size: 32, color: dc.textTertiary),
                   ),
                   if (brand.isVip)
                     Positioned(
@@ -69,10 +65,10 @@ class BrandCard extends StatelessWidget {
                     brand.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: dc.textPrimary,
                     ),
                   ),
                   if (brand.address != null) ...[
@@ -81,9 +77,9 @@ class BrandCard extends StatelessWidget {
                       brand.address!.city,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: dc.textSecondary,
                       ),
                     ),
                   ],

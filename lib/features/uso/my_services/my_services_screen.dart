@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
@@ -119,11 +120,12 @@ class MyServicesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primary   = context.palette.primary;
+    final dc        = context.dc;
     final async     = ref.watch(_myServicesProvider);
     final isLoading = ref.watch(_myServicesProvider.select((s) => s.isLoading));
 
     return Scaffold(
-      backgroundColor: AppColors.secondaryBackground,
+      backgroundColor: dc.secondaryBackground,
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await context.push<bool>('/uso/services/new');
@@ -155,11 +157,11 @@ class MyServicesScreen extends ConsumerWidget {
                             color: primary,
                           ),
                         ),
-                        const Text(
+                        Text(
                           'Manage your services',
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppColors.textSecondary,
+                            color: dc.textSecondary,
                           ),
                         ),
                       ],
@@ -228,10 +230,10 @@ class MyServicesScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'Tap + to add your first service and start receiving bookings.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textSecondary),
+                              style: TextStyle(color: dc.textSecondary),
                             ),
                           ],
                         ),
@@ -309,6 +311,7 @@ class _ServiceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final primary = context.palette.primary;
+    final dc      = context.dc;
     final s = service;
 
     return Dismissible(
@@ -343,7 +346,7 @@ class _ServiceCard extends ConsumerWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: dc.cardBackground,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -416,9 +419,9 @@ class _ServiceCard extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           s.categoryName!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: dc.textSecondary,
                           ),
                         ),
                       ],
@@ -437,9 +440,9 @@ class _ServiceCard extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           s.brandName!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textTertiary,
+                            color: dc.textTertiary,
                           ),
                         ),
                       ],

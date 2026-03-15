@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_dynamic_colors.dart';
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
@@ -22,10 +23,10 @@ class SectionHeader extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: context.dc.textPrimary,
             ),
           ),
           const Spacer(),

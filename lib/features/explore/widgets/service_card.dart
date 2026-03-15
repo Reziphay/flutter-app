@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../models/discovery.dart';
 import 'rating_row.dart';
 
@@ -38,21 +39,16 @@ class _CompactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 180,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: dc.cardBackground,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: dc.divider, width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,17 +56,17 @@ class _CompactCard extends StatelessWidget {
             // Photo placeholder
             Container(
               height: 110,
-              decoration: const BoxDecoration(
-                color: AppColors.secondaryBackground,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              decoration: BoxDecoration(
+                color: dc.secondaryBackground,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Stack(
                 children: [
-                  const Center(
+                  Center(
                     child: Icon(
                       Iconsax.activity,
                       size: 36,
-                      color: AppColors.textTertiary,
+                      color: dc.textTertiary,
                     ),
                   ),
                   if (service.isVip)
@@ -97,10 +93,10 @@ class _CompactCard extends StatelessWidget {
                     service.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: dc.textPrimary,
                     ),
                   ),
                   if (service.category != null) ...[
@@ -109,9 +105,9 @@ class _CompactCard extends StatelessWidget {
                       service.category!.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: dc.textSecondary,
                       ),
                     ),
                   ],
@@ -151,20 +147,15 @@ class _FullCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: dc.cardBackground,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: dc.divider, width: 1),
         ),
         child: Row(
           children: [
@@ -172,14 +163,14 @@ class _FullCard extends StatelessWidget {
             Container(
               width: 90,
               height: 90,
-              decoration: const BoxDecoration(
-                color: AppColors.secondaryBackground,
-                borderRadius: BorderRadius.horizontal(left: Radius.circular(16)),
+              decoration: BoxDecoration(
+                color: dc.secondaryBackground,
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
               ),
               child: Stack(
                 children: [
-                  const Center(
-                    child: Icon(Iconsax.activity, size: 30, color: AppColors.textTertiary),
+                  Center(
+                    child: Icon(Iconsax.activity, size: 30, color: dc.textTertiary),
                   ),
                   if (service.isVip)
                     Positioned(top: 6, left: 6, child: _VipBadge()),
@@ -197,10 +188,10 @@ class _FullCard extends StatelessWidget {
                       service.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: dc.textPrimary,
                       ),
                     ),
                     if (service.brand != null) ...[
@@ -221,21 +212,21 @@ class _FullCard extends StatelessWidget {
                         service.owner!.fullName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        style: TextStyle(fontSize: 12, color: dc.textSecondary),
                       ),
                     ],
                     if (service.address != null) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Iconsax.location, size: 12, color: AppColors.textTertiary),
+                          Icon(Iconsax.location, size: 12, color: dc.textTertiary),
                           const SizedBox(width: 2),
                           Expanded(
                             child: Text(
                               service.address!.city,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                              style: TextStyle(fontSize: 11, color: dc.textTertiary),
                             ),
                           ),
                         ],

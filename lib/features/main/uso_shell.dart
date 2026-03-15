@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 
 class UsoShell extends ConsumerStatefulWidget {
@@ -54,17 +55,19 @@ class _UsoShellState extends ConsumerState<UsoShell> {
   Widget build(BuildContext context) {
     final primary = context.palette.primary;
 
+    final dc = context.dc;
+
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: NavigationBar(
         height: 60,
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onTabTapped,
-        backgroundColor: AppColors.background,
+        backgroundColor: dc.background,
         indicatorColor: Colors.transparent,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         destinations: _tabs.map((tab) => NavigationDestination(
-          icon:         Icon(tab.icon, color: AppColors.textSecondary),
+          icon:         Icon(tab.icon, color: dc.textSecondary),
           selectedIcon: Icon(tab.icon, color: primary),
           label:        tab.label,
         )).toList(),
@@ -91,19 +94,22 @@ class UsoNotificationsPlaceholder extends StatelessWidget {
   const UsoNotificationsPlaceholder({super.key});
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
-    body: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Iconsax.notification, size: 64, color: AppColors.textTertiary),
-          SizedBox(height: 16),
-          Text('Notifications', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          SizedBox(height: 8),
-          Text('Coming in Phase 7', style: TextStyle(fontSize: 15, color: AppColors.textSecondary)),
-        ],
+  Widget build(BuildContext context) {
+    final dc = context.dc;
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Iconsax.notification, size: 64, color: dc.textTertiary),
+            const SizedBox(height: 16),
+            Text('Notifications', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: dc.textPrimary)),
+            const SizedBox(height: 8),
+            Text('Coming in Phase 7', style: TextStyle(fontSize: 15, color: dc.textSecondary)),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 

@@ -5,10 +5,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/network/network_exception.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../models/user.dart';
 import '../../services/auth_service.dart';
@@ -30,7 +32,6 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
       final session = await AuthService.instance.switchRole(UserRole.ucr);
       if (!mounted) return;
       ref.read(appStateProvider.notifier).onSessionCreated(user: session.user);
-      // Router will automatically redirect to /ucr/explore
     } on NetworkException catch (e) {
       if (!mounted) return;
       _showError(e.message);
@@ -52,19 +53,19 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
   Widget build(BuildContext context) {
     final user    = ref.watch(appStateProvider).currentUser;
     final primary = context.palette.primary;
+    final dc      = context.dc;
     final topPad  = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: AppColors.secondaryBackground,
+      backgroundColor: dc.secondaryBackground,
       body: ListView(
         children: [
           // ── Header ────────────────────────────────────────────────────────
           Container(
-            color: AppColors.background,
+            color: dc.background,
             padding: EdgeInsets.fromLTRB(20, topPad + 16, 20, 24),
             child: Column(
               children: [
-                // Avatar
                 Container(
                   width: 80,
                   height: 80,
@@ -76,9 +77,9 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
                     child: Text(
                       _initials(user?.fullName),
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize:   28,
                         fontWeight: FontWeight.w700,
-                        color: primary,
+                        color:      primary,
                       ),
                     ),
                   ),
@@ -86,36 +87,32 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
                 const SizedBox(height: 12),
                 Text(
                   user?.fullName ?? '—',
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: TextStyle(
+                    fontSize:   20,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color:      dc.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
-                // Role badge
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
-                    color: primary.withValues(alpha: 0.1),
+                    color:        primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     'Service Provider',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize:   12,
                       fontWeight: FontWeight.w600,
-                      color: primary,
+                      color:      primary,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   user?.phone ?? '—',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 14, color: dc.textSecondary),
                 ),
               ],
             ),
@@ -124,73 +121,81 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
           const SizedBox(height: 16),
 
           // ── Account info ──────────────────────────────────────────────────
-          _SectionCard(
-            children: [
-              _InfoRow(icon: Iconsax.user,  label: 'Full Name', value: user?.fullName ?? '—'),
-              _Divider(),
-              _InfoRow(icon: Iconsax.sms,   label: 'Email',     value: user?.email ?? '—'),
-              _Divider(),
-              _InfoRow(icon: Iconsax.call,  label: 'Phone',     value: user?.phone ?? '—'),
-            ],
-          ),
+          _SectionCard(dc: dc, children: [
+            _InfoRow(icon: Iconsax.user, label: 'Full Name', value: user?.fullName ?? '—', dc: dc),
+            _Divider(dc: dc),
+            _InfoRow(icon: Iconsax.sms,  label: 'Email',    value: user?.email ?? '—',    dc: dc),
+            _Divider(dc: dc),
+            _InfoRow(icon: Iconsax.call, label: 'Phone',    value: user?.phone ?? '—',    dc: dc),
+          ]),
 
           const SizedBox(height: 16),
 
-          // ── Role Switching ────────────────────────────────────────────────
+          // ── Role switching ────────────────────────────────────────────────
           if (user?.hasUcrRole == true)
-            _SectionCard(
-              children: [
-                _ActionRow(
-                  icon: Iconsax.user,
-                  label: 'Switch to Customer Mode',
-                  color: const Color(0xFFC71F37),
-                  loading: _switching,
-                  onTap: _switchToUcr,
-                ),
-              ],
+            _SectionCard(dc: dc, children: [
+              _ActionRow(
+                icon:    Iconsax.user,
+                label:   'Switch to Customer Mode',
+                color:   const Color(0xFFC71F37),
+                loading: _switching,
+                dc:      dc,
+                onTap:   _switchToUcr,
+              ),
+            ]),
+
+          const SizedBox(height: 16),
+
+          // ── Settings ──────────────────────────────────────────────────────
+          _SectionCard(dc: dc, children: [
+            _ActionRow(
+              icon:  Iconsax.setting,
+              label: 'Settings',
+              color: dc.textPrimary,
+              dc:    dc,
+              onTap: () => context.push('/settings'),
             ),
+          ]),
 
           const SizedBox(height: 16),
 
           // ── Logout ────────────────────────────────────────────────────────
-          _SectionCard(
-            children: [
-              _ActionRow(
-                icon: Iconsax.logout,
-                label: 'Log out',
-                color: AppColors.error,
-                onTap: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: Colors.white,
-                      title: const Text('Log out'),
-                      content: const Text(
-                        'Are you sure you want to log out?',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(false),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(true),
-                          child: const Text(
-                            'Log out',
-                            style: TextStyle(color: AppColors.error),
-                          ),
-                        ),
-                      ],
+          _SectionCard(dc: dc, children: [
+            _ActionRow(
+              icon:  Iconsax.logout,
+              label: 'Log out',
+              color: AppColors.error,
+              dc:    dc,
+              onTap: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Log out'),
+                    content: const Text(
+                      'Are you sure you want to log out?',
+                      style: TextStyle(fontSize: 14),
                     ),
-                  );
-                  if (confirmed == true) {
-                    ref.read(appStateProvider.notifier).logout();
-                  }
-                },
-              ),
-            ],
-          ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text(
+                          'Log out',
+                          style: TextStyle(color: AppColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  ref.read(appStateProvider.notifier).logout();
+                }
+              },
+            ),
+          ]),
 
           const SizedBox(height: 32),
         ],
@@ -206,24 +211,25 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
   }
 }
 
-// ── Shared widgets ───────────────────────────────────────────────────────────
+// ── Shared widgets ────────────────────────────────────────────────────────────
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.children});
-  final List<Widget> children;
+  const _SectionCard({required this.children, required this.dc});
+  final List<Widget>     children;
+  final AppDynamicColors dc;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: dc.cardBackground,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color:     Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset:    const Offset(0, 2),
           ),
         ],
       ),
@@ -233,12 +239,15 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _Divider extends StatelessWidget {
+  const _Divider({required this.dc});
+  final AppDynamicColors dc;
+
   @override
-  Widget build(BuildContext context) => const Divider(
-        height: 1,
-        indent: 52,
+  Widget build(BuildContext context) => Divider(
+        height:    1,
+        indent:    52,
         endIndent: 0,
-        color: AppColors.tertiaryBackground,
+        color:     dc.divider,
       );
 }
 
@@ -247,11 +256,13 @@ class _InfoRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    required this.dc,
   });
 
-  final IconData icon;
-  final String label;
-  final String value;
+  final IconData         icon;
+  final String           label;
+  final String           value;
+  final AppDynamicColors dc;
 
   @override
   Widget build(BuildContext context) {
@@ -259,7 +270,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.textTertiary),
+          Icon(icon, size: 20, color: dc.textTertiary),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -267,18 +278,18 @@ class _InfoRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textTertiary,
+                  style: TextStyle(
+                    fontSize:   11,
+                    color:      dc.textTertiary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    fontSize:   15,
+                    color:      dc.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -297,14 +308,16 @@ class _ActionRow extends StatelessWidget {
     required this.label,
     required this.color,
     required this.onTap,
+    required this.dc,
     this.loading = false,
   });
 
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  final bool loading;
+  final IconData         icon;
+  final String           label;
+  final Color            color;
+  final VoidCallback     onTap;
+  final AppDynamicColors dc;
+  final bool             loading;
 
   @override
   Widget build(BuildContext context) {
@@ -321,20 +334,18 @@ class _ActionRow extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 15,
-                  color: color,
+                  fontSize:   15,
+                  color:      color,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
             if (loading)
               SizedBox(
-                width: 18,
+                width:  18,
                 height: 18,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: color,
-                ),
+                    strokeWidth: 2, color: color),
               )
             else
               Icon(Icons.chevron_right_rounded,

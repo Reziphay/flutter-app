@@ -69,4 +69,15 @@ abstract final class Endpoints {
   static const String myBrands    = '/brands/mine';
   static const String createBrand = '/brands';
   static String updateBrand(String id) => '/brands/$id';
+
+  // Favorites — UCR
+  static const String favoriteBrands   = '/users/me/favorites/brands';
+  static const String favoriteOwners   = '/users/me/favorites/owners';
+  static const String favoriteServices = '/users/me/favorites/services';
+  static String addFavoriteBrand(String id)      => '/users/me/favorites/brands/$id';
+  static String removeFavoriteBrand(String id)   => '/users/me/favorites/brands/$id';
+  static String addFavoriteOwner(String id)      => '/users/me/favorites/owners/$id';
+  static String removeFavoriteOwner(String id)   => '/users/me/favorites/owners/$id';
+  static String addFavoriteService(String id)    => '/users/me/favorites/services/$id';
+  static String removeFavoriteService(String id) => '/users/me/favorites/services/$id';
 }

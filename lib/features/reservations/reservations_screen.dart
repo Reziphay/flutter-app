@@ -10,6 +10,7 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/network/network_exception.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../models/reservation.dart';
 import '../../state/app_state.dart';
@@ -42,13 +43,15 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen>
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
 
+    final dc = context.dc;
+
     return Scaffold(
-      backgroundColor: AppColors.secondaryBackground,
+      backgroundColor: dc.secondaryBackground,
       body: Column(
         children: [
           // Header
           Container(
-            color: AppColors.background,
+            color: dc.background,
             padding: EdgeInsets.only(top: topPadding),
             child: Column(
               children: [
@@ -57,12 +60,12 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen>
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   child: Row(
                     children: [
-                      const Text(
+                      Text(
                         'Reservations',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          color: dc.textPrimary,
                         ),
                       ),
                       const Spacer(),
@@ -73,7 +76,7 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen>
                 TabBar(
                   controller: _tabController,
                   labelColor: context.palette.primary,
-                  unselectedLabelColor: AppColors.textSecondary,
+                  unselectedLabelColor: dc.textSecondary,
                   indicatorColor: context.palette.primary,
                   indicatorSize: TabBarIndicatorSize.label,
                   labelStyle: const TextStyle(
@@ -122,10 +125,10 @@ class _RefreshButton extends ConsumerWidget {
         : GestureDetector(
             onTap: () =>
                 ref.read(myReservationsProvider.notifier).refresh(),
-            child: const Icon(
+            child: Icon(
               Iconsax.refresh,
               size: 22,
-              color: AppColors.textSecondary,
+              color: context.dc.textSecondary,
             ),
           );
   }
@@ -147,6 +150,7 @@ class _ReservationList extends ConsumerWidget {
       error: (e, _) {
         final isSessionExpired =
             e is NetworkException && e.statusCode == 401;
+        final dc = context.dc;
         return Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -156,14 +160,14 @@ class _ReservationList extends ConsumerWidget {
                 Icon(
                   isSessionExpired ? Iconsax.lock : Iconsax.warning_2,
                   size: 48,
-                  color: AppColors.textTertiary,
+                  color: dc.textTertiary,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   e.toString(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 14),
+                  style: TextStyle(
+                      color: dc.textSecondary, fontSize: 14),
                 ),
                 const SizedBox(height: 16),
                 if (isSessionExpired)
@@ -214,31 +218,29 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine which tab we're in by checking the filter
-    // (upcoming → isActive, past → isFinished)
-    return const Center(
+    final dc = context.dc;
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(32),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Iconsax.calendar_remove,
-                size: 56, color: AppColors.textTertiary),
-            SizedBox(height: 16),
+                size: 56, color: dc.textTertiary),
+            const SizedBox(height: 16),
             Text(
               'No reservations here',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: dc.textPrimary,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Browse services and book your first appointment',
               textAlign: TextAlign.center,
-              style:
-                  TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: dc.textSecondary),
             ),
           ],
         ),
@@ -262,21 +264,16 @@ class _ReservationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = reservation.status;
     final (statusLabel, statusColor) = _statusDisplay(status);
+    final dc = context.dc;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: dc.cardBackground,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: dc.divider, width: 1),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -291,10 +288,10 @@ class _ReservationCard extends StatelessWidget {
                       reservation.service.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: dc.textPrimary,
                       ),
                     ),
                   ),

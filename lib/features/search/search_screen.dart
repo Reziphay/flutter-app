@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
 import '../explore/widgets/brand_card.dart';
@@ -74,13 +75,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     final q = ref.watch(searchQueryProvider);
     final topPadding = MediaQuery.of(context).padding.top;
 
+    final dc = context.dc;
     return Scaffold(
-      backgroundColor: AppColors.secondaryBackground,
+      backgroundColor: dc.secondaryBackground,
       body: Column(
         children: [
           // ── Custom top bar ──────────────────────────────────────────
           Container(
-            color: AppColors.background,
+            color: dc.background,
             padding: EdgeInsets.only(top: topPadding),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -130,10 +132,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 TabBar(
                   controller: _tabController,
                   labelColor: AppColors.primary,
-                  unselectedLabelColor: AppColors.textSecondary,
+                  unselectedLabelColor: dc.textSecondary,
                   indicatorColor: AppColors.primary,
                   indicatorSize: TabBarIndicatorSize.label,
-                  dividerColor: AppColors.tertiaryBackground,
+                  dividerColor: dc.divider,
                   tabs: const [
                     Tab(text: 'Services'),
                     Tab(text: 'Brands'),
@@ -175,8 +177,9 @@ class _SearchInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const border = OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(10)),
+    final dc = context.dc;
+    final border = OutlineInputBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(10)),
       borderSide: BorderSide.none,
     );
     return TextField(
@@ -185,20 +188,20 @@ class _SearchInput extends StatelessWidget {
       onChanged: onChanged,
       textInputAction: TextInputAction.search,
       textAlignVertical: TextAlignVertical.center,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         hintText: 'Search services, brands…',
-        hintStyle: TextStyle(color: AppColors.textTertiary, fontSize: 14),
+        hintStyle: TextStyle(color: dc.textTertiary, fontSize: 14),
         filled: true,
-        fillColor: AppColors.secondaryBackground,
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        fillColor: dc.secondaryBackground,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         isDense: true,
         border: border,
         enabledBorder: border,
         focusedBorder: border,
       ),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 15,
-        color: AppColors.textPrimary,
+        color: dc.textPrimary,
       ),
     );
   }
@@ -211,15 +214,16 @@ class _EmptySearchHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    final dc = context.dc;
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Iconsax.search_normal, size: 64, color: AppColors.textTertiary),
-          SizedBox(height: 16),
+          Icon(Iconsax.search_normal, size: 64, color: dc.textTertiary),
+          const SizedBox(height: 16),
           Text(
             'Start typing to search',
-            style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 16, color: dc.textSecondary),
           ),
         ],
       ),
@@ -332,89 +336,84 @@ class _ProviderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 26,
-              backgroundColor: AppColors.secondaryBackground,
-              child: Text(
-                provider.name.isNotEmpty ? provider.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+      child: Builder(builder: (context) {
+        final dc = context.dc;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: dc.cardBackground,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: dc.divider, width: 1),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: dc.secondaryBackground,
+                child: Text(
+                  provider.name.isNotEmpty ? provider.name[0].toUpperCase() : '?',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    provider.name,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  if (provider.brands.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      provider.brands.map((b) => b.name).join(', '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
+                      provider.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: dc.textPrimary,
                       ),
                     ),
+                    if (provider.brands.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        provider.brands.map((b) => b.name).join(', '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                    if (provider.featuredServices.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '${provider.featuredServices.length} service${provider.featuredServices.length > 1 ? 's' : ''}',
+                        style: TextStyle(fontSize: 12, color: dc.textSecondary),
+                      ),
+                    ],
                   ],
-                  if (provider.featuredServices.isNotEmpty) ...[
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (provider.ratingStats != null)
+                    RatingRow(stats: provider.ratingStats!, small: true),
+                  if (provider.distanceKm != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '${provider.featuredServices.length} service${provider.featuredServices.length > 1 ? 's' : ''}',
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
+                      _formatDistance(provider.distanceKm!),
+                      style: TextStyle(fontSize: 11, color: dc.textTertiary),
                     ),
                   ],
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (provider.ratingStats != null)
-                  RatingRow(stats: provider.ratingStats!, small: true),
-                if (provider.distanceKm != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatDistance(provider.distanceKm!),
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.textTertiary),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      }),
     );
   }
 
@@ -433,17 +432,16 @@ class _NoResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Iconsax.archive_minus,
-              size: 56, color: AppColors.textTertiary),
+          Icon(Iconsax.archive_minus, size: 56, color: dc.textTertiary),
           const SizedBox(height: 12),
           Text(
             label,
-            style:
-                const TextStyle(fontSize: 15, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 15, color: dc.textSecondary),
           ),
         ],
       ),
@@ -464,7 +462,7 @@ class _ErrorView extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: context.dc.textSecondary),
         ),
       ),
     );

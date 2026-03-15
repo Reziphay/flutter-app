@@ -17,6 +17,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
 import '../../../core/network/network_exception.dart';
+import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../models/category.dart';
 import '../../../services/discovery_service.dart';
@@ -422,9 +423,12 @@ class _CreateEditServiceScreenState
 
     if (!mounted) return;
 
+    final sheetBg = context.dc.background;
+    final dragColor = context.dc.divider;
+
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -438,7 +442,7 @@ class _CreateEditServiceScreenState
                 width: 40, height: 4,
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.tertiaryBackground,
+                  color: dragColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -491,11 +495,13 @@ class _CreateEditServiceScreenState
   Widget build(BuildContext context) {
     final primary = context.palette.primary;
 
+    final dc = context.dc;
+
     if (_loadingInit) {
       return Scaffold(
         appBar: AppBar(
           title: Text(_isEdit ? 'Edit Service' : 'New Service'),
-          backgroundColor: AppColors.background,
+          backgroundColor: dc.background,
           elevation: 0,
         ),
         body: Center(child: CircularProgressIndicator(color: primary)),
@@ -503,18 +509,18 @@ class _CreateEditServiceScreenState
     }
 
     return Scaffold(
-      backgroundColor: AppColors.secondaryBackground,
+      backgroundColor: dc.secondaryBackground,
       appBar: AppBar(
         title: Text(
           _isEdit ? 'Edit Service' : 'New Service',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            color: dc.textPrimary,
           ),
         ),
-        backgroundColor: AppColors.background,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: dc.background,
+        foregroundColor: dc.textPrimary,
         elevation: 0,
         actions: [
           if (_loading)
@@ -591,8 +597,8 @@ class _CreateEditServiceScreenState
                           _selectedBrandId   = null;
                           _selectedBrandName = null;
                         }),
-                        child: const Icon(Icons.close, size: 18,
-                            color: AppColors.textTertiary),
+                        child: Icon(Icons.close, size: 18,
+                            color: context.dc.textTertiary),
                       )
                     : null,
               ),
@@ -607,8 +613,8 @@ class _CreateEditServiceScreenState
                           _selectedCategoryId   = null;
                           _selectedCategoryName = null;
                         }),
-                        child: const Icon(Icons.close, size: 18,
-                            color: AppColors.textTertiary),
+                        child: Icon(Icons.close, size: 18,
+                            color: context.dc.textTertiary),
                       )
                     : null,
               ),
@@ -720,7 +726,7 @@ class _CreateEditServiceScreenState
   Future<void> _pickBrand() async {
     final picked = await showModalBottomSheet<_BrandItem>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: context.dc.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -743,7 +749,7 @@ class _CreateEditServiceScreenState
     final all = _categories.expand((c) => [c, ...c.children]).toList();
     final picked = await showModalBottomSheet<CategoryItem>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: context.dc.background,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -771,82 +777,78 @@ class _SectionHeader extends StatelessWidget {
   final IconData icon;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 8),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: AppColors.textTertiary),
-            const SizedBox(width: 6),
-            Text(
-              title.toUpperCase(),
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textTertiary,
-                letterSpacing: 0.8,
-              ),
+  Widget build(BuildContext context) {
+    final tertiary = context.dc.textTertiary;
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: tertiary),
+          const SizedBox(width: 6),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: tertiary,
+              letterSpacing: 0.8,
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-/// White card for divider-separated rows (e.g. Weekly Schedule).
+/// Card for divider-separated rows (e.g. Weekly Schedule).
 class _Card extends StatelessWidget {
   const _Card({required this.children});
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(children: children),
-      );
+  Widget build(BuildContext context) {
+    final dc = context.dc;
+    return Container(
+      decoration: BoxDecoration(
+        color: dc.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: dc.divider, width: 1),
+      ),
+      child: Column(children: children),
+    );
+  }
 }
 
-/// White card with internal padding for form fields (no dividers).
-/// Children are laid out in a Column with spacing between them.
+/// Card with internal padding for form fields (no dividers).
 class _FieldCard extends StatelessWidget {
   const _FieldCard({required this.children});
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: children,
-        ),
-      );
+  Widget build(BuildContext context) {
+    final dc = context.dc;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: dc.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: dc.divider, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+  }
 }
 
 class _CardDivider extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => const Divider(
+  Widget build(BuildContext context) => Divider(
         height: 1,
         indent: 16,
         endIndent: 0,
-        color: AppColors.tertiaryBackground,
+        color: context.dc.divider,
       );
 }
 
@@ -869,21 +871,21 @@ class _FormField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final FormFieldValidator<String>? validator;
 
-  static const _fillColor = Color(0xFFF2F2F7);
-  static const _radius    = BorderRadius.all(Radius.circular(12));
+  static const _radius = BorderRadius.all(Radius.circular(12));
 
   @override
   Widget build(BuildContext context) {
     final primary = context.palette.primary;
+    final dc = context.dc;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: AppColors.textTertiary,
+            color: dc.textTertiary,
             letterSpacing: 0.3,
           ),
         ),
@@ -897,7 +899,7 @@ class _FormField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
-            fillColor: _fillColor,
+            fillColor: dc.secondaryBackground,
             contentPadding: EdgeInsets.symmetric(
               horizontal: 14,
               vertical: maxLines > 1 ? 12 : 0,
@@ -922,18 +924,18 @@ class _FormField extends StatelessWidget {
               borderRadius: _radius,
               borderSide: BorderSide(color: AppColors.error, width: 1.5),
             ),
-            hintStyle: const TextStyle(
+            hintStyle: TextStyle(
               fontSize: 15,
-              color: AppColors.textTertiary,
+              color: dc.textTertiary,
             ),
             errorStyle: const TextStyle(
               fontSize: 11,
               color: AppColors.error,
             ),
           ),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
-            color: AppColors.textPrimary,
+            color: dc.textPrimary,
           ),
         ),
       ],
@@ -954,20 +956,20 @@ class _PickerRow extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? trailing;
 
-  static const _fillColor = Color(0xFFF2F2F7);
-
   @override
   Widget build(BuildContext context) {
     final primary = context.palette.primary;
+    final dc = context.dc;
+    final fillColor = dc.secondaryBackground;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: AppColors.textTertiary,
+            color: dc.textTertiary,
             letterSpacing: 0.3,
           ),
         ),
@@ -977,7 +979,7 @@ class _PickerRow extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: onTap != null ? _fillColor : _fillColor.withValues(alpha: 0.5),
+              color: onTap != null ? fillColor : fillColor.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -988,8 +990,8 @@ class _PickerRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       color: onTap != null
-                          ? AppColors.textPrimary
-                          : AppColors.textTertiary,
+                          ? dc.textPrimary
+                          : dc.textTertiary,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -1020,22 +1022,23 @@ class _PriceRow extends StatelessWidget {
   final String currency;
   final ValueChanged<String> onCurrencyChange;
 
-  static const _fillColor  = Color(0xFFF2F2F7);
   static const _radius     = BorderRadius.all(Radius.circular(12));
   static const _currencies = ['AZN', 'USD', 'EUR', 'TRY', 'GBP', 'RUB'];
 
   @override
   Widget build(BuildContext context) {
     final primary = context.palette.primary;
+    final dc = context.dc;
+    final fillColor = dc.secondaryBackground;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'PRICE',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: AppColors.textTertiary,
+            color: dc.textTertiary,
             letterSpacing: 0.3,
           ),
         ),
@@ -1053,7 +1056,7 @@ class _PriceRow extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Leave empty if free',
                   filled: true,
-                  fillColor: _fillColor,
+                  fillColor: fillColor,
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 12),
@@ -1066,18 +1069,18 @@ class _PriceRow extends StatelessWidget {
                   focusedBorder: OutlineInputBorder(
                       borderRadius: _radius,
                       borderSide: BorderSide(color: primary, width: 1.5)),
-                  hintStyle: const TextStyle(
-                      fontSize: 15, color: AppColors.textTertiary),
+                  hintStyle: TextStyle(
+                      fontSize: 15, color: dc.textTertiary),
                 ),
-                style: const TextStyle(
-                    fontSize: 15, color: AppColors.textPrimary),
+                style: TextStyle(
+                    fontSize: 15, color: dc.textPrimary),
               ),
             ),
             const SizedBox(width: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                color: _fillColor,
+                color: fillColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: DropdownButtonHideUnderline(
@@ -1093,10 +1096,10 @@ class _PriceRow extends StatelessWidget {
                   onChanged: (v) {
                     if (v != null) onCurrencyChange(v);
                   },
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: dc.textPrimary,
                   ),
                   borderRadius: BorderRadius.circular(12),
                   isDense: true,
@@ -1129,56 +1132,57 @@ class _ToggleRow<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
 
   @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textTertiary,
-              letterSpacing: 0.3,
-            ),
+  Widget build(BuildContext context) {
+    final dc = context.dc;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: dc.textTertiary,
+            letterSpacing: 0.3,
           ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF2F2F7),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: items.map(((T, String) item) {
-                final selected = value == item.$1;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => onChanged(item.$1),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: selected ? primary : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        item.$2,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: selected
-                              ? Colors.white
-                              : AppColors.textSecondary,
-                        ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: dc.tertiaryBackground,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: items.map(((T, String) item) {
+              final selected = value == item.$1;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(item.$1),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: selected ? primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      item.$2,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? Colors.white : dc.textSecondary,
                       ),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
+                ),
+              );
+            }).toList(),
           ),
-        ],
-      );
+        ),
+      ],
+    );
+  }
 }
 
 class _DayRuleRow extends StatelessWidget {
@@ -1197,50 +1201,51 @@ class _DayRuleRow extends StatelessWidget {
   final VoidCallback onPickEnd;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 36,
-              child: Text(
-                rule.label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: rule.enabled
-                      ? AppColors.textPrimary
-                      : AppColors.textTertiary,
-                ),
+  Widget build(BuildContext context) {
+    final dc = context.dc;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 36,
+            child: Text(
+              rule.label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: rule.enabled ? dc.textPrimary : dc.textTertiary,
               ),
             ),
-            Switch(
-              value: rule.enabled,
-              onChanged: onToggle,
-              activeThumbColor: primary,
-              activeTrackColor: primary.withValues(alpha: 0.4),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          Switch(
+            value: rule.enabled,
+            onChanged: onToggle,
+            activeThumbColor: primary,
+            activeTrackColor: primary.withValues(alpha: 0.4),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          if (rule.enabled) ...[
+            const SizedBox(width: 8),
+            _TimeChip(
+              time: rule.startTime,
+              onTap: onPickStart,
+              primary: primary,
             ),
-            if (rule.enabled) ...[
-              const SizedBox(width: 8),
-              _TimeChip(
-                time: rule.startTime,
-                onTap: onPickStart,
-                primary: primary,
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6),
-                child: Text('–', style: TextStyle(color: AppColors.textSecondary)),
-              ),
-              _TimeChip(
-                time: rule.endTime,
-                onTap: onPickEnd,
-                primary: primary,
-              ),
-            ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text('–', style: TextStyle(color: dc.textSecondary)),
+            ),
+            _TimeChip(
+              time: rule.endTime,
+              onTap: onPickEnd,
+              primary: primary,
+            ),
           ],
-        ),
-      );
+        ],
+      ),
+    );
+  }
 }
 
 class _TimeChip extends StatelessWidget {
@@ -1289,28 +1294,23 @@ class _PhotoPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = context.palette.primary;
 
+    final dc = context.dc;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 160,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: dc.cardBackground,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: dc.divider, width: 1),
         ),
         clipBehavior: Clip.hardEdge,
-        child: _hasPhoto ? _buildPreview(primary) : _buildEmpty(primary),
+        child: _hasPhoto ? _buildPreview(primary) : _buildEmpty(primary, dc),
       ),
     );
   }
 
-  Widget _buildEmpty(Color primary) => Container(
+  Widget _buildEmpty(Color primary, AppDynamicColors dc) => Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
@@ -1341,9 +1341,9 @@ class _PhotoPicker extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Tap to choose from library or camera',
-              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+              style: TextStyle(fontSize: 12, color: dc.textTertiary),
             ),
           ],
         ),
@@ -1426,7 +1426,7 @@ class _PickerSheet<T> extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.tertiaryBackground,
+              color: context.dc.divider,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
