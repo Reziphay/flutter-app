@@ -10,6 +10,7 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/network/network_exception.dart';
+import '../../core/theme/app_palette.dart';
 import '../../models/reservation.dart';
 import '../../state/app_state.dart';
 import '../../state/reservation_providers.dart';
@@ -71,9 +72,9 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen>
                 ),
                 TabBar(
                   controller: _tabController,
-                  labelColor: AppColors.primary,
+                  labelColor: context.palette.primary,
                   unselectedLabelColor: AppColors.textSecondary,
-                  indicatorColor: AppColors.primary,
+                  indicatorColor: context.palette.primary,
                   indicatorSize: TabBarIndicatorSize.label,
                   labelStyle: const TextStyle(
                     fontWeight: FontWeight.w600,
@@ -306,9 +307,9 @@ class _ReservationCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   reservation.brand!.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.primary,
+                    color: context.palette.primary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -332,10 +333,10 @@ class _ReservationCard extends StatelessWidget {
                   const Spacer(),
                   Text(
                     reservation.service.priceDisplay,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                      color: context.palette.primary,
                     ),
                   ),
                 ],

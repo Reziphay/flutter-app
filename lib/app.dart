@@ -16,6 +16,8 @@ import 'features/explore/explore_screen.dart';
 import 'features/main/ucr_shell.dart';
 import 'features/main/uso_shell.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'features/profile/ucr_profile_screen.dart';
+import 'features/profile/uso_profile_screen.dart';
 import 'features/provider_profile/provider_profile_screen.dart';
 import 'features/reservations/reservation_detail_screen.dart';
 import 'features/reservations/reservations_screen.dart';
@@ -128,7 +130,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/ucr/profile',
-            builder: (_, __) => const UcrProfilePlaceholder(),
+            builder: (_, __) => const UcrProfileScreen(),
           ),
         ],
       ),
@@ -151,7 +153,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/uso/profile',
-            builder: (_, __) => const UsoProfilePlaceholder(),
+            builder: (_, __) => const UsoProfileScreen(),
           ),
         ],
       ),

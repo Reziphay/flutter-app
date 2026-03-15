@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../models/reservation.dart';
 import '../../services/reservation_service.dart';
 import '../../state/reservation_providers.dart';
@@ -192,9 +193,9 @@ class _ReservationDetailViewState
                   const SizedBox(height: 4),
                   Text(
                     r.brand!.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.primary,
+                      color: context.palette.primary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -297,9 +298,9 @@ class _ReservationDetailViewState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Iconsax.scan, size: 18, color: AppColors.primary),
+                      Icon(Iconsax.scan, size: 18, color: context.palette.primary),
                       SizedBox(width: 8),
                       Text(
                         'Check-in QR',
@@ -494,7 +495,7 @@ class _DetailRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
+          Icon(icon, size: 16, color: context.palette.primary),
           const SizedBox(width: 10),
           Text(
             label,

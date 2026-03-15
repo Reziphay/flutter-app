@@ -118,13 +118,28 @@ class AuthService {
     return _client.patch(Endpoints.userMe, data: body, fromJson: User.fromJson);
   }
 
-  Future<User> activateUso() =>
-      _client.post(Endpoints.activateUso, fromJson: User.fromJson);
+  Future<AuthSession> activateUso() async {
+    final session = await _client.post(
+      Endpoints.activateUso,
+      fromJson: AuthSession.fromJson,
+    );
+    await _storage.saveTokens(
+      accessToken:  session.accessToken,
+      refreshToken: session.refreshToken,
+    );
+    return session;
+  }
 
-  Future<User> switchRole(UserRole role) =>
-      _client.post(
-        Endpoints.switchRole,
-        data: {'role': role.value},
-        fromJson: User.fromJson,
-      );
+  Future<AuthSession> switchRole(UserRole role) async {
+    final session = await _client.post(
+      Endpoints.switchRole,
+      data: {'role': role.value},
+      fromJson: AuthSession.fromJson,
+    );
+    await _storage.saveTokens(
+      accessToken:  session.accessToken,
+      refreshToken: session.refreshToken,
+    );
+    return session;
+  }
 }

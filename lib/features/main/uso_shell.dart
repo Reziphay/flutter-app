@@ -10,7 +10,6 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_palette.dart';
-import '../../state/app_state.dart';
 
 class UsoShell extends ConsumerStatefulWidget {
   const UsoShell({super.key, required this.child});
@@ -108,40 +107,3 @@ class UsoNotificationsPlaceholder extends StatelessWidget {
   );
 }
 
-class UsoProfilePlaceholder extends ConsumerWidget {
-  const UsoProfilePlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(appStateProvider).currentUser;
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Iconsax.logout),
-            tooltip: 'Logout',
-            onPressed: () => ref.read(appStateProvider.notifier).logout(),
-          ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Iconsax.user, size: 64, color: AppColors.textTertiary),
-            const SizedBox(height: 16),
-            const Text('Profile', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('Coming in Phase 7', style: TextStyle(fontSize: 15, color: AppColors.textSecondary)),
-            if (user?.fullName != null) ...[
-              const SizedBox(height: 8),
-              Text(user!.fullName!, style: const TextStyle(color: AppColors.textSecondary)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}

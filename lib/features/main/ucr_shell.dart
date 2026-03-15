@@ -10,7 +10,6 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_palette.dart';
-import '../../state/app_state.dart';
 
 class UcrShell extends ConsumerStatefulWidget {
   const UcrShell({super.key, required this.child});
@@ -103,43 +102,6 @@ class UcrNotificationsPlaceholder extends StatelessWidget {
   );
 }
 
-class UcrProfilePlaceholder extends ConsumerWidget {
-  const UcrProfilePlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(appStateProvider).currentUser;
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Iconsax.logout),
-            tooltip: 'Logout',
-            onPressed: () => ref.read(appStateProvider.notifier).logout(),
-          ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const _PlaceholderView(
-              icon: Iconsax.user,
-              title: 'Profile',
-              subtitle: 'Coming in Phase 7',
-            ),
-            if (user?.fullName != null) ...[
-              const SizedBox(height: 8),
-              Text(user!.fullName!, style: const TextStyle(color: AppColors.textSecondary)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _PlaceholderView extends StatelessWidget {
   const _PlaceholderView({
