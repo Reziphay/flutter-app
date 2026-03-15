@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../models/discovery.dart';
@@ -61,7 +62,7 @@ class _ServiceDetailView extends StatelessWidget {
               background: Container(
                 color: AppColors.secondaryBackground,
                 child: const Center(
-                  child: Icon(Icons.spa_rounded, size: 80, color: AppColors.textTertiary),
+                  child: Icon(Iconsax.activity, size: 80, color: AppColors.textTertiary),
                 ),
               ),
             ),
@@ -162,7 +163,7 @@ class _ServiceDetailView extends StatelessWidget {
                   // Brand
                   if (service.brand != null)
                     _InfoTile(
-                      icon: Icons.store_rounded,
+                      icon: Iconsax.shop,
                       label: 'Brand',
                       value: service.brand!.name,
                     ),
@@ -170,7 +171,7 @@ class _ServiceDetailView extends StatelessWidget {
                   // Provider
                   if (service.owner != null)
                     _InfoTile(
-                      icon: Icons.person_rounded,
+                      icon: Iconsax.user,
                       label: 'Provider',
                       value: service.owner!.fullName,
                     ),
@@ -178,7 +179,7 @@ class _ServiceDetailView extends StatelessWidget {
                   // Location
                   if (service.address != null) ...[
                     _InfoTile(
-                      icon: Icons.location_on_rounded,
+                      icon: Iconsax.location,
                       label: 'Location',
                       value: service.address!.city.isNotEmpty
                           ? service.address!.city
@@ -201,8 +202,8 @@ class _ServiceDetailView extends StatelessWidget {
                   if (service.approvalMode != null)
                     _InfoTile(
                       icon: service.approvalMode == 'AUTO'
-                          ? Icons.check_circle_rounded
-                          : Icons.pending_rounded,
+                          ? Iconsax.tick_circle
+                          : Iconsax.clock,
                       label: 'Booking',
                       value: service.approvalMode == 'AUTO'
                           ? 'Instant confirmation'
@@ -247,7 +248,7 @@ class _BackButton extends StatelessWidget {
             ],
           ),
           padding: const EdgeInsets.all(6),
-          child: const Icon(Icons.arrow_back_rounded, size: 20, color: AppColors.textPrimary),
+          child: const Icon(Iconsax.arrow_left_2, size: 20, color: AppColors.textPrimary),
         ),
       ),
     );

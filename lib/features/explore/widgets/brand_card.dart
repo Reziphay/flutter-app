@@ -4,6 +4,7 @@
 // Author: Vugar Safarzada (@vugarsafarzada)
 
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../models/discovery.dart';
 import 'rating_row.dart';
@@ -48,7 +49,7 @@ class BrandCard extends StatelessWidget {
               child: Stack(
                 children: [
                   const Center(
-                    child: Icon(Icons.store_rounded, size: 32, color: AppColors.textTertiary),
+                    child: Icon(Iconsax.shop, size: 32, color: AppColors.textTertiary),
                   ),
                   if (brand.isVip)
                     Positioned(

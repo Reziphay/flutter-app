@@ -8,6 +8,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../models/discovery.dart';
@@ -90,7 +91,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_rounded),
+                        icon: const Icon(Iconsax.arrow_left_2),
                         onPressed: () => context.pop(),
                       ),
                       Expanded(
@@ -103,7 +104,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                         clipBehavior: Clip.none,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.tune_rounded),
+                            icon: const Icon(Iconsax.setting_4),
                             onPressed: _openFilters,
                           ),
                           if (q.hasFilters)
@@ -214,7 +215,7 @@ class _EmptySearchHint extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.search_rounded, size: 64, color: AppColors.textTertiary),
+          Icon(Iconsax.search_normal, size: 64, color: AppColors.textTertiary),
           SizedBox(height: 16),
           Text(
             'Start typing to search',
@@ -436,7 +437,7 @@ class _NoResults extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.inbox_rounded,
+          const Icon(Iconsax.archive_minus,
               size: 56, color: AppColors.textTertiary),
           const SizedBox(height: 12),
           Text(

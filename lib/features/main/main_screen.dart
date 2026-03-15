@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../core/constants/app_colors.dart';
 import '../../state/app_state.dart';
 
@@ -22,10 +23,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   int _selectedIndex = 0;
 
   static const _tabs = [
-    _TabItem(label: 'Explore',       icon: Icons.search_rounded,          route: '/home/explore'),
-    _TabItem(label: 'Reservations',  icon: Icons.calendar_month_rounded,  route: '/home/reservations'),
-    _TabItem(label: 'Notifications', icon: Icons.notifications_rounded,   route: '/home/notifications'),
-    _TabItem(label: 'Profile',       icon: Icons.person_rounded,          route: '/home/profile'),
+    _TabItem(label: 'Explore',       icon: Iconsax.search_normal,  route: '/home/explore'),
+    _TabItem(label: 'Reservations',  icon: Iconsax.calendar,       route: '/home/reservations'),
+    _TabItem(label: 'Notifications', icon: Iconsax.notification,   route: '/home/notifications'),
+    _TabItem(label: 'Profile',       icon: Iconsax.user,           route: '/home/profile'),
   ];
 
   void _onTabTapped(int index) {
@@ -74,7 +75,7 @@ class ReservationsPlaceholderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const _PlaceholderView(
-    icon: Icons.calendar_month_rounded,
+    icon: Iconsax.calendar,
     title: 'Reservations',
     subtitle: 'Booking management coming in Phase 3',
   );
@@ -85,7 +86,7 @@ class NotificationsPlaceholderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const _PlaceholderView(
-    icon: Icons.notifications_rounded,
+    icon: Iconsax.notification,
     title: 'Notifications',
     subtitle: 'Notifications coming in Phase 6',
   );
@@ -102,7 +103,7 @@ class ProfilePlaceholderScreen extends ConsumerWidget {
         title: const Text('Profile'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded),
+            icon: const Icon(Iconsax.logout),
             onPressed: () async {
               await ref.read(appStateProvider.notifier).logout();
             },
@@ -112,7 +113,7 @@ class ProfilePlaceholderScreen extends ConsumerWidget {
       ),
       body: const Center(
         child: _PlaceholderView(
-          icon: Icons.person_rounded,
+          icon: Iconsax.user,
           title: 'Profile',
           subtitle: 'Profile management coming in Phase 7',
         ),

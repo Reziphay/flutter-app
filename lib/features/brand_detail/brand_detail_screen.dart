@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../state/explore_providers.dart';
@@ -42,7 +43,7 @@ class BrandDetailScreen extends ConsumerWidget {
                 background: Container(
                   color: AppColors.secondaryBackground,
                   child: const Center(
-                    child: Icon(Icons.store_rounded, size: 72, color: AppColors.textTertiary),
+                    child: Icon(Iconsax.shop, size: 72, color: AppColors.textTertiary),
                   ),
                 ),
               ),
@@ -83,7 +84,7 @@ class BrandDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_rounded,
+                          const Icon(Iconsax.location,
                               size: 14, color: AppColors.textTertiary),
                           const SizedBox(width: 4),
                           Text(
@@ -195,7 +196,7 @@ class _BackButton extends StatelessWidget {
             ],
           ),
           padding: const EdgeInsets.all(6),
-          child: const Icon(Icons.arrow_back_rounded, size: 20, color: AppColors.textPrimary),
+          child: const Icon(Iconsax.arrow_left_2, size: 20, color: AppColors.textPrimary),
         ),
       ),
     );

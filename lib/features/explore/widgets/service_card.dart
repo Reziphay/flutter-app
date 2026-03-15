@@ -4,6 +4,7 @@
 // Author: Vugar Safarzada (@vugarsafarzada)
 
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../models/discovery.dart';
 import 'rating_row.dart';
@@ -67,7 +68,7 @@ class _CompactCard extends StatelessWidget {
                 children: [
                   const Center(
                     child: Icon(
-                      Icons.spa_rounded,
+                      Iconsax.activity,
                       size: 36,
                       color: AppColors.textTertiary,
                     ),
@@ -178,7 +179,7 @@ class _FullCard extends StatelessWidget {
               child: Stack(
                 children: [
                   const Center(
-                    child: Icon(Icons.spa_rounded, size: 30, color: AppColors.textTertiary),
+                    child: Icon(Iconsax.activity, size: 30, color: AppColors.textTertiary),
                   ),
                   if (service.isVip)
                     Positioned(top: 6, left: 6, child: _VipBadge()),
@@ -227,7 +228,7 @@ class _FullCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_rounded, size: 12, color: AppColors.textTertiary),
+                          const Icon(Iconsax.location, size: 12, color: AppColors.textTertiary),
                           const SizedBox(width: 2),
                           Expanded(
                             child: Text(

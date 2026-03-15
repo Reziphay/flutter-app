@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../models/discovery.dart';
@@ -30,7 +31,7 @@ class ProviderProfileScreen extends ConsumerWidget {
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Iconsax.arrow_left_2),
           onPressed: () => context.pop(),
         ),
         title: const Text('Provider Profile'),
@@ -146,7 +147,7 @@ class _ProviderView extends StatelessWidget {
               (b) => ListTile(
                 leading: const CircleAvatar(
                   backgroundColor: AppColors.secondaryBackground,
-                  child: Icon(Icons.store_rounded, color: AppColors.primary, size: 18),
+                  child: Icon(Iconsax.shop, color: AppColors.primary, size: 18),
                 ),
                 title: Text(
                   b.name,
@@ -157,7 +158,7 @@ class _ProviderView extends StatelessWidget {
                 ),
                 subtitle: b.address != null ? Text(b.address!.city) : null,
                 onTap: () => context.push('/brand/${b.id}'),
-                trailing: const Icon(Icons.chevron_right_rounded,
+                trailing: const Icon(Iconsax.arrow_right_3,
                     color: AppColors.textTertiary),
               ),
             ),
@@ -170,7 +171,7 @@ class _ProviderView extends StatelessWidget {
               (s) => ListTile(
                 leading: const CircleAvatar(
                   backgroundColor: AppColors.secondaryBackground,
-                  child: Icon(Icons.spa_rounded, color: AppColors.primary, size: 18),
+                  child: Icon(Iconsax.activity, color: AppColors.primary, size: 18),
                 ),
                 title: Text(
                   s.name,
@@ -181,7 +182,7 @@ class _ProviderView extends StatelessWidget {
                 ),
                 subtitle: s.address != null ? Text(s.address!.city) : null,
                 onTap: () => context.push('/service/${s.id}'),
-                trailing: const Icon(Icons.chevron_right_rounded,
+                trailing: const Icon(Iconsax.arrow_right_3,
                     color: AppColors.textTertiary),
               ),
             ),

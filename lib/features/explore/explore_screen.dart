@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../state/app_state.dart';
@@ -138,7 +139,7 @@ class _SearchTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: const Row(
           children: [
-            Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+            Icon(Iconsax.search_normal, color: AppColors.textSecondary, size: 20),
             SizedBox(width: 10),
             Text(
               'Search services, brands…',

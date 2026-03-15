@@ -2,6 +2,7 @@
 // Reziphay
 
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../models/discovery.dart';
 
@@ -17,7 +18,7 @@ class RatingRow extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.star_rounded, size: size, color: const Color(0xFFFFB800)),
+        Icon(Iconsax.star1, size: size, color: const Color(0xFFFFB800)),
         const SizedBox(width: 2),
         Text(
           stats.avgRating > 0
