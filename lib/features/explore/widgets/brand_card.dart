@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../models/discovery.dart';
 import 'rating_row.dart';
@@ -100,14 +101,15 @@ class BrandCard extends StatelessWidget {
 class _VipBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFFFFB800), Color(0xFFFF8C00)]),
         borderRadius: BorderRadius.circular(5),
       ),
-      child: const Text(
-        'VIP',
+      child: Text(
+        l10n.badgeVip,
         style: TextStyle(
           fontSize: 8,
           fontWeight: FontWeight.w800,

@@ -4,6 +4,7 @@
 // Author: Vugar Safarzada (@vugarsafarzada)
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,6 +31,7 @@ import 'features/ucr/favorites/favorites_screen.dart';
 import 'features/uso/incoming_reservations/incoming_reservations_screen.dart';
 import 'features/uso/my_services/create_edit_service_screen.dart';
 import 'features/uso/my_services/my_services_screen.dart';
+import 'core/l10n/app_localizations.dart';
 import 'state/app_state.dart';
 import 'state/settings_provider.dart';
 import 'state/theme_provider.dart';
@@ -252,7 +254,19 @@ class ReziphayApp extends ConsumerWidget {
       // Follows system / user preference from settings
       themeMode: settings.flutterThemeMode,
       // Locale from language setting
-      locale:    settings.locale,
+      locale:           settings.locale,
+      supportedLocales: const [
+        Locale('az'),
+        Locale('en'),
+        Locale('ru'),
+        Locale('tr'),
+      ],
+      localizationsDelegates: const [
+        AppLocalizationsDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       routerConfig: router,
     );
   }

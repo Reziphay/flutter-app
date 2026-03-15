@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../state/explore_providers.dart';
 import '../explore/widgets/rating_row.dart';
@@ -24,6 +25,7 @@ class BrandDetailScreen extends ConsumerWidget {
     final brandAsync    = ref.watch(brandDetailProvider(brandId));
     final servicesAsync = ref.watch(brandServicesProvider(brandId));
 
+    final l10n = context.l10n;
     final dc = context.dc;
     return Scaffold(
       backgroundColor: dc.secondaryBackground,
@@ -122,7 +124,7 @@ class BrandDetailScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
                 child: Text(
-                  'Services',
+                  l10n.brandServices,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -149,7 +151,7 @@ class BrandDetailScreen extends ConsumerWidget {
                       padding: const EdgeInsets.all(24),
                       child: Center(
                         child: Text(
-                          'No services yet',
+                          l10n.brandNoServices,
                           style: TextStyle(color: dc.textSecondary),
                         ),
                       ),

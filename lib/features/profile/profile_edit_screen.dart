@@ -13,6 +13,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/network/network_exception.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../services/auth_service.dart';
@@ -58,11 +59,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle: 'Crop photo',
+          toolbarTitle: context.l10n.cropPhoto,
           lockAspectRatio: true,
         ),
         IOSUiSettings(
-          title: 'Crop photo',
+          title: context.l10n.cropPhoto,
           aspectRatioLockEnabled: true,
           resetAspectRatioEnabled: false,
         ),
@@ -75,6 +76,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   }
 
   Future<ImageSource?> _showSourceSheet() {
+    final l10n = context.l10n;
     return showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -102,7 +104,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 ListTile(
                   leading: Icon(Iconsax.camera, color: dc.textPrimary),
                   title: Text(
-                    'Take a photo',
+                    l10n.takePhoto,
                     style: TextStyle(color: dc.textPrimary),
                   ),
                   onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
@@ -110,7 +112,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 ListTile(
                   leading: Icon(Iconsax.gallery, color: dc.textPrimary),
                   title: Text(
-                    'Choose from library',
+                    l10n.chooseFromLibrary,
                     style: TextStyle(color: dc.textPrimary),
                   ),
                   onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
@@ -156,7 +158,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       _showError(e.message);
     } catch (_) {
       if (!mounted) return;
-      _showError('Something went wrong. Please try again.');
+      _showError(context.l10n.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -170,6 +172,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n    = context.l10n;
     final user    = ref.watch(appStateProvider).currentUser;
     final dc      = context.dc;
     const primary = AppColors.primary;
@@ -192,7 +195,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 ),
                 Expanded(
                   child: Text(
-                    'Edit Profile',
+                    l10n.editProfileTitle,
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
@@ -209,7 +212,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     : TextButton(
                         onPressed: _save,
                         child: Text(
-                          'Save',
+                          l10n.save,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: primary,
@@ -272,7 +275,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                       children: [
                         _EditField(
                           icon:        Iconsax.user,
-                          label:       'Full Name',
+                          label:       l10n.fullName,
                           controller:  _nameCtrl,
                           enabled:     true,
                           dc:          dc,
@@ -280,7 +283,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                         Divider(height: 1, indent: 52, color: dc.divider),
                         _EditField(
                           icon:    Iconsax.sms,
-                          label:   'Email',
+                          label:   l10n.email,
                           value:   user?.email ?? '—',
                           enabled: false,
                           dc:      dc,
@@ -288,7 +291,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                         Divider(height: 1, indent: 52, color: dc.divider),
                         _EditField(
                           icon:    Iconsax.call,
-                          label:   'Phone',
+                          label:   l10n.phone,
                           value:   user?.phone ?? '—',
                           enabled: false,
                           dc:      dc,
@@ -303,7 +306,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    'Email and phone number cannot be changed here.',
+                    l10n.emailDisabledNote,
                     style: TextStyle(fontSize: 12, color: dc.textTertiary),
                   ),
                 ),

@@ -15,6 +15,7 @@ import '../../core/theme/app_palette.dart';
 import '../../core/network/network_exception.dart';
 import '../../services/auth_service.dart';
 import '../../state/app_state.dart';
+import '../../core/l10n/app_localizations.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({
@@ -156,7 +157,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       setState(() => _error = e.message);
       _clearOtp();
     } catch (_) {
-      setState(() => _error = 'Invalid code. Please try again.');
+      setState(() => _error = context.l10n.otpInvalidCode);
       _clearOtp();
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -176,7 +177,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     } on NetworkException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Failed to resend code. Please try again.');
+      setState(() => _error = context.l10n.otpResendFailed);
     }
   }
 
@@ -188,6 +189,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: dc.background,
       appBar: AppBar(
@@ -227,6 +229,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   // MARK: - Header
 
   Widget _buildHeader() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -245,7 +248,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Verify your number',
+          l10n.otpTitle,
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -254,7 +257,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Enter the 6-digit code sent to ${widget.phone}',
+          l10n.otpSubtitle(widget.phone),
           style: TextStyle(fontSize: 15, color: context.dc.textSecondary),
         ),
       ],
@@ -318,9 +321,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   strokeWidth: 2.5,
                 ),
               )
-            : const Text(
-                'Verify',
-                style: TextStyle(
+            : Text(
+                context.l10n.otpVerify,
+                style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -331,12 +334,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   Widget _buildResendButton() {
+    final l10n = context.l10n;
     return Center(
       child: _canResend
           ? TextButton(
               onPressed: _resendOtp,
               child: Text(
-                'Resend Code',
+                l10n.otpResend,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
@@ -345,7 +349,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               ),
             )
           : Text(
-              'Resend in ${_resendTimer}s',
+              l10n.otpResendIn(_resendTimer),
               style: TextStyle(
                 fontSize: 15,
                 color: context.dc.textSecondary,

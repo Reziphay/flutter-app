@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../state/explore_providers.dart';
 
@@ -16,6 +17,7 @@ class CategoryChipRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(categoriesProvider);
     final selected = ref.watch(selectedCategoryProvider);
+    final l10n = context.l10n;
 
     return categoriesAsync.when(
       loading: () => const SizedBox(
@@ -38,7 +40,7 @@ class CategoryChipRow extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
               _Chip(
-                label: 'All',
+                label: l10n.chipAll,
                 selected: selected == null,
                 onTap: () => ref.read(selectedCategoryProvider.notifier).state = null,
               ),

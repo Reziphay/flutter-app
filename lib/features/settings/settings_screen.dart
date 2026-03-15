@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../state/app_state.dart';
@@ -17,6 +18,7 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n     = context.l10n;
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
     final primary  = context.palette.primary;
@@ -28,7 +30,7 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: dc.background,
         foregroundColor: dc.textPrimary,
-        title: const Text('Settings'),
+        title: Text(l10n.settingsTitle),
         elevation: 0,
       ),
       body: ListView(
@@ -36,7 +38,7 @@ class SettingsScreen extends ConsumerWidget {
         children: [
 
           // ── Appearance ────────────────────────────────────────────────
-          _SectionHeader(title: 'Appearance', icon: Iconsax.brush, dc: dc),
+          _SectionHeader(title: l10n.appearance, icon: Iconsax.brush, dc: dc),
           _SettingsCard(dc: dc, children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -48,7 +50,7 @@ class SettingsScreen extends ConsumerWidget {
                       Icon(Iconsax.sun, size: 20, color: dc.textTertiary),
                       const SizedBox(width: 14),
                       Text(
-                        'Theme',
+                        l10n.theme,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
@@ -72,7 +74,7 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // ── Language ──────────────────────────────────────────────────
-          _SectionHeader(title: 'Language', icon: Iconsax.language_square, dc: dc),
+          _SectionHeader(title: l10n.language, icon: Iconsax.language_square, dc: dc),
           _SettingsCard(
             dc: dc,
             children: AppLanguage.values.map((lang) {
@@ -99,7 +101,7 @@ class SettingsScreen extends ConsumerWidget {
           // ── Reminders (UCR only) ──────────────────────────────────────
           if (isUcr) ...[
             _SectionHeader(
-              title: 'Reservation Reminders',
+              title: l10n.reservationReminders,
               icon: Iconsax.notification,
               dc: dc,
             ),
@@ -107,7 +109,7 @@ class SettingsScreen extends ConsumerWidget {
               // Toggle row
               _SwitchRow(
                 icon:    Iconsax.notification_bing,
-                label:   'Enable Reminders',
+                label:   l10n.enableReminders,
                 value:   settings.reminderEnabled,
                 primary: primary,
                 dc:      dc,
@@ -129,7 +131,7 @@ class SettingsScreen extends ConsumerWidget {
                               color: dc.textTertiary),
                           const SizedBox(width: 14),
                           Text(
-                            'Remind me',
+                            l10n.remindMe,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,

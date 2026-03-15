@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../state/app_state.dart';
 import '../../state/explore_providers.dart';
@@ -91,6 +92,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
     return Container(
       color: dc.background,
       padding: EdgeInsets.fromLTRB(20, topPadding + 16, 20, 20),
@@ -99,7 +101,7 @@ class _Header extends StatelessWidget {
         children: [
           // Greeting
           Text(
-            'Hello, ${userName ?? 'there'} 👋',
+            l10n.greeting(userName ?? 'there'),
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
@@ -109,7 +111,7 @@ class _Header extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Find the best services near you',
+            l10n.exploreSubtitle,
             style: TextStyle(
               fontSize: 14,
               color: dc.textSecondary,
@@ -134,6 +136,7 @@ class _SearchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -149,7 +152,7 @@ class _SearchTile extends StatelessWidget {
             Icon(Iconsax.search_normal, color: dc.textSecondary, size: 20),
             const SizedBox(width: 10),
             Text(
-              'Search services, brands…',
+              l10n.exploreSearch,
               style: TextStyle(
                 fontSize: 14,
                 color: dc.textSecondary,
@@ -169,13 +172,14 @@ class _NearMeSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nearbyAsync = ref.watch(nearbyServicesProvider);
+    final l10n = context.l10n;
 
     return nearbyAsync.when(
       loading: () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeader(
-            title: 'Near Me',
+            title: l10n.exploreNearMe,
             onSeeAll: () => context.push('/search'),
           ),
           const _HorizontalShimmer(),
@@ -188,7 +192,7 @@ class _NearMeSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeader(
-              title: 'Near Me',
+              title: l10n.exploreNearMe,
               onSeeAll: () => context.push('/search'),
             ),
             SizedBox(
@@ -217,13 +221,14 @@ class _PopularBrandsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final brandsAsync = ref.watch(popularBrandsProvider);
+    final l10n = context.l10n;
 
     return brandsAsync.when(
-      loading: () => const Column(
+      loading: () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(title: 'Popular Brands'),
-          _HorizontalShimmer(height: 170),
+          SectionHeader(title: l10n.explorePopularBrands),
+          const _HorizontalShimmer(height: 170),
         ],
       ),
       error: (_, __) => const SizedBox.shrink(),
@@ -233,7 +238,7 @@ class _PopularBrandsSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeader(
-              title: 'Popular Brands',
+              title: l10n.explorePopularBrands,
               onSeeAll: () => context.push('/search?tab=brands'),
             ),
             SizedBox(
@@ -261,13 +266,14 @@ class _FeaturedServicesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final featuredAsync = ref.watch(featuredServicesProvider);
+    final l10n = context.l10n;
 
     return featuredAsync.when(
-      loading: () => const Column(
+      loading: () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(title: 'Featured'),
-          _ListShimmer(),
+          SectionHeader(title: l10n.exploreFeatured),
+          const _ListShimmer(),
         ],
       ),
       error: (_, __) => const SizedBox.shrink(),
@@ -277,7 +283,7 @@ class _FeaturedServicesSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeader(
-              title: 'Featured',
+              title: l10n.exploreFeatured,
               onSeeAll: () => context.push('/search'),
             ),
             Padding(

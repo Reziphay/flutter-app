@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/network/network_exception.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
@@ -42,7 +43,7 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen>
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-
+    final l10n = context.l10n;
     final dc = context.dc;
 
     return Scaffold(
@@ -61,7 +62,7 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen>
                   child: Row(
                     children: [
                       Text(
-                        'Reservations',
+                        l10n.reservationsTitle,
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
@@ -83,9 +84,9 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen>
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
-                  tabs: const [
-                    Tab(text: 'Upcoming'),
-                    Tab(text: 'Past'),
+                  tabs: [
+                    Tab(text: l10n.tabUpcoming),
+                    Tab(text: l10n.tabPast),
                   ],
                 ),
               ],
@@ -175,13 +176,13 @@ class _ReservationList extends ConsumerWidget {
                     onPressed: () =>
                         ref.read(appStateProvider.notifier).logout(),
                     icon: const Icon(Iconsax.logout, size: 16),
-                    label: const Text('Log in again'),
+                    label: Text(context.l10n.tryAgain),
                   )
                 else
                   TextButton(
                     onPressed: () =>
                         ref.read(myReservationsProvider.notifier).refresh(),
-                    child: const Text('Try again'),
+                    child: Text(context.l10n.tryAgain),
                   ),
               ],
             ),
@@ -218,6 +219,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final dc = context.dc;
     return Center(
       child: Padding(
@@ -229,7 +231,7 @@ class _EmptyState extends StatelessWidget {
                 size: 56, color: dc.textTertiary),
             const SizedBox(height: 16),
             Text(
-              'No reservations here',
+              l10n.noReservations,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
@@ -238,7 +240,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Browse services and book your first appointment',
+              l10n.noReservationsSubtitle,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: dc.textSecondary),
             ),
@@ -263,7 +265,8 @@ class _ReservationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = reservation.status;
-    final (statusLabel, statusColor) = _statusDisplay(status);
+    final l10n = context.l10n;
+    final (statusLabel, statusColor) = _statusDisplay(l10n, status);
     final dc = context.dc;
 
     return GestureDetector(
@@ -355,18 +358,18 @@ class _ReservationCard extends StatelessWidget {
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $h:$m';
   }
 
-  (String, Color) _statusDisplay(ReservationStatus s) => switch (s) {
-        ReservationStatus.pending              => ('Pending', AppColors.warning),
-        ReservationStatus.confirmed            => ('Confirmed', AppColors.success),
-        ReservationStatus.rejected             => ('Rejected', AppColors.error),
-        ReservationStatus.cancelledByCustomer  => ('Cancelled', AppColors.textSecondary),
-        ReservationStatus.cancelledByOwner     => ('Cancelled', AppColors.textSecondary),
+  (String, Color) _statusDisplay(AppLocalizations l10n, ReservationStatus s) => switch (s) {
+        ReservationStatus.pending              => (l10n.statusPending, AppColors.warning),
+        ReservationStatus.confirmed            => (l10n.statusConfirmed, AppColors.success),
+        ReservationStatus.rejected             => (l10n.statusRejected, AppColors.error),
+        ReservationStatus.cancelledByCustomer  => (l10n.statusCancelled, AppColors.textSecondary),
+        ReservationStatus.cancelledByOwner     => (l10n.statusCancelled, AppColors.textSecondary),
         ReservationStatus.changeRequestedByCustomer ||
         ReservationStatus.changeRequestedByOwner =>
-          ('Change Req.', AppColors.warning),
-        ReservationStatus.completed            => ('Completed', AppColors.success),
-        ReservationStatus.noShow               => ('No Show', AppColors.error),
-        ReservationStatus.expired              => ('Expired', AppColors.textTertiary),
+          (l10n.statusChangeReq, AppColors.warning),
+        ReservationStatus.completed            => (l10n.statusCompleted, AppColors.success),
+        ReservationStatus.noShow               => (l10n.statusNoShow, AppColors.error),
+        ReservationStatus.expired              => (l10n.statusExpired, AppColors.textTertiary),
       };
 }
 

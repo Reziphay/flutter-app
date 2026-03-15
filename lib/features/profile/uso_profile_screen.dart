@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/network/network_exception.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
@@ -38,7 +39,7 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
       _showError(e.message);
     } catch (_) {
       if (!mounted) return;
-      _showError('Something went wrong. Please try again.');
+      _showError(context.l10n.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _switching = false);
     }
@@ -52,6 +53,7 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n    = context.l10n;
     final user    = ref.watch(appStateProvider).currentUser;
     final primary = context.palette.primary;
     final dc      = context.dc;
@@ -89,7 +91,7 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Service Provider',
+                    l10n.roleServiceProvider,
                     style: TextStyle(
                       fontSize:   12,
                       fontWeight: FontWeight.w600,
@@ -112,7 +114,7 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
           _SectionCard(dc: dc, children: [
             _ActionRow(
               icon:  Iconsax.edit,
-              label: 'Edit Profile',
+              label: l10n.editProfile,
               color: dc.textPrimary,
               dc:    dc,
               onTap: () => context.push('/profile/edit'),
@@ -123,11 +125,11 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
 
           // ── Account info ──────────────────────────────────────────────────
           _SectionCard(dc: dc, children: [
-            _InfoRow(icon: Iconsax.user, label: 'Full Name', value: user?.fullName ?? '—', dc: dc),
+            _InfoRow(icon: Iconsax.user, label: l10n.fullName, value: user?.fullName ?? '—', dc: dc),
             _Divider(dc: dc),
-            _InfoRow(icon: Iconsax.sms,  label: 'Email',    value: user?.email ?? '—',    dc: dc),
+            _InfoRow(icon: Iconsax.sms,  label: l10n.email,    value: user?.email ?? '—',    dc: dc),
             _Divider(dc: dc),
-            _InfoRow(icon: Iconsax.call, label: 'Phone',    value: user?.phone ?? '—',    dc: dc),
+            _InfoRow(icon: Iconsax.call, label: l10n.phone,    value: user?.phone ?? '—',    dc: dc),
           ]),
 
           const SizedBox(height: 16),
@@ -137,7 +139,7 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
             _SectionCard(dc: dc, children: [
               _ActionRow(
                 icon:    Iconsax.user,
-                label:   'Switch to Customer Mode',
+                label:   l10n.switchToCustomer,
                 color:   const Color(0xFFC71F37),
                 loading: _switching,
                 dc:      dc,
@@ -151,7 +153,7 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
           _SectionCard(dc: dc, children: [
             _ActionRow(
               icon:  Iconsax.setting,
-              label: 'Settings',
+              label: l10n.settings,
               color: dc.textPrimary,
               dc:    dc,
               onTap: () => context.push('/settings'),
@@ -164,28 +166,28 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
           _SectionCard(dc: dc, children: [
             _ActionRow(
               icon:  Iconsax.logout,
-              label: 'Log out',
+              label: l10n.logout,
               color: AppColors.error,
               dc:    dc,
               onTap: () async {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Log out'),
-                    content: const Text(
-                      'Are you sure you want to log out?',
-                      style: TextStyle(fontSize: 14),
+                    title: Text(l10n.logoutTitle),
+                    content: Text(
+                      l10n.logoutConfirm,
+                      style: const TextStyle(fontSize: 14),
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(ctx).pop(false),
-                        child: const Text('Cancel'),
+                        child: Text(l10n.cancel),
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(ctx).pop(true),
-                        child: const Text(
-                          'Log out',
-                          style: TextStyle(color: AppColors.error),
+                        child: Text(
+                          l10n.logout,
+                          style: const TextStyle(color: AppColors.error),
                         ),
                       ),
                     ],

@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../models/discovery.dart';
 import 'rating_row.dart';
@@ -265,6 +266,7 @@ class _FullCard extends StatelessWidget {
 class _VipBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -273,8 +275,8 @@ class _VipBadge extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: const Text(
-        'VIP',
+      child: Text(
+        l10n.badgeVip,
         style: TextStyle(
           fontSize: 9,
           fontWeight: FontWeight.w800,

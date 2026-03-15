@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/network/network_exception.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
@@ -28,23 +29,23 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
   bool _activatingUso = false;
 
   Future<void> _activateUso() async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Become a Service Provider'),
-        content: const Text(
-          'This will activate the Service Provider role on your account. '
-          'You can switch between Customer and Provider modes at any time.',
-          style: TextStyle(fontSize: 14),
+        title: Text(l10n.profileBecomeProviderTitle),
+        content: Text(
+          l10n.profileBecomeProviderContent,
+          style: const TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Activate'),
+            child: Text(l10n.becomeProvider),
           ),
         ],
       ),
@@ -61,7 +62,7 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
       _showError(e.message);
     } catch (_) {
       if (!mounted) return;
-      _showError('Something went wrong. Please try again.');
+      _showError(context.l10n.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _activatingUso = false);
     }
@@ -78,7 +79,7 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
       _showError(e.message);
     } catch (_) {
       if (!mounted) return;
-      _showError('Something went wrong. Please try again.');
+      _showError(context.l10n.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _activatingUso = false);
     }
@@ -92,6 +93,7 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n    = context.l10n;
     final user    = ref.watch(appStateProvider).currentUser;
     final primary = context.palette.primary;
     final dc      = context.dc;
@@ -136,7 +138,7 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
           _SectionCard(dc: dc, children: [
             _ActionRow(
               icon:  Iconsax.edit,
-              label: 'Edit Profile',
+              label: l10n.editProfile,
               color: dc.textPrimary,
               dc:    dc,
               onTap: () => context.push('/profile/edit'),
@@ -147,11 +149,11 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
 
           // ── Account info ──────────────────────────────────────────────────
           _SectionCard(dc: dc, children: [
-            _InfoRow(icon: Iconsax.user, label: 'Full Name', value: user?.fullName ?? '—', dc: dc),
+            _InfoRow(icon: Iconsax.user, label: l10n.fullName, value: user?.fullName ?? '—', dc: dc),
             _Divider(dc: dc),
-            _InfoRow(icon: Iconsax.sms,  label: 'Email',    value: user?.email ?? '—',    dc: dc),
+            _InfoRow(icon: Iconsax.sms,  label: l10n.email,    value: user?.email ?? '—',    dc: dc),
             _Divider(dc: dc),
-            _InfoRow(icon: Iconsax.call, label: 'Phone',    value: user?.phone ?? '—',    dc: dc),
+            _InfoRow(icon: Iconsax.call, label: l10n.phone,    value: user?.phone ?? '—',    dc: dc),
           ]),
 
           const SizedBox(height: 16),
@@ -160,7 +162,7 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
           _SectionCard(dc: dc, children: [
             _ActionRow(
               icon:  Iconsax.heart,
-              label: 'My Favorites',
+              label: l10n.myFavorites,
               color: AppColors.error,
               dc:    dc,
               onTap: () => context.push('/ucr/favorites'),
@@ -174,7 +176,7 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
             if (user?.hasUsoRole == true) ...[
               _ActionRow(
                 icon:    Iconsax.briefcase,
-                label:   'Switch to Service Provider',
+                label:   l10n.switchToProvider,
                 color:   const Color(0xFF0466C8),
                 loading: _activatingUso,
                 dc:      dc,
@@ -183,7 +185,7 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
             ] else ...[
               _ActionRow(
                 icon:    Iconsax.briefcase,
-                label:   'Become a Service Provider',
+                label:   l10n.becomeProvider,
                 color:   const Color(0xFF0466C8),
                 loading: _activatingUso,
                 dc:      dc,
@@ -198,7 +200,7 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
           _SectionCard(dc: dc, children: [
             _ActionRow(
               icon:  Iconsax.setting,
-              label: 'Settings',
+              label: l10n.settings,
               color: dc.textPrimary,
               dc:    dc,
               onTap: () => context.push('/settings'),
@@ -211,28 +213,28 @@ class _UcrProfileScreenState extends ConsumerState<UcrProfileScreen> {
           _SectionCard(dc: dc, children: [
             _ActionRow(
               icon:  Iconsax.logout,
-              label: 'Log out',
+              label: l10n.logout,
               color: AppColors.error,
               dc:    dc,
               onTap: () async {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Log out'),
-                    content: const Text(
-                      'Are you sure you want to log out?',
-                      style: TextStyle(fontSize: 14),
+                    title: Text(l10n.logoutTitle),
+                    content: Text(
+                      l10n.logoutConfirm,
+                      style: const TextStyle(fontSize: 14),
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(ctx).pop(false),
-                        child: const Text('Cancel'),
+                        child: Text(l10n.cancel),
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(ctx).pop(true),
-                        child: const Text(
-                          'Log out',
-                          style: TextStyle(color: AppColors.error),
+                        child: Text(
+                          l10n.logout,
+                          style: const TextStyle(color: AppColors.error),
                         ),
                       ),
                     ],

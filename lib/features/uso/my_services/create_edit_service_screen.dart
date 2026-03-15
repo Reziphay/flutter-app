@@ -14,6 +14,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/l10n/app_localizations.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
 import '../../../core/network/network_exception.dart';
@@ -335,7 +336,7 @@ class _CreateEditServiceScreenState
       _showError(e.message);
     } catch (_) {
       if (!mounted) return;
-      _showError('Something went wrong. Please try again.');
+      _showError(context.l10n.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -406,10 +407,11 @@ class _CreateEditServiceScreenState
       });
     } on PlatformException catch (e) {
       if (!mounted) return;
+      final l10n = context.l10n;
       final msg = e.code == 'camera_access_denied'
-          ? 'Camera access denied. Please allow it in Settings.'
+          ? l10n.cameraAccessDenied
           : e.code == 'photo_access_denied'
-              ? 'Photo library access denied. Please allow it in Settings.'
+              ? l10n.photoLibraryAccessDenied
               : 'Could not open ${source == ImageSource.camera ? 'camera' : 'photo library'}.';
       _showError(msg);
     }
@@ -470,9 +472,9 @@ class _CreateEditServiceScreenState
                     Iconsax.trash,
                     color: AppColors.error,
                   ),
-                  title: const Text(
-                    'Remove photo',
-                    style: TextStyle(color: AppColors.error),
+                  title: Text(
+                    context.l10n.removePhoto,
+                    style: const TextStyle(color: AppColors.error),
                   ),
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -493,6 +495,7 @@ class _CreateEditServiceScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final primary = context.palette.primary;
 
     final dc = context.dc;
@@ -500,7 +503,7 @@ class _CreateEditServiceScreenState
     if (_loadingInit) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(_isEdit ? 'Edit Service' : 'New Service'),
+          title: Text(_isEdit ? l10n.editService : l10n.newService),
           backgroundColor: dc.background,
           elevation: 0,
         ),
@@ -512,7 +515,7 @@ class _CreateEditServiceScreenState
       backgroundColor: dc.secondaryBackground,
       appBar: AppBar(
         title: Text(
-          _isEdit ? 'Edit Service' : 'New Service',
+          _isEdit ? l10n.editService : l10n.newService,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -538,7 +541,7 @@ class _CreateEditServiceScreenState
             TextButton(
               onPressed: _submit,
               child: Text(
-                _isEdit ? 'Save' : 'Create',
+                _isEdit ? l10n.save : l10n.create,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   color: primary,
@@ -554,7 +557,7 @@ class _CreateEditServiceScreenState
           padding: const EdgeInsets.all(16),
           children: [
             // ── Service Photo ─────────────────────────────────────────────
-            _SectionHeader(title: 'Service Photo', icon: Iconsax.image),
+            _SectionHeader(title: l10n.servicePhoto, icon: Iconsax.image),
             _PhotoPicker(
               pickedImage:      _pickedImage,
               existingPhotoUrl: _removePhoto ? null : _existingPhotoUrl,
@@ -564,20 +567,20 @@ class _CreateEditServiceScreenState
             const SizedBox(height: 16),
 
             // ── Basic Info ────────────────────────────────────────────────
-            _SectionHeader(title: 'Basic Info', icon: Iconsax.document_text),
+            _SectionHeader(title: l10n.basicInfo, icon: Iconsax.document_text),
             _FieldCard(children: [
               _FormField(
                 controller: _nameCtrl,
-                label: 'SERVICE NAME',
-                hint: 'e.g. Haircut, Dental Cleaning',
+                label: l10n.serviceName.toUpperCase(),
+                hint: l10n.serviceNameHint,
                 validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                    (v == null || v.trim().isEmpty) ? l10n.nameRequired : null,
               ),
               const SizedBox(height: 12),
               _FormField(
                 controller: _descCtrl,
-                label: 'DESCRIPTION',
-                hint: 'Optional description',
+                label: l10n.descriptionLabel.toUpperCase(),
+                hint: l10n.descriptionHint,
                 maxLines: 3,
               ),
             ]),
@@ -585,11 +588,11 @@ class _CreateEditServiceScreenState
             const SizedBox(height: 16),
 
             // ── Brand & Category ──────────────────────────────────────────
-            _SectionHeader(title: 'Brand & Category', icon: Iconsax.briefcase),
+            _SectionHeader(title: l10n.brandDetailLabel, icon: Iconsax.briefcase),
             _FieldCard(children: [
               _PickerRow(
-                label: 'BRAND',
-                value: _selectedBrandName ?? 'No brand (independent)',
+                label: l10n.brandLabel.toUpperCase(),
+                value: _selectedBrandName ?? l10n.none,
                 onTap: _brands.isEmpty ? null : _pickBrand,
                 trailing: _selectedBrandId != null
                     ? GestureDetector(
@@ -604,8 +607,8 @@ class _CreateEditServiceScreenState
               ),
               const SizedBox(height: 12),
               _PickerRow(
-                label: 'CATEGORY',
-                value: _selectedCategoryName ?? 'None',
+                label: l10n.categoryLabel.toUpperCase(),
+                value: _selectedCategoryName ?? l10n.none,
                 onTap: _categories.isEmpty ? null : _pickCategory,
                 trailing: _selectedCategoryId != null
                     ? GestureDetector(
@@ -623,7 +626,7 @@ class _CreateEditServiceScreenState
             const SizedBox(height: 16),
 
             // ── Pricing ───────────────────────────────────────────────────
-            _SectionHeader(title: 'Pricing', icon: Iconsax.money),
+            _SectionHeader(title: l10n.pricingSection, icon: Iconsax.money),
             _FieldCard(children: [
               _PriceRow(
                 controller: _priceCtrl,
@@ -635,25 +638,25 @@ class _CreateEditServiceScreenState
             const SizedBox(height: 16),
 
             // ── Booking Settings ──────────────────────────────────────────
-            _SectionHeader(title: 'Booking Settings', icon: Iconsax.setting),
+            _SectionHeader(title: l10n.bookingSettings, icon: Iconsax.setting),
             _FieldCard(children: [
               _ToggleRow<_ServiceType>(
-                label: 'SERVICE TYPE',
+                label: l10n.serviceType.toUpperCase(),
                 value: _serviceType,
-                items: const [
-                  (_ServiceType.solo,  'Solo'),
-                  (_ServiceType.multi, 'Multi'),
+                items: [
+                  (_ServiceType.solo,  l10n.solo),
+                  (_ServiceType.multi, l10n.multi),
                 ],
                 primary: primary,
                 onChanged: (v) => setState(() => _serviceType = v),
               ),
               const SizedBox(height: 12),
               _ToggleRow<_ApprovalMode>(
-                label: 'APPROVAL MODE',
+                label: l10n.approvalMode.toUpperCase(),
                 value: _approvalMode,
-                items: const [
-                  (_ApprovalMode.manual, 'Manual'),
-                  (_ApprovalMode.auto,   'Auto'),
+                items: [
+                  (_ApprovalMode.manual, l10n.manual),
+                  (_ApprovalMode.auto,   l10n.autoApproval),
                 ],
                 primary: primary,
                 onChanged: (v) => setState(() => _approvalMode = v),
@@ -661,20 +664,20 @@ class _CreateEditServiceScreenState
               const SizedBox(height: 12),
               _FormField(
                 controller: _waitingCtrl,
-                label: 'WAITING TOLERANCE (MIN)',
+                label: l10n.waitingTime.toUpperCase(),
                 hint: 'e.g. 15',
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Required';
-                  if (int.tryParse(v.trim()) == null) return 'Enter a number';
+                  if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
+                  if (int.tryParse(v.trim()) == null) return l10n.enterNumber;
                   return null;
                 },
               ),
               const SizedBox(height: 12),
               _FormField(
                 controller: _minAdvCtrl,
-                label: 'MIN ADVANCE BOOKING (MIN)',
+                label: l10n.minAdvance.toUpperCase(),
                 hint: 'e.g. 60  (optional)',
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -682,7 +685,7 @@ class _CreateEditServiceScreenState
               const SizedBox(height: 12),
               _FormField(
                 controller: _maxAdvCtrl,
-                label: 'MAX ADVANCE BOOKING (MIN)',
+                label: l10n.maxAdvance.toUpperCase(),
                 hint: 'e.g. 43200 = 30 days  (optional)',
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -690,7 +693,7 @@ class _CreateEditServiceScreenState
               const SizedBox(height: 12),
               _FormField(
                 controller: _cancelCtrl,
-                label: 'FREE CANCELLATION UNTIL (MIN BEFORE)',
+                label: l10n.freeCancellationDeadline.toUpperCase(),
                 hint: 'e.g. 1440 = 24 h  (optional)',
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -700,7 +703,7 @@ class _CreateEditServiceScreenState
             const SizedBox(height: 16),
 
             // ── Availability Schedule ─────────────────────────────────────
-            _SectionHeader(title: 'Weekly Schedule', icon: Iconsax.calendar),
+            _SectionHeader(title: l10n.weeklySchedule, icon: Iconsax.calendar),
             _Card(children: [
               for (int i = 0; i < _days.length; i++) ...[
                 if (i > 0) _CardDivider(),
@@ -731,7 +734,7 @@ class _CreateEditServiceScreenState
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => _PickerSheet<_BrandItem>(
-        title: 'Select Brand',
+        title: context.l10n.selectBrand,
         items: _brands,
         labelOf: (b) => b.name,
         selectedId: _selectedBrandId,
@@ -754,7 +757,7 @@ class _CreateEditServiceScreenState
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => _PickerSheet<CategoryItem>(
-        title: 'Select Category',
+        title: context.l10n.selectCategory,
         items: all,
         labelOf: (c) => c.name,
         selectedId: _selectedCategoryId,
@@ -1034,7 +1037,7 @@ class _PriceRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'PRICE',
+          context.l10n.priceLabel.toUpperCase(),
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
@@ -1054,7 +1057,7 @@ class _PriceRow extends StatelessWidget {
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
                 ],
                 decoration: InputDecoration(
-                  hintText: 'Leave empty if free',
+                  hintText: context.l10n.priceHint,
                   filled: true,
                   fillColor: fillColor,
                   isDense: true,
@@ -1310,44 +1313,53 @@ class _PhotoPicker extends StatelessWidget {
     );
   }
 
-  Widget _buildEmpty(Color primary, AppDynamicColors dc) => Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: primary.withValues(alpha: 0.2),
-            width: 1.5,
-            strokeAlign: BorderSide.strokeAlignInside,
+  Widget _buildEmpty(Color primary, AppDynamicColors dc) {
+    // BuildContext is not available here; strings are passed in via build
+    // Use a Builder to access context for l10n
+    return Builder(
+      builder: (context) {
+        final l10n = context.l10n;
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: primary.withValues(alpha: 0.2),
+              width: 1.5,
+              strokeAlign: BorderSide.strokeAlignInside,
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Iconsax.camera, color: primary, size: 24),
               ),
-              child: Icon(Iconsax.camera, color: primary, size: 24),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Add Service Photo',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: primary,
+              const SizedBox(height: 10),
+              Text(
+                l10n.addServicePhoto,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: primary,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Tap to choose from library or camera',
-              style: TextStyle(fontSize: 12, color: dc.textTertiary),
-            ),
-          ],
-        ),
-      );
+              const SizedBox(height: 4),
+              Text(
+                l10n.tapToChoose,
+                style: TextStyle(fontSize: 12, color: dc.textTertiary),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildPreview(Color primary) {
     final imageWidget = pickedImage != null
@@ -1380,19 +1392,21 @@ class _PhotoPicker extends StatelessWidget {
         // "Change" label
         Positioned(
           left: 12, bottom: 10,
-          child: Row(
-            children: [
-              const Icon(Iconsax.camera, color: Colors.white, size: 16),
-              const SizedBox(width: 6),
-              const Text(
-                'Change photo',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+          child: Builder(
+            builder: (context) => Row(
+              children: [
+                const Icon(Iconsax.camera, color: Colors.white, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  context.l10n.changePhoto,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

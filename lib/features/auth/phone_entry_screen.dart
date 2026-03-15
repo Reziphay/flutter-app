@@ -14,6 +14,7 @@ import '../../core/theme/app_palette.dart';
 import '../../core/network/network_exception.dart';
 import '../../services/auth_service.dart';
 import '../../state/app_state.dart';
+import '../../core/l10n/app_localizations.dart';
 
 class PhoneEntryScreen extends ConsumerStatefulWidget {
   const PhoneEntryScreen({super.key});
@@ -63,7 +64,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
     } on NetworkException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Something went wrong. Please try again.');
+      setState(() => _error = context.l10n.genericError);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -74,6 +75,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
     final role = ref.watch(appStateProvider).selectedRole;
 
     final dc = context.dc;
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: dc.background,
       appBar: AppBar(
@@ -114,6 +116,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
 
   Widget _buildHeader(dynamic role) {
     final primary = context.palette.primary;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -134,7 +137,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Enter your phone number',
+          l10n.phoneTitle,
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -143,7 +146,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          "We'll send you a one-time code to verify your identity",
+          l10n.phoneSubtitle,
           style: TextStyle(fontSize: 15, color: context.dc.textSecondary),
         ),
       ],
@@ -153,11 +156,12 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
   // MARK: - Phone Field
 
   Widget _buildPhoneField() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Phone Number',
+          l10n.phoneLabel,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -196,7 +200,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                 ],
                 style: TextStyle(fontSize: 17, color: context.dc.textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'XX 123 45 67',
+                  hintText: l10n.phonePlaceholder,
                   filled: true,
                   fillColor: context.dc.secondaryBackground,
                   border: OutlineInputBorder(
@@ -270,9 +274,9 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
                   strokeWidth: 2.5,
                 ),
               )
-            : const Text(
-                'Send Code',
-                style: TextStyle(
+            : Text(
+                context.l10n.phoneSendCode,
+                style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -285,7 +289,7 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
   Widget _buildTermsText() {
     return Center(
       child: Text(
-        'By continuing, you agree to our Terms of Service\nand Privacy Policy',
+        context.l10n.phoneTerms,
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: 12, color: context.dc.textTertiary),
       ),

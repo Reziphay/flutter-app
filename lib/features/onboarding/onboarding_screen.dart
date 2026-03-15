@@ -11,6 +11,7 @@ import '../../core/theme/app_dynamic_colors.dart';
 import '../../models/user.dart';
 import '../../state/app_state.dart';
 import '../../state/settings_provider.dart';
+import '../../core/l10n/app_localizations.dart';
 
 class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
@@ -186,6 +187,7 @@ class _LangSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
     return Container(
       decoration: BoxDecoration(
         color: dc.background,
@@ -207,7 +209,7 @@ class _LangSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Language',
+                l10n.languageModalTitle,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -293,6 +295,7 @@ class _HeroSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
     return Column(
       children: [
         Text(
@@ -306,7 +309,7 @@ class _HeroSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Book smarter, live better',
+          l10n.appTagline,
           style: TextStyle(
             fontSize: 16,
             color: dc.textSecondary,
@@ -326,11 +329,12 @@ class _RoleCardsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'How would you like to continue?',
+          l10n.onboardingPrompt,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
@@ -341,16 +345,16 @@ class _RoleCardsSection extends StatelessWidget {
         const SizedBox(height: 16),
         _RoleCard(
           icon: Icons.person_rounded,
-          title: "I'm a Customer",
-          subtitle: 'Discover and book services near you',
+          title: l10n.roleCustomer,
+          subtitle: l10n.roleCustomerDesc,
           color: const Color(0xFFC71F37),
           onTap: () => onRoleSelected(UserRole.ucr),
         ),
         const SizedBox(height: 12),
         _RoleCard(
           icon: Icons.work_rounded,
-          title: "I'm a Service Provider",
-          subtitle: 'Manage your services and bookings',
+          title: l10n.roleProvider,
+          subtitle: l10n.roleProviderDesc,
           color: const Color(0xFF0466C8),
           onTap: () => onRoleSelected(UserRole.uso),
         ),

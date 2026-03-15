@@ -12,6 +12,7 @@ import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../services/auth_service.dart';
 import '../../state/app_state.dart';
+import '../../core/l10n/app_localizations.dart';
 
 /// Shown after OTP verify when the user is new and needs to complete registration.
 /// Receives [registrationToken] (short-lived JWT proving phone was verified).
@@ -78,7 +79,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     } on NetworkException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Something went wrong. Please try again.');
+      setState(() => _error = context.l10n.genericError);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -87,6 +88,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: dc.background,
       appBar: AppBar(
@@ -107,8 +109,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               _buildHeader(),
               const SizedBox(height: 40),
               _buildField(
-                label:        'Full Name',
-                placeholder:  'Your full name',
+                label:        l10n.registerFullName,
+                placeholder:  l10n.registerFullNameHint,
                 controller:   _fullNameCtrl,
                 focusNode:    _fullNameFocus,
                 keyboard:     TextInputType.name,
@@ -117,8 +119,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
               const SizedBox(height: 16),
               _buildField(
-                label:        'Email Address',
-                placeholder:  'your@email.com',
+                label:        l10n.registerEmail,
+                placeholder:  l10n.registerEmailHint,
                 controller:   _emailCtrl,
                 focusNode:    _emailFocus,
                 keyboard:     TextInputType.emailAddress,
@@ -141,6 +143,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // MARK: - Header
 
   Widget _buildHeader() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -159,7 +162,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Almost there!',
+          l10n.registerTitle,
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -168,7 +171,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Phone verified: ${widget.phone}',
+          l10n.registerSubtitle(widget.phone),
           style: TextStyle(fontSize: 15, color: context.dc.textSecondary),
         ),
       ],
@@ -276,9 +279,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   strokeWidth: 2.5,
                 ),
               )
-            : const Text(
-                'Create Account',
-                style: TextStyle(
+            : Text(
+                context.l10n.registerCreateAccount,
+                style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,

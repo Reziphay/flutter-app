@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/network/api_client.dart';
@@ -119,6 +120,7 @@ class MyServicesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n      = context.l10n;
     final primary   = context.palette.primary;
     final dc        = context.dc;
     final async     = ref.watch(_myServicesProvider);
@@ -150,7 +152,7 @@ class MyServicesScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'My Services',
+                          l10n.myServicesTitle,
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -158,7 +160,7 @@ class MyServicesScreen extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          'Manage your services',
+                          l10n.myServicesSubtitle,
                           style: TextStyle(
                             fontSize: 14,
                             color: dc.textSecondary,
@@ -200,12 +202,12 @@ class MyServicesScreen extends ConsumerWidget {
                       const Icon(Iconsax.warning_2,
                           size: 48, color: AppColors.textTertiary),
                       const SizedBox(height: 12),
-                      const Text('Something went wrong'),
+                      Text(l10n.somethingWentWrong),
                       const SizedBox(height: 8),
                       TextButton(
                         onPressed: () =>
                             ref.read(_myServicesProvider.notifier).refresh(),
-                        child: const Text('Try again'),
+                        child: Text(l10n.tryAgain),
                       ),
                     ],
                   ),
@@ -222,16 +224,16 @@ class MyServicesScreen extends ConsumerWidget {
                                 size: 64,
                                 color: primary.withValues(alpha: 0.3)),
                             const SizedBox(height: 16),
-                            const Text(
-                              'No services yet',
-                              style: TextStyle(
+                            Text(
+                              l10n.noServicesYet,
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first service and start receiving bookings.',
+                              l10n.noServicesSubtitle,
                               textAlign: TextAlign.center,
                               style: TextStyle(color: dc.textSecondary),
                             ),
@@ -270,25 +272,26 @@ class _ServiceCard extends ConsumerWidget {
   final _ServiceItem service;
 
   Future<void> _confirmArchive(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        title: const Text('Archive Service'),
-        content: const Text(
-          'This service will be deactivated and hidden from customers. You can re-activate it later.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        title: Text(l10n.archiveServiceTitle),
+        content: Text(
+          l10n.archiveServiceContent,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Archive',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              l10n.archive,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -300,8 +303,8 @@ class _ServiceCard extends ConsumerWidget {
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to archive. Please try again.'),
+        SnackBar(
+          content: Text(context.l10n.failedToArchive),
           backgroundColor: AppColors.error,
         ),
       );
@@ -310,6 +313,7 @@ class _ServiceCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n    = context.l10n;
     final primary = context.palette.primary;
     final dc      = context.dc;
     final s = service;
@@ -328,14 +332,14 @@ class _ServiceCard extends ConsumerWidget {
           color: AppColors.error.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Iconsax.archive, color: AppColors.error, size: 22),
-            SizedBox(height: 4),
+            const Icon(Iconsax.archive, color: AppColors.error, size: 22),
+            const SizedBox(height: 4),
             Text(
-              'Archive',
-              style: TextStyle(
+              l10n.archive,
+              style: const TextStyle(
                 fontSize: 11,
                 color: AppColors.error,
                 fontWeight: FontWeight.w600,

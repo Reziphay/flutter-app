@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
@@ -76,6 +77,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     final topPadding = MediaQuery.of(context).padding.top;
 
     final dc = context.dc;
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: dc.secondaryBackground,
       body: Column(
@@ -136,10 +138,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   indicatorColor: AppColors.primary,
                   indicatorSize: TabBarIndicatorSize.label,
                   dividerColor: dc.divider,
-                  tabs: const [
-                    Tab(text: 'Services'),
-                    Tab(text: 'Brands'),
-                    Tab(text: 'Providers'),
+                  tabs: [
+                    Tab(text: l10n.searchTabServices),
+                    Tab(text: l10n.searchTabBrands),
+                    Tab(text: l10n.searchTabProviders),
                   ],
                 ),
               ],
@@ -178,6 +180,7 @@ class _SearchInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
     final border = OutlineInputBorder(
       borderRadius: const BorderRadius.all(Radius.circular(10)),
       borderSide: BorderSide.none,
@@ -189,7 +192,7 @@ class _SearchInput extends StatelessWidget {
       textInputAction: TextInputAction.search,
       textAlignVertical: TextAlignVertical.center,
       decoration: InputDecoration(
-        hintText: 'Search services, brands…',
+        hintText: l10n.searchHint,
         hintStyle: TextStyle(color: dc.textTertiary, fontSize: 14),
         filled: true,
         fillColor: dc.secondaryBackground,
@@ -215,6 +218,7 @@ class _EmptySearchHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -222,7 +226,7 @@ class _EmptySearchHint extends StatelessWidget {
           Icon(Iconsax.search_normal, size: 64, color: dc.textTertiary),
           const SizedBox(height: 16),
           Text(
-            'Start typing to search',
+            l10n.searchStartTyping,
             style: TextStyle(fontSize: 16, color: dc.textSecondary),
           ),
         ],
@@ -237,13 +241,14 @@ class _ServicesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resultsAsync = ref.watch(searchResultsProvider);
+    final l10n = context.l10n;
 
     return resultsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => _ErrorView(message: e.toString()),
       data: (results) {
         if (results.services.isEmpty) {
-          return const _NoResults(label: 'No services found');
+          return _NoResults(label: l10n.searchNoServices);
         }
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -267,13 +272,14 @@ class _BrandsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resultsAsync = ref.watch(searchResultsProvider);
+    final l10n = context.l10n;
 
     return resultsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => _ErrorView(message: e.toString()),
       data: (results) {
         if (results.brands.isEmpty) {
-          return const _NoResults(label: 'No brands found');
+          return _NoResults(label: l10n.searchNoBrands);
         }
         return GridView.builder(
           padding: const EdgeInsets.all(16),
@@ -303,13 +309,14 @@ class _ProvidersTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resultsAsync = ref.watch(searchResultsProvider);
+    final l10n = context.l10n;
 
     return resultsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => _ErrorView(message: e.toString()),
       data: (results) {
         if (results.providers.isEmpty) {
-          return const _NoResults(label: 'No providers found');
+          return _NoResults(label: l10n.searchNoProviders);
         }
         return ListView.builder(
           padding: const EdgeInsets.all(16),

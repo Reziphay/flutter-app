@@ -7,16 +7,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../state/explore_providers.dart';
 
-const _sortOptions = [
-  _SortOption('RELEVANCE',  'Relevance'),
-  _SortOption('RATING',     'Highest Rated'),
-  _SortOption('PROXIMITY',  'Nearest First'),
-  _SortOption('PRICE_LOW',  'Price: Low to High'),
-  _SortOption('PRICE_HIGH', 'Price: High to Low'),
-  _SortOption('POPULARITY', 'Most Popular'),
+List<_SortOption> _buildSortOptions(AppLocalizations l10n) => [
+  _SortOption('RELEVANCE',  l10n.sortRelevance),
+  _SortOption('RATING',     l10n.sortHighestRated),
+  _SortOption('PROXIMITY',  l10n.sortNearestFirst),
+  _SortOption('PRICE_LOW',  l10n.sortPriceLow),
+  _SortOption('PRICE_HIGH', l10n.sortPriceHigh),
+  _SortOption('POPULARITY', l10n.sortMostPopular),
 ];
 
 class SearchFiltersSheet extends ConsumerStatefulWidget {
@@ -69,6 +70,8 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
   @override
   Widget build(BuildContext context) {
     final dc = context.dc;
+    final l10n = context.l10n;
+    final sortOptions = _buildSortOptions(l10n);
     return Container(
       decoration: BoxDecoration(
         color: dc.background,
@@ -96,7 +99,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
               child: Row(
                 children: [
                   Text(
-                    'Filters',
+                    l10n.filtersTitle,
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -106,7 +109,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                   const Spacer(),
                   TextButton(
                     onPressed: _reset,
-                    child: const Text('Reset', style: TextStyle(color: AppColors.primary)),
+                    child: Text(l10n.filtersReset, style: const TextStyle(color: AppColors.primary)),
                   ),
                 ],
               ),
@@ -122,7 +125,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                   children: [
                     // Sort by
                     Text(
-                      'Sort by',
+                      l10n.filtersSortBy,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -133,7 +136,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _sortOptions.map((opt) {
+                      children: sortOptions.map((opt) {
                         final selected = _sortBy == opt.value;
                         return ChoiceChip(
                           label: Text(opt.label),
@@ -158,7 +161,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                     Row(
                       children: [
                         Text(
-                          'Price range',
+                          l10n.filtersPriceRange,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -206,7 +209,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _apply,
-                  child: const Text('Apply Filters'),
+                  child: Text(l10n.filtersApply),
                 ),
               ),
             ),

@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
 import '../explore/widgets/rating_row.dart';
@@ -49,6 +50,7 @@ class _ServiceDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -141,9 +143,9 @@ class _ServiceDetailView extends StatelessWidget {
 
                   // Description
                   if (service.description != null && service.description!.isNotEmpty) ...[
-                    const Text(
-                      'About',
-                      style: TextStyle(
+                    Text(
+                      l10n.about,
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
@@ -165,7 +167,7 @@ class _ServiceDetailView extends StatelessWidget {
                   if (service.brand != null)
                     _InfoTile(
                       icon: Iconsax.shop,
-                      label: 'Brand',
+                      label: l10n.brandDetailLabel,
                       value: service.brand!.name,
                     ),
 
@@ -173,7 +175,7 @@ class _ServiceDetailView extends StatelessWidget {
                   if (service.owner != null)
                     _InfoTile(
                       icon: Iconsax.user,
-                      label: 'Provider',
+                      label: l10n.providerLabel,
                       value: service.owner!.fullName,
                     ),
 
@@ -181,7 +183,7 @@ class _ServiceDetailView extends StatelessWidget {
                   if (service.address != null) ...[
                     _InfoTile(
                       icon: Iconsax.location,
-                      label: 'Location',
+                      label: l10n.location,
                       value: service.address!.city.isNotEmpty
                           ? service.address!.city
                           : service.address!.fullAddress,
@@ -205,10 +207,10 @@ class _ServiceDetailView extends StatelessWidget {
                       icon: service.approvalMode == 'AUTO'
                           ? Iconsax.tick_circle
                           : Iconsax.clock,
-                      label: 'Booking',
+                      label: l10n.booking,
                       value: service.approvalMode == 'AUTO'
-                          ? 'Instant confirmation'
-                          : 'Requires approval',
+                          ? l10n.instantConfirmation
+                          : l10n.requiresApproval,
                     ),
 
                   const SizedBox(height: 40),
@@ -335,6 +337,7 @@ class _BookButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       color: AppColors.background,
       padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
@@ -345,15 +348,15 @@ class _BookButton extends StatelessWidget {
             final booked = await showCreateReservationSheet(context, service);
             if (booked && context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Reservation created!'),
+                SnackBar(
+                  content: Text(context.l10n.reservationCreated),
                   backgroundColor: AppColors.success,
                 ),
               );
             }
           },
           child: Text(
-            service.approvalMode == 'AUTO' ? 'Book Now' : 'Request Booking',
+            service.approvalMode == 'AUTO' ? l10n.bookNow : l10n.requestBooking,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),

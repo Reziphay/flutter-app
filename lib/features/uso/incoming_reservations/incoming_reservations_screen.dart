@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../models/reservation.dart';
@@ -100,6 +101,7 @@ class _Header extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final isLoading = ref.watch(
       _incomingProvider.select((s) => s.isLoading),
     );
@@ -116,7 +118,7 @@ class _Header extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Incoming',
+                      l10n.incomingTitle,
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -124,7 +126,7 @@ class _Header extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      'Manage your bookings',
+                      l10n.incomingSubtitle,
                       style: TextStyle(
                         fontSize: 14,
                         color: context.dc.textSecondary,
@@ -159,9 +161,9 @@ class _Header extends ConsumerWidget {
           indicatorColor: primary,
           indicatorSize: TabBarIndicatorSize.label,
           dividerColor: context.dc.divider,
-          tabs: const [
-            Tab(text: 'Pending'),
-            Tab(text: 'Confirmed'),
+          tabs: [
+            Tab(text: l10n.tabPending),
+            Tab(text: l10n.tabConfirmed),
           ],
         ),
       ],
@@ -184,17 +186,18 @@ class _IncomingList extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) {
         final dc = context.dc;
+        final l10n = context.l10n;
         return Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Iconsax.warning_2, size: 48, color: dc.textTertiary),
               const SizedBox(height: 12),
-              Text('Something went wrong', style: TextStyle(color: dc.textPrimary)),
+              Text(l10n.somethingWentWrong, style: TextStyle(color: dc.textPrimary)),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => ref.read(_incomingProvider.notifier).refresh(),
-                child: const Text('Try again'),
+                child: Text(l10n.tryAgain),
               ),
             ],
           ),
@@ -218,7 +221,7 @@ class _IncomingList extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  pending ? 'No pending requests' : 'No confirmed bookings',
+                  pending ? context.l10n.noPendingRequests : context.l10n.noConfirmedBookings,
                   style: TextStyle(color: dc.textSecondary),
                 ),
               ],
@@ -353,7 +356,7 @@ class _IncomingCard extends ConsumerWidget {
                           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                         onPressed: () => _showRejectDialog(context, ref),
-                        child: const Text('Reject'),
+                        child: Text(context.l10n.rejectReservationTitle),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -370,7 +373,7 @@ class _IncomingCard extends ConsumerWidget {
                           elevation: 0,
                         ),
                         onPressed: () => _accept(context, ref),
-                        child: const Text('Accept'),
+                        child: Text(context.l10n.reservationAccepted),
                       ),
                     ),
                   ],
@@ -389,8 +392,8 @@ class _IncomingCard extends ConsumerWidget {
       onUpdated();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Reservation accepted ✓'),
+          SnackBar(
+            content: Text(context.l10n.reservationAccepted),
             backgroundColor: AppColors.success,
           ),
         );
@@ -406,24 +409,25 @@ class _IncomingCard extends ConsumerWidget {
 
   Future<void> _showRejectDialog(BuildContext context, WidgetRef ref) async {
     final reasonController = TextEditingController();
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reject Reservation'),
+        title: Text(l10n.rejectReservationTitle),
         content: TextField(
           controller: reasonController,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Reason (optional)'),
+          decoration: InputDecoration(hintText: l10n.cancelReasonHint),
           maxLines: 2,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reject', style: TextStyle(color: AppColors.error)),
+            child: Text(l10n.rejectReservationTitle, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -436,7 +440,7 @@ class _IncomingCard extends ConsumerWidget {
         onUpdated();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Reservation rejected')),
+            SnackBar(content: Text(context.l10n.reservationRejected)),
           );
         }
       } catch (e) {
@@ -467,12 +471,13 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final (label, color) = switch (status) {
-      ReservationStatus.pending   => ('Pending',   const Color(0xFFFF9500)),
-      ReservationStatus.confirmed => ('Confirmed', AppColors.success),
-      ReservationStatus.rejected  => ('Rejected',  AppColors.error),
-      ReservationStatus.completed => ('Done',      AppColors.textSecondary),
-      _                           => ('•',         AppColors.textTertiary),
+      ReservationStatus.pending   => (l10n.statusPending,   const Color(0xFFFF9500)),
+      ReservationStatus.confirmed => (l10n.statusConfirmed, AppColors.success),
+      ReservationStatus.rejected  => (l10n.statusRejected,  AppColors.error),
+      ReservationStatus.completed => (l10n.statusCompleted, AppColors.textSecondary),
+      _                           => ('•',                  AppColors.textTertiary),
     };
 
     return Container(

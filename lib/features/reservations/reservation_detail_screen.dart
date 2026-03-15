@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_palette.dart';
 import '../../models/reservation.dart';
 import '../../services/reservation_service.dart';
@@ -69,17 +70,18 @@ class _ReservationDetailViewState
 
   Future<void> _showCancelDialog() async {
     final reasonController = TextEditingController();
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel Reservation'),
+        title: Text(l10n.cancelReservationTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Are you sure you want to cancel this reservation?',
-              style: TextStyle(
+            Text(
+              l10n.cancelReservationContent,
+              style: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 16),
@@ -87,7 +89,7 @@ class _ReservationDetailViewState
               controller: reasonController,
               maxLines: 2,
               decoration: InputDecoration(
-                hintText: 'Reason (optional)',
+                hintText: l10n.cancelReasonHint,
                 hintStyle:
                     const TextStyle(color: AppColors.textTertiary),
                 filled: true,
@@ -103,12 +105,12 @@ class _ReservationDetailViewState
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Keep it'),
+            child: Text(l10n.keepIt),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Cancel booking'),
+            child: Text(l10n.cancelBooking),
           ),
         ],
       ),
@@ -127,7 +129,7 @@ class _ReservationDetailViewState
           reservationDetailProvider(widget.reservation.id));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reservation cancelled')),
+          SnackBar(content: Text(context.l10n.reservationCancelled)),
         );
         context.pop();
       }
@@ -146,8 +148,9 @@ class _ReservationDetailViewState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final r = widget.reservation;
-    final (statusLabel, statusColor) = _statusDisplay(r.status);
+    final (statusLabel, statusColor) = _statusDisplay(l10n, r.status);
 
     return Scaffold(
       backgroundColor: AppColors.secondaryBackground,
@@ -155,9 +158,9 @@ class _ReservationDetailViewState
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: _BackButton(),
-        title: const Text(
-          'Reservation',
-          style: TextStyle(
+        title: Text(
+          l10n.reservationTitle,
+          style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
@@ -205,23 +208,23 @@ class _ReservationDetailViewState
                 const SizedBox(height: 12),
                 _DetailRow(
                   icon: Iconsax.calendar,
-                  label: 'Date & Time',
+                  label: l10n.dateTime,
                   value: _formatDateTime(r.requestedStartAt),
                 ),
                 if (r.requestedEndAt != null)
                   _DetailRow(
                     icon: Iconsax.clock,
-                    label: 'End Time',
+                    label: l10n.endTime,
                     value: _formatDateTime(r.requestedEndAt!),
                   ),
                 _DetailRow(
                   icon: Iconsax.money,
-                  label: 'Price',
+                  label: l10n.price,
                   value: r.service.priceDisplay,
                 ),
                 _DetailRow(
                   icon: Iconsax.user,
-                  label: 'Provider',
+                  label: l10n.providerLabel,
                   value: r.owner.fullName,
                 ),
               ],
@@ -234,7 +237,7 @@ class _ReservationDetailViewState
           if (r.customerNote != null && r.customerNote!.isNotEmpty)
             _InfoCard(
               icon: Iconsax.note,
-              title: 'Your Note',
+              title: l10n.yourNote,
               body: r.customerNote!,
             ),
 
@@ -243,7 +246,7 @@ class _ReservationDetailViewState
             const SizedBox(height: 12),
             _InfoCard(
               icon: Iconsax.close_circle,
-              title: 'Rejection Reason',
+              title: l10n.rejectionReason,
               body: r.rejectionReason!,
               iconColor: AppColors.error,
             ),
@@ -254,7 +257,7 @@ class _ReservationDetailViewState
             const SizedBox(height: 12),
             _InfoCard(
               icon: Iconsax.close_circle,
-              title: 'Cancellation Reason',
+              title: l10n.cancellationReason,
               body: r.cancellationReason!,
               iconColor: AppColors.error,
             ),
@@ -270,15 +273,15 @@ class _ReservationDetailViewState
                 color: AppColors.success.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Iconsax.tick_circle,
+                  const Icon(Iconsax.tick_circle,
                       size: 18, color: AppColors.success),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Free cancellation available',
-                      style: TextStyle(
+                      l10n.freeCancellation,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.success,
                         fontWeight: FontWeight.w500,
@@ -303,8 +306,8 @@ class _ReservationDetailViewState
                       Icon(Iconsax.scan, size: 18, color: context.palette.primary),
                       SizedBox(width: 8),
                       Text(
-                        'Check-in QR',
-                        style: TextStyle(
+                        l10n.checkinQr,
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
@@ -343,12 +346,12 @@ class _ReservationDetailViewState
               children: [
                 _DetailRow(
                   icon: Iconsax.receipt,
-                  label: 'Booking ID',
+                  label: l10n.bookingId,
                   value: r.id.substring(0, 8).toUpperCase(),
                 ),
                 _DetailRow(
                   icon: Iconsax.calendar_1,
-                  label: 'Booked on',
+                  label: l10n.bookedOn,
                   value: _formatDateTime(r.createdAt),
                 ),
               ],
@@ -384,9 +387,9 @@ class _ReservationDetailViewState
                             color: AppColors.error,
                           ),
                         )
-                      : const Text(
-                          'Cancel Reservation',
-                          style: TextStyle(
+                      : Text(
+                          l10n.cancelReservationTitle,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -408,18 +411,18 @@ class _ReservationDetailViewState
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $h:$m';
   }
 
-  (String, Color) _statusDisplay(ReservationStatus s) => switch (s) {
-        ReservationStatus.pending              => ('Pending', AppColors.warning),
-        ReservationStatus.confirmed            => ('Confirmed', AppColors.success),
-        ReservationStatus.rejected             => ('Rejected', AppColors.error),
-        ReservationStatus.cancelledByCustomer  => ('Cancelled', AppColors.textSecondary),
-        ReservationStatus.cancelledByOwner     => ('Cancelled by Owner', AppColors.textSecondary),
+  (String, Color) _statusDisplay(AppLocalizations l10n, ReservationStatus s) => switch (s) {
+        ReservationStatus.pending              => (l10n.statusPending, AppColors.warning),
+        ReservationStatus.confirmed            => (l10n.statusConfirmed, AppColors.success),
+        ReservationStatus.rejected             => (l10n.statusRejected, AppColors.error),
+        ReservationStatus.cancelledByCustomer  => (l10n.statusCancelled, AppColors.textSecondary),
+        ReservationStatus.cancelledByOwner     => (l10n.statusCancelled, AppColors.textSecondary),
         ReservationStatus.changeRequestedByCustomer ||
         ReservationStatus.changeRequestedByOwner =>
-          ('Change Requested', AppColors.warning),
-        ReservationStatus.completed            => ('Completed', AppColors.success),
-        ReservationStatus.noShow               => ('No Show', AppColors.error),
-        ReservationStatus.expired              => ('Expired', AppColors.textTertiary),
+          (l10n.statusChangeReq, AppColors.warning),
+        ReservationStatus.completed            => (l10n.statusCompleted, AppColors.success),
+        ReservationStatus.noShow               => (l10n.statusNoShow, AppColors.error),
+        ReservationStatus.expired              => (l10n.statusExpired, AppColors.textTertiary),
       };
 }
 

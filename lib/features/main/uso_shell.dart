@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 
@@ -22,11 +22,17 @@ class UsoShell extends ConsumerStatefulWidget {
 }
 
 class _UsoShellState extends ConsumerState<UsoShell> {
-  static const _tabs = [
-    _TabItem(label: 'Incoming',      icon: Iconsax.calendar_tick,   route: '/uso/incoming'),
-    _TabItem(label: 'My Services',   icon: Iconsax.briefcase,       route: '/uso/services'),
-    _TabItem(label: 'Notifications', icon: Iconsax.notification,    route: '/uso/notifications'),
-    _TabItem(label: 'Profile',       icon: Iconsax.user,            route: '/uso/profile'),
+  static const _tabRoutes = [
+    '/uso/incoming',
+    '/uso/services',
+    '/uso/notifications',
+    '/uso/profile',
+  ];
+  static const _tabIcons = [
+    Iconsax.calendar_tick,
+    Iconsax.briefcase,
+    Iconsax.notification,
+    Iconsax.user,
   ];
 
   int _selectedIndex = 0;
@@ -34,7 +40,7 @@ class _UsoShellState extends ConsumerState<UsoShell> {
   void _onTabTapped(int index) {
     if (index == _selectedIndex) return;
     setState(() => _selectedIndex = index);
-    context.go(_tabs[index].route);
+    context.go(_tabRoutes[index]);
   }
 
   @override
@@ -45,7 +51,7 @@ class _UsoShellState extends ConsumerState<UsoShell> {
 
   void _syncIndex() {
     final loc = GoRouterState.of(context).matchedLocation;
-    final idx = _tabs.indexWhere((t) => loc.startsWith(t.route));
+    final idx = _tabRoutes.indexWhere((r) => loc.startsWith(r));
     if (idx != -1 && idx != _selectedIndex) {
       setState(() => _selectedIndex = idx);
     }
@@ -53,9 +59,16 @@ class _UsoShellState extends ConsumerState<UsoShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n    = context.l10n;
     final primary = context.palette.primary;
-
     final dc = context.dc;
+
+    final tabLabels = [
+      l10n.navIncoming,
+      l10n.navMyServices,
+      l10n.navNotifications,
+      l10n.navProfile,
+    ];
 
     return Scaffold(
       body: widget.child,
@@ -66,26 +79,14 @@ class _UsoShellState extends ConsumerState<UsoShell> {
         backgroundColor: dc.background,
         indicatorColor: Colors.transparent,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-        destinations: _tabs.map((tab) => NavigationDestination(
-          icon:         Icon(tab.icon, color: dc.textSecondary),
-          selectedIcon: Icon(tab.icon, color: primary),
-          label:        tab.label,
-        )).toList(),
+        destinations: List.generate(_tabRoutes.length, (i) => NavigationDestination(
+          icon:         Icon(_tabIcons[i], color: dc.textSecondary),
+          selectedIcon: Icon(_tabIcons[i], color: primary),
+          label:        tabLabels[i],
+        )),
       ),
     );
   }
-}
-
-class _TabItem {
-  const _TabItem({
-    required this.label,
-    required this.icon,
-    required this.route,
-  });
-
-  final String label;
-  final IconData icon;
-  final String route;
 }
 
 // ── Placeholder screens ────────────────────────────────────────────────────
@@ -95,6 +96,7 @@ class UsoNotificationsPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final dc = context.dc;
     return Scaffold(
       body: Center(
@@ -103,9 +105,9 @@ class UsoNotificationsPlaceholder extends StatelessWidget {
           children: [
             Icon(Iconsax.notification, size: 64, color: dc.textTertiary),
             const SizedBox(height: 16),
-            Text('Notifications', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: dc.textPrimary)),
+            Text(l10n.navNotifications, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: dc.textPrimary)),
             const SizedBox(height: 8),
-            Text('Coming in Phase 7', style: TextStyle(fontSize: 15, color: dc.textSecondary)),
+            Text(l10n.notificationsComingSoon, style: TextStyle(fontSize: 15, color: dc.textSecondary)),
           ],
         ),
       ),
