@@ -38,6 +38,10 @@ dependencies:
   # Network images
   cached_network_image: ^3.4.1
 
+  # Image / photo picker + cropper
+  image_picker: ^1.1.2
+  image_cropper: ^11.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

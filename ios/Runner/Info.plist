@@ -51,6 +51,10 @@
 	<string>Reziphay uses your location to show nearby services.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Reziphay uses your location to show nearby services.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Reziphay needs access to your photo library to upload a service photo.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Reziphay needs access to your camera to take a service photo.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

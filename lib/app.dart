@@ -25,6 +25,7 @@ import 'features/search/search_screen.dart';
 import 'features/service_detail/service_detail_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/uso/incoming_reservations/incoming_reservations_screen.dart';
+import 'features/uso/my_services/create_edit_service_screen.dart';
 import 'features/uso/my_services/my_services_screen.dart';
 import 'state/app_state.dart';
 import 'state/theme_provider.dart';
@@ -156,6 +157,17 @@ final _routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const UsoProfileScreen(),
           ),
         ],
+      ),
+
+      // ── USO Service CRUD ───────────────────────────────────────────────
+      GoRoute(
+        path: '/uso/services/new',
+        builder: (_, __) => const CreateEditServiceScreen(),
+      ),
+      GoRoute(
+        path: '/uso/services/:id/edit',
+        builder: (_, state) =>
+            CreateEditServiceScreen(serviceId: state.pathParameters['id']),
       ),
 
       // ── Shared full-screen routes ───────────────────────────────────────

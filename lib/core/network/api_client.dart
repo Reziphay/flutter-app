@@ -3,6 +3,8 @@
 //
 // Author: Vugar Safarzada (@vugarsafarzada)
 
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import '../storage/secure_storage.dart';
 import 'endpoints.dart';
@@ -66,6 +68,34 @@ class ApiClient {
         () => _dio.patch(path, data: data),
         fromJson,
       );
+
+  Future<void> deleteVoid(String path) async {
+    try {
+      await _dio.delete(path);
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
+
+  /// Uploads a file as multipart/form-data. Returns the parsed response body.
+  Future<Map<String, dynamic>> postMultipart(
+    String path, {
+    required File file,
+    String fieldName = 'file',
+  }) async {
+    final formData = FormData.fromMap({
+      fieldName: await MultipartFile.fromFile(
+        file.path,
+        filename: file.path.split('/').last,
+      ),
+    });
+    try {
+      final response = await _dio.post(path, data: formData);
+      return _unwrap(response, (j) => j);
+    } on DioException catch (e) {
+      throw _mapError(e);
+    }
+  }
 
   // MARK: - Core Execute (with optional 401 retry)
 

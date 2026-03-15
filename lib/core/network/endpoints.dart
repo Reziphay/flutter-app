@@ -55,6 +55,18 @@ abstract final class Endpoints {
   static String cancelByOwner(String id)        => '/reservations/$id/cancel-by-owner';
   static String completeManually(String id)     => '/reservations/$id/complete-manually';
 
-  // Services — USO
-  static const String myServices = '/services/mine';
+  // Services — USO (CRUD)
+  static const String myServices              = '/services/mine';
+  static const String createService           = '/services';
+  static String updateService(String id)      => '/services/$id';
+  static String archiveService(String id)     => '/services/$id';
+  static String serviceAvailRules(String id)  => '/services/$id/availability-rules';
+  static String serviceAvailExceptions(String id) => '/services/$id/availability-exceptions';
+  static String servicePhotos(String id)      => '/services/$id/photos';
+  static String deleteServicePhoto(String id, String photoId) => '/services/$id/photos/$photoId';
+
+  // Brands — USO
+  static const String myBrands    = '/brands/mine';
+  static const String createBrand = '/brands';
+  static String updateBrand(String id) => '/brands/$id';
 }
