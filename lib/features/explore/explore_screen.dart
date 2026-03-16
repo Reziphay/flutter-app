@@ -39,8 +39,7 @@ class ExploreScreen extends ConsumerWidget {
           color: AppColors.primary,
           displacement: topPadding + 60,
           onRefresh: () async {
-            ref.invalidate(nearbyServicesProvider);
-            ref.invalidate(featuredServicesProvider);
+            ref.invalidate(servicesPoolProvider);
             ref.invalidate(popularBrandsProvider);
             ref.invalidate(categoriesProvider);
           },
@@ -64,9 +63,8 @@ class ExploreScreen extends ConsumerWidget {
               ),
 
               // ── Sections ──────────────────────────────────────────────
-              SliverToBoxAdapter(child: _NearMeSection()),
               SliverToBoxAdapter(child: _PopularBrandsSection()),
-              SliverToBoxAdapter(child: _FeaturedServicesSection()),
+              SliverToBoxAdapter(child: _ServicesPoolSection()),
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
             ],
           ),
@@ -166,46 +164,59 @@ class _SearchTile extends StatelessWidget {
   }
 }
 
-// ── Near Me ─────────────────────────────────────────────────────────────────
+// ── Services Pool ────────────────────────────────────────────────────────────
 
-class _NearMeSection extends ConsumerWidget {
+class _ServicesPoolSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nearbyAsync = ref.watch(nearbyServicesProvider);
+    final poolAsync = ref.watch(servicesPoolProvider);
     final l10n = context.l10n;
+    final dc = context.dc;
 
-    return nearbyAsync.when(
+    return poolAsync.when(
       loading: () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeader(
-            title: l10n.exploreNearMe,
+            title: l10n.exploreFeatured,
             onSeeAll: () => context.push('/search'),
           ),
-          const _HorizontalShimmer(),
+          const _ListShimmer(),
         ],
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text(
+          'Error: $e',
+          style: TextStyle(color: dc.textSecondary, fontSize: 13),
+        ),
+      ),
       data: (result) {
-        if (result.items.isEmpty) return const SizedBox.shrink();
+        if (result.items.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Text(
+              l10n.brandNoServices,
+              style: TextStyle(color: dc.textSecondary),
+            ),
+          );
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeader(
-              title: l10n.exploreNearMe,
+              title: l10n.exploreFeatured,
               onSeeAll: () => context.push('/search'),
             ),
-            SizedBox(
-              height: 210,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: result.items.length,
-                itemBuilder: (_, i) => ServiceCard(
-                  service: result.items[i],
-                  onTap: () => context.push('/service/${result.items[i].id}'),
-                  compact: true,
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: result.items
+                    .map((s) => ServiceCard(
+                          service: s,
+                          onTap: () => context.push('/service/${s.id}'),
+                        ))
+                    .toList(),
               ),
             ),
           ],
@@ -260,49 +271,6 @@ class _PopularBrandsSection extends ConsumerWidget {
   }
 }
 
-// ── Featured Services ────────────────────────────────────────────────────────
-
-class _FeaturedServicesSection extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final featuredAsync = ref.watch(featuredServicesProvider);
-    final l10n = context.l10n;
-
-    return featuredAsync.when(
-      loading: () => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(title: l10n.exploreFeatured),
-          const _ListShimmer(),
-        ],
-      ),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (result) {
-        if (result.items.isEmpty) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionHeader(
-              title: l10n.exploreFeatured,
-              onSeeAll: () => context.push('/search'),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: result.items
-                    .map((s) => ServiceCard(
-                          service: s,
-                          onTap: () => context.push('/service/${s.id}'),
-                        ))
-                    .toList(),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
 
 // ── Shimmer placeholders ─────────────────────────────────────────────────────
 

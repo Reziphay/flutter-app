@@ -41,15 +41,17 @@ final categoriesProvider = FutureProvider<List<CategoryItem>>((ref) async {
 
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);
 
-// MARK: - Nearby Services
+// MARK: - Services Pool (all active services — MVP, no geo filter)
+
+final servicesPoolProvider = FutureProvider<ServiceListResult>((ref) async {
+  return DiscoveryService.instance.fetchAllServices();
+});
+
+// MARK: - Nearby Services (geo-filtered, used when location is available)
 
 final nearbyServicesProvider = FutureProvider<ServiceListResult>((ref) async {
   final location = await ref.watch(locationProvider.future);
-
-  if (location == null) {
-    // No location — fall back to a generic nearby request without coordinates
-    return const ServiceListResult();
-  }
+  if (location == null) return const ServiceListResult();
 
   return DiscoveryService.instance.fetchNearbyServices(
     lat: location.latitude,
@@ -57,12 +59,6 @@ final nearbyServicesProvider = FutureProvider<ServiceListResult>((ref) async {
     radiusKm: 20,
     limit: 10,
   );
-});
-
-// MARK: - Featured Services
-
-final featuredServicesProvider = FutureProvider<ServiceListResult>((ref) async {
-  return DiscoveryService.instance.fetchFeaturedServices(limit: 10);
 });
 
 // MARK: - Popular Brands
@@ -155,4 +151,10 @@ final brandDetailProvider = FutureProvider.family<BrandItem, String>((ref, id) a
 
 final brandServicesProvider = FutureProvider.family<ServiceListResult, String>((ref, brandId) async {
   return DiscoveryService.instance.fetchBrandServices(brandId);
+});
+
+// MARK: - Provider Services
+
+final providerServicesProvider = FutureProvider.family<ServiceListResult, String>((ref, ownerId) async {
+  return DiscoveryService.instance.fetchProviderServices(ownerId);
 });

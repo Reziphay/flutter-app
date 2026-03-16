@@ -47,6 +47,13 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Reziphay uses your location to show nearby services.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

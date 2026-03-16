@@ -3,6 +3,25 @@
 //
 // Author: Vugar Safarzada (@vugarsafarzada)
 
+// MARK: - Service Photo
+
+class ServicePhoto {
+  const ServicePhoto({required this.id, required this.url, this.sortOrder = 0});
+
+  final String id;
+  final String url;
+  final int sortOrder;
+
+  factory ServicePhoto.fromJson(Map<String, dynamic> json) {
+    final file = json['file'] as Map<String, dynamic>?;
+    return ServicePhoto(
+      id:        json['id'] as String? ?? '',
+      url:       file?['url'] as String? ?? '',
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 // MARK: - Shared sub-models
 
 class AddressItem {
@@ -58,16 +77,20 @@ class DiscoveryOwner {
     required this.id,
     required this.fullName,
     this.ratingStats,
+    this.avatarUrl,
   });
 
   final String id;
   final String fullName;
   final RatingStats? ratingStats;
+  final String? avatarUrl;
 
   factory DiscoveryOwner.fromJson(Map<String, dynamic> json) {
+    final avatar = json['avatar'] as Map<String, dynamic>?;
     return DiscoveryOwner(
-      id:          json['id']       as String? ?? '',
-      fullName:    json['fullName'] as String? ?? '',
+      id:        json['id']       as String? ?? '',
+      fullName:  json['fullName'] as String? ?? '',
+      avatarUrl: avatar?['url'] as String?,
       ratingStats: json['ratingStats'] != null
           ? RatingStats.fromJson(json['ratingStats'] as Map<String, dynamic>)
           : null,
@@ -101,18 +124,22 @@ class DiscoveryBrandRef {
     required this.name,
     this.status,
     this.ratingStats,
+    this.logoUrl,
   });
 
   final String id;
   final String name;
   final String? status;
   final RatingStats? ratingStats;
+  final String? logoUrl;
 
   factory DiscoveryBrandRef.fromJson(Map<String, dynamic> json) {
+    final logo = json['logo'] as Map<String, dynamic>?;
     return DiscoveryBrandRef(
-      id:     json['id']     as String? ?? '',
-      name:   json['name']   as String? ?? '',
-      status: json['status'] as String?,
+      id:      json['id']     as String? ?? '',
+      name:    json['name']   as String? ?? '',
+      status:  json['status'] as String?,
+      logoUrl: logo?['url'] as String?,
       ratingStats: json['ratingStats'] != null
           ? RatingStats.fromJson(json['ratingStats'] as Map<String, dynamic>)
           : null,
@@ -159,6 +186,7 @@ class ServiceItem {
     this.distanceKm,
     this.visibilityLabels = const [],
     this.visibilityPriority = 0,
+    this.photos = const [],
   });
 
   final String id;
@@ -176,6 +204,9 @@ class ServiceItem {
   final double? distanceKm;
   final List<VisibilityLabel> visibilityLabels;
   final int visibilityPriority;
+  final List<ServicePhoto> photos;
+
+  String? get thumbnailUrl => photos.isNotEmpty ? photos.first.url : null;
 
   bool get isFree => priceAmount == null || priceAmount == 0;
   bool get isVip  => visibilityLabels.any((l) => l.slug == 'vip');
@@ -199,7 +230,9 @@ class ServiceItem {
       id:                 json['id']           as String? ?? '',
       name:               json['name']         as String? ?? '',
       description:        json['description']  as String?,
-      priceAmount:        (json['priceAmount']  as num?)?.toDouble(),
+      priceAmount:        json['priceAmount'] != null
+          ? double.tryParse(json['priceAmount'].toString())
+          : null,
       priceCurrency:      json['priceCurrency'] as String?,
       serviceType:        json['serviceType']   as String?,
       approvalMode:       json['approvalMode']  as String?,
@@ -221,6 +254,10 @@ class ServiceItem {
       ratingStats: json['ratingStats'] != null
           ? RatingStats.fromJson(json['ratingStats'] as Map<String, dynamic>)
           : null,
+      photos: (json['photos'] as List<dynamic>?)
+              ?.map((p) => ServicePhoto.fromJson(p as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 }

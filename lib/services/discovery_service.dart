@@ -161,12 +161,31 @@ class DiscoveryService {
     return BrandItem.fromJson(brandJson);
   }
 
-  // MARK: - Brand Services
+  // MARK: - All Services (no geo/brand filter — MVP fallback)
 
-  Future<ServiceListResult> fetchBrandServices(String brandId, {int limit = 10}) async {
+  Future<ServiceListResult> fetchAllServices() async {
     return _client.get(
       Endpoints.services,
-      queryParameters: {'brandId': brandId, 'limit': limit},
+      fromJson: ServiceListResult.fromJson,
+    );
+  }
+
+  // MARK: - Brand Services
+
+  Future<ServiceListResult> fetchBrandServices(String brandId) async {
+    return _client.get(
+      Endpoints.services,
+      queryParameters: {'brandId': brandId},
+      fromJson: ServiceListResult.fromJson,
+    );
+  }
+
+  // MARK: - Provider Services
+
+  Future<ServiceListResult> fetchProviderServices(String ownerUserId) async {
+    return _client.get(
+      Endpoints.services,
+      queryParameters: {'ownerUserId': ownerUserId},
       fromJson: ServiceListResult.fromJson,
     );
   }

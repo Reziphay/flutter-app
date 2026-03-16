@@ -244,6 +244,19 @@ abstract class AppLocalizations {
   String get requestBooking;
   String get reservationCreated;
 
+  // ── Create Reservation Sheet ─────────────────────────────────────────────────
+  String get sheetBookNow;
+  String get sheetRequestBooking;
+  String get sheetDate;
+  String get sheetTime;
+  String get sheetNoteHint;
+  String get sheetConfirmBooking;
+  String get sheetSendRequest;
+
+  // ── Provider Profile ─────────────────────────────────────────────────────────
+  String get providerProfile;
+  String get providerNotFound;
+
   // ── Navigation ───────────────────────────────────────────────────────────────
   String get navExplore;
   String get navReservations;

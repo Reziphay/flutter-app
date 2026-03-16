@@ -235,6 +235,19 @@ class StringsEn implements AppLocalizations {
   @override String get requestBooking          => 'Request Booking';
   @override String get reservationCreated      => 'Reservation created!';
 
+  // ── Create Reservation Sheet ─────────────────────────────────────────────────
+  @override String get sheetBookNow            => 'Book Now';
+  @override String get sheetRequestBooking     => 'Request Booking';
+  @override String get sheetDate               => 'Date';
+  @override String get sheetTime               => 'Time';
+  @override String get sheetNoteHint           => 'Add a note (optional)';
+  @override String get sheetConfirmBooking     => 'Confirm Booking';
+  @override String get sheetSendRequest        => 'Send Request';
+
+  // ── Provider Profile ─────────────────────────────────────────────────────────
+  @override String get providerProfile         => 'Provider Profile';
+  @override String get providerNotFound        => 'Provider not found.';
+
   // ── Navigation ───────────────────────────────────────────────────────────────
   @override String get navExplore              => 'Explore';
   @override String get navReservations         => 'Reservations';

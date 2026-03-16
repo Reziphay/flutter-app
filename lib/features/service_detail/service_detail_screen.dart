@@ -3,6 +3,7 @@
 //
 // Author: Vugar Safarzada (@vugarsafarzada)
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
 import '../explore/widgets/rating_row.dart';
@@ -23,19 +25,20 @@ class ServiceDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final serviceAsync = ref.watch(serviceDetailProvider(serviceId));
+    final dc = context.dc;
 
     return serviceAsync.when(
       loading: () => Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(backgroundColor: AppColors.background, elevation: 0),
+        backgroundColor: dc.background,
+        appBar: AppBar(backgroundColor: dc.background, elevation: 0),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(backgroundColor: AppColors.background, elevation: 0),
+        backgroundColor: dc.background,
+        appBar: AppBar(backgroundColor: dc.background, elevation: 0),
         body: Center(
           child: Text(e.toString(),
-              style: const TextStyle(color: AppColors.textSecondary)),
+              style: TextStyle(color: dc.textSecondary)),
         ),
       ),
       data: (service) => _ServiceDetailView(service: service),
@@ -51,23 +54,33 @@ class _ServiceDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final dc = context.dc;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: dc.background,
       body: CustomScrollView(
         slivers: [
           // MARK: - Hero Photo / App Bar
           SliverAppBar(
             expandedHeight: 240,
-            backgroundColor: AppColors.background,
+            backgroundColor: dc.background,
             pinned: true,
-            leading: _BackButton(),
+            leading: const _BackButton(),
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                color: AppColors.secondaryBackground,
-                child: const Center(
-                  child: Icon(Iconsax.activity, size: 80, color: AppColors.textTertiary),
-                ),
-              ),
+              background: service.thumbnailUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: service.thumbnailUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(color: dc.secondaryBackground),
+                      errorWidget: (_, __, ___) => Container(
+                        color: dc.secondaryBackground,
+                        child: Icon(Iconsax.activity, size: 80, color: dc.textTertiary),
+                      ),
+                    )
+                  : Container(
+                      color: dc.secondaryBackground,
+                      child: Icon(Iconsax.activity, size: 80, color: dc.textTertiary),
+                    ),
             ),
           ),
 
@@ -84,16 +97,16 @@ class _ServiceDetailView extends StatelessWidget {
                       Expanded(
                         child: Text(
                           service.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                            color: dc.textPrimary,
                           ),
                         ),
                       ),
                       if (service.isVip) ...[
                         const SizedBox(width: 8),
-                        _VipChip(),
+                        const _VipChip(),
                       ],
                     ],
                   ),
@@ -128,35 +141,35 @@ class _ServiceDetailView extends StatelessWidget {
                       const Spacer(),
                       Text(
                         service.priceDisplay,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
+                          color: dc.textPrimary,
                         ),
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 20),
-                  const Divider(),
+                  Divider(color: dc.divider),
                   const SizedBox(height: 16),
 
                   // Description
                   if (service.description != null && service.description!.isNotEmpty) ...[
                     Text(
                       l10n.about,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: dc.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       service.description!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
-                        color: AppColors.textSecondary,
+                        color: dc.textSecondary,
                         height: 1.5,
                       ),
                     ),
@@ -165,18 +178,20 @@ class _ServiceDetailView extends StatelessWidget {
 
                   // Brand
                   if (service.brand != null)
-                    _InfoTile(
-                      icon: Iconsax.shop,
+                    _ClickableEntityTile(
                       label: l10n.brandDetailLabel,
-                      value: service.brand!.name,
+                      name: service.brand!.name,
+                      photoUrl: service.brand!.logoUrl,
+                      onTap: () => context.push('/brand/${service.brand!.id}'),
                     ),
 
                   // Provider
                   if (service.owner != null)
-                    _InfoTile(
-                      icon: Iconsax.user,
+                    _ClickableEntityTile(
                       label: l10n.providerLabel,
-                      value: service.owner!.fullName,
+                      name: service.owner!.fullName,
+                      photoUrl: service.owner!.avatarUrl,
+                      onTap: () => context.push('/provider/${service.owner!.id}'),
                     ),
 
                   // Location
@@ -193,9 +208,9 @@ class _ServiceDetailView extends StatelessWidget {
                         padding: const EdgeInsets.only(left: 44, bottom: 16),
                         child: Text(
                           _formatDistance(service.distanceKm!),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.textSecondary,
+                            color: dc.textSecondary,
                           ),
                         ),
                       ),
@@ -233,25 +248,28 @@ class _ServiceDetailView extends StatelessWidget {
 // MARK: - Widgets
 
 class _BackButton extends StatelessWidget {
+  const _BackButton();
+
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Padding(
       padding: const EdgeInsets.all(8),
       child: GestureDetector(
         onTap: () => context.pop(),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: dc.cardBackground,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: Colors.black.withValues(alpha: 0.15),
                 blurRadius: 8,
               ),
             ],
           ),
           padding: const EdgeInsets.all(6),
-          child: const Icon(Iconsax.arrow_left_2, size: 20, color: AppColors.textPrimary),
+          child: Icon(Iconsax.arrow_left_2, size: 20, color: dc.textPrimary),
         ),
       ),
     );
@@ -259,6 +277,8 @@ class _BackButton extends StatelessWidget {
 }
 
 class _VipChip extends StatelessWidget {
+  const _VipChip();
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -293,6 +313,7 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -305,26 +326,123 @@ class _InfoTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  label,
+                  label.toUpperCase(),
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textTertiary,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.6,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 15,
+                  style: TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
+                    color: dc.textPrimary,
                   ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ClickableEntityTile extends StatelessWidget {
+  const _ClickableEntityTile({
+    required this.label,
+    required this.name,
+    required this.onTap,
+    this.photoUrl,
+  });
+
+  final String label;
+  final String name;
+  final VoidCallback onTap;
+  final String? photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final dc = context.dc;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: dc.secondaryBackground,
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: photoUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: photoUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => _AvatarInitial(name: name),
+                      errorWidget: (_, __, ___) => _AvatarInitial(name: name),
+                    )
+                  : _AvatarInitial(name: name),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Iconsax.arrow_right_3, size: 16, color: dc.textTertiary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarInitial extends StatelessWidget {
+  const _AvatarInitial({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final dc = context.dc;
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return Center(
+      child: Text(
+        initial,
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: dc.textSecondary,
+        ),
       ),
     );
   }
@@ -338,8 +456,9 @@ class _BookButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final dc = context.dc;
     return Container(
-      color: AppColors.background,
+      color: dc.background,
       padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
       child: SizedBox(
         height: 52,

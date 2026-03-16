@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../models/discovery.dart';
 import '../../models/reservation.dart';
 import '../../services/reservation_service.dart';
@@ -120,11 +122,13 @@ class _CreateReservationSheetState
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final dc = context.dc;
+    final l10n = context.l10n;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: dc.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(20, 0, 20, bottom + 20),
       child: Column(
@@ -136,7 +140,7 @@ class _CreateReservationSheetState
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.tertiaryBackground,
+              color: dc.divider,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -145,20 +149,20 @@ class _CreateReservationSheetState
           // Title
           Text(
             widget.service.approvalMode == 'AUTO'
-                ? 'Book Now'
-                : 'Request Booking',
-            style: const TextStyle(
+                ? l10n.sheetBookNow
+                : l10n.sheetRequestBooking,
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: dc.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             widget.service.name,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: dc.textSecondary,
             ),
           ),
           const SizedBox(height: 24),
@@ -166,7 +170,7 @@ class _CreateReservationSheetState
           // Date row
           _PickerTile(
             icon: Iconsax.calendar,
-            label: 'Date',
+            label: l10n.sheetDate,
             value: _formatDate(_selectedDate),
             onTap: _pickDate,
           ),
@@ -175,7 +179,7 @@ class _CreateReservationSheetState
           // Time row
           _PickerTile(
             icon: Iconsax.clock,
-            label: 'Time',
+            label: l10n.sheetTime,
             value: _selectedTime.format(context),
             onTap: _pickTime,
           ),
@@ -185,11 +189,12 @@ class _CreateReservationSheetState
           TextField(
             controller: _noteController,
             maxLines: 3,
+            style: TextStyle(color: dc.textPrimary),
             decoration: InputDecoration(
-              hintText: 'Add a note (optional)',
-              hintStyle: const TextStyle(color: AppColors.textTertiary),
+              hintText: l10n.sheetNoteHint,
+              hintStyle: TextStyle(color: dc.textTertiary),
               filled: true,
-              fillColor: AppColors.secondaryBackground,
+              fillColor: dc.secondaryBackground,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               border: OutlineInputBorder(
@@ -209,58 +214,31 @@ class _CreateReservationSheetState
           ),
           const SizedBox(height: 24),
 
-          // Price + Book button row
-          Row(
-            children: [
-              // Price
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Price',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+          // Book button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
+              onPressed: _loading ? null : _submit,
+              child: _loading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      widget.service.approvalMode == 'AUTO'
+                          ? l10n.sheetConfirmBooking
+                          : l10n.sheetSendRequest,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  Text(
-                    widget.service.priceDisplay,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: SizedBox(
-                  height: 52,
-                  child: FilledButton(
-                    onPressed: _loading ? null : _submit,
-                    child: _loading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(
-                            widget.service.approvalMode == 'AUTO'
-                                ? 'Confirm Booking'
-                                : 'Send Request',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -293,12 +271,13 @@ class _PickerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dc = context.dc;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.secondaryBackground,
+          color: dc.secondaryBackground,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -307,23 +286,22 @@ class _PickerTile extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: dc.textSecondary,
               ),
             ),
             const Spacer(),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: dc.textPrimary,
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Iconsax.arrow_right_3,
-                size: 16, color: AppColors.textTertiary),
+            Icon(Iconsax.arrow_right_3, size: 16, color: dc.textTertiary),
           ],
         ),
       ),

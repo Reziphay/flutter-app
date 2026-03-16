@@ -235,6 +235,19 @@ class StringsRu implements AppLocalizations {
   @override String get requestBooking          => 'Запросить запись';
   @override String get reservationCreated      => 'Бронирование создано!';
 
+  // ── Create Reservation Sheet ─────────────────────────────────────────────────
+  @override String get sheetBookNow            => 'Забронировать';
+  @override String get sheetRequestBooking     => 'Запросить запись';
+  @override String get sheetDate               => 'Дата';
+  @override String get sheetTime               => 'Время';
+  @override String get sheetNoteHint           => 'Добавить заметку (необязательно)';
+  @override String get sheetConfirmBooking     => 'Подтвердить';
+  @override String get sheetSendRequest        => 'Отправить запрос';
+
+  // ── Provider Profile ─────────────────────────────────────────────────────────
+  @override String get providerProfile         => 'Профиль исполнителя';
+  @override String get providerNotFound        => 'Исполнитель не найден.';
+
   // ── Navigation ───────────────────────────────────────────────────────────────
   @override String get navExplore              => 'Обзор';
   @override String get navReservations         => 'Записи';

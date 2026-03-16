@@ -235,6 +235,19 @@ class StringsTr implements AppLocalizations {
   @override String get requestBooking          => 'Rezervasyon İste';
   @override String get reservationCreated      => 'Rezervasyon oluşturuldu!';
 
+  // ── Create Reservation Sheet ─────────────────────────────────────────────────
+  @override String get sheetBookNow            => 'Şimdi Rezervasyon Yap';
+  @override String get sheetRequestBooking     => 'Rezervasyon İste';
+  @override String get sheetDate               => 'Tarih';
+  @override String get sheetTime               => 'Saat';
+  @override String get sheetNoteHint           => 'Not ekle (isteğe bağlı)';
+  @override String get sheetConfirmBooking     => 'Rezervasyonu Onayla';
+  @override String get sheetSendRequest        => 'İstek Gönder';
+
+  // ── Provider Profile ─────────────────────────────────────────────────────────
+  @override String get providerProfile         => 'Hizmet Sağlayıcı';
+  @override String get providerNotFound        => 'Hizmet sağlayıcı bulunamadı.';
+
   // ── Navigation ───────────────────────────────────────────────────────────────
   @override String get navExplore              => 'Keşfet';
   @override String get navReservations         => 'Rezervasyonlar';

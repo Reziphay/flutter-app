@@ -26,6 +26,10 @@ abstract final class AppColors {
   static const Color success = Color(0xFF34C759);
   static const Color warning = Color(0xFFFF9500);
 
+  // Blue family
+  static const Color blue      = Color(0xFF0066CC);
+  static const Color blueLight = Color(0xFF4DA3FF);
+
   // Onboarding dark background — deep crimson
   static const Color darkBg    = Color(0xFF641220);
   static const Color darkBgEnd = Color(0xFF85182A);

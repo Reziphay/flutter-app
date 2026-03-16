@@ -3,6 +3,7 @@
 //
 // Author: Vugar Safarzada (@vugarsafarzada)
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/constants/app_colors.dart';
@@ -54,35 +55,35 @@ class _CompactCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Photo placeholder
-            Container(
-              height: 110,
-              decoration: BoxDecoration(
-                color: dc.secondaryBackground,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(
-                      Iconsax.activity,
-                      size: 36,
-                      color: dc.textTertiary,
-                    ),
-                  ),
-                  if (service.isVip)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: _VipBadge(),
-                    ),
-                  if (service.distanceKm != null)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: _DistanceBadge(km: service.distanceKm!),
-                    ),
-                ],
+            // Photo
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: SizedBox(
+                height: 110,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    service.thumbnailUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: service.thumbnailUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(color: dc.secondaryBackground),
+                            errorWidget: (_, __, ___) => Container(
+                              color: dc.secondaryBackground,
+                              child: Icon(Iconsax.activity, size: 36, color: dc.textTertiary),
+                            ),
+                          )
+                        : Container(
+                            color: dc.secondaryBackground,
+                            child: Icon(Iconsax.activity, size: 36, color: dc.textTertiary),
+                          ),
+                    if (service.isVip)
+                      Positioned(top: 8, left: 8, child: _VipBadge()),
+                    if (service.distanceKm != null)
+                      Positioned(top: 8, right: 8, child: _DistanceBadge(km: service.distanceKm!)),
+                  ],
+                ),
               ),
             ),
             Padding(
@@ -120,10 +121,10 @@ class _CompactCard extends StatelessWidget {
                         RatingRow(stats: service.ratingStats!, small: true),
                       Text(
                         service.priceDisplay,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: dc.textPrimary,
                         ),
                       ),
                     ],
@@ -161,21 +162,33 @@ class _FullCard extends StatelessWidget {
         child: Row(
           children: [
             // Photo
-            Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                color: dc.secondaryBackground,
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(Iconsax.activity, size: 30, color: dc.textTertiary),
-                  ),
-                  if (service.isVip)
-                    Positioned(top: 6, left: 6, child: _VipBadge()),
-                ],
+            // Photo
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+              child: SizedBox(
+                width: 90,
+                height: 90,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    service.thumbnailUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: service.thumbnailUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(color: dc.secondaryBackground),
+                            errorWidget: (_, __, ___) => Container(
+                              color: dc.secondaryBackground,
+                              child: Icon(Iconsax.activity, size: 30, color: dc.textTertiary),
+                            ),
+                          )
+                        : Container(
+                            color: dc.secondaryBackground,
+                            child: Icon(Iconsax.activity, size: 30, color: dc.textTertiary),
+                          ),
+                    if (service.isVip)
+                      Positioned(top: 6, left: 6, child: _VipBadge()),
+                  ],
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -241,10 +254,10 @@ class _FullCard extends StatelessWidget {
                         const Spacer(),
                         Text(
                           service.priceDisplay,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+                            color: dc.textPrimary,
                           ),
                         ),
                         const SizedBox(width: 12),

@@ -235,6 +235,19 @@ class StringsAz implements AppLocalizations {
   @override String get requestBooking          => 'Sifariş Et';
   @override String get reservationCreated      => 'Rezervasiya yaradıldı!';
 
+  // ── Create Reservation Sheet ─────────────────────────────────────────────────
+  @override String get sheetBookNow            => 'İndi Sifariş Et';
+  @override String get sheetRequestBooking     => 'Sifariş Et';
+  @override String get sheetDate               => 'Tarix';
+  @override String get sheetTime               => 'Vaxt';
+  @override String get sheetNoteHint           => 'Qeyd əlavə et (istəyə bağlı)';
+  @override String get sheetConfirmBooking     => 'Sifarişi Təsdiqlə';
+  @override String get sheetSendRequest        => 'Sorğu Göndər';
+
+  // ── Provider Profile ─────────────────────────────────────────────────────────
+  @override String get providerProfile         => 'Xidmət Təminatçısı';
+  @override String get providerNotFound        => 'Təminatçı tapılmadı.';
+
   // ── Navigation ───────────────────────────────────────────────────────────────
   @override String get navExplore              => 'Kəşf et';
   @override String get navReservations         => 'Rezervasiyalar';
