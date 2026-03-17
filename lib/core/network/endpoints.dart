@@ -6,7 +6,8 @@
 enum OtpPurpose {
   authenticate('AUTHENTICATE'),
   login('LOGIN'),
-  register('REGISTER');
+  register('REGISTER'),
+  verifyPhone('VERIFY_PHONE');
 
   const OtpPurpose(this.value);
   final String value;
@@ -69,7 +70,9 @@ abstract final class Endpoints {
   // Brands — USO
   static const String myBrands    = '/brands/mine';
   static const String createBrand = '/brands';
-  static String updateBrand(String id) => '/brands/$id';
+  static String updateBrand(String id)  => '/brands/$id';
+  static String deleteBrand(String id)  => '/brands/$id';
+  static String uploadBrandLogo(String id) => '/brands/$id/logo';
 
   // Favorites — UCR
   static const String favoriteBrands   = '/users/me/favorites/brands';

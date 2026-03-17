@@ -25,12 +25,14 @@ class _UsoShellState extends ConsumerState<UsoShell> {
   static const _tabRoutes = [
     '/uso/incoming',
     '/uso/services',
+    '/uso/brands',
     '/uso/notifications',
     '/uso/profile',
   ];
   static const _tabIcons = [
     Iconsax.calendar_tick,
     Iconsax.briefcase,
+    Iconsax.shop,
     Iconsax.notification,
     Iconsax.user,
   ];
@@ -66,6 +68,7 @@ class _UsoShellState extends ConsumerState<UsoShell> {
     final tabLabels = [
       l10n.navIncoming,
       l10n.navMyServices,
+      l10n.navMyBrands,
       l10n.navNotifications,
       l10n.navProfile,
     ];

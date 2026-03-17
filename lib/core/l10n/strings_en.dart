@@ -80,6 +80,9 @@ class StringsEn implements AppLocalizations {
   // ── Brand Detail ─────────────────────────────────────────────────────────────
   @override String get brandServices        => 'Services';
   @override String get brandNoServices      => 'No services yet';
+  @override String get showMore             => 'Show more';
+  @override String get showLess             => 'Show less';
+  @override String get brandOwnerLabel      => 'Owner';
 
   // ── Common Actions ───────────────────────────────────────────────────────────
   @override String get cancel               => 'Cancel';
@@ -255,5 +258,36 @@ class StringsEn implements AppLocalizations {
   @override String get navProfile              => 'Profile';
   @override String get navIncoming             => 'Incoming';
   @override String get navMyServices           => 'My Services';
+  @override String get navMyBrands             => 'My Brands';
   @override String get notificationsComingSoon => 'Coming soon';
+
+  // ── My Brands (USO) ──────────────────────────────────────────────────────────
+  @override String get myBrands             => 'My Brands';
+  @override String get noBrandsTitle        => 'No Brands Yet';
+  @override String get noBrandsSubtitle     => 'Create a brand to manage your services under a unified identity.';
+  @override String get createBrand          => 'Create Brand';
+  @override String get brandName            => 'Brand Name';
+  @override String get brandNameHint        => 'e.g. Bella Studio';
+  @override String get brandEmail           => 'Brand Email';
+  @override String get brandEmailHint       => 'contact@brand.com (optional)';
+  @override String get brandPhone           => 'Brand Phone';
+  @override String get brandPhoneHint       => '+994 50 000 00 00';
+  @override String get brandCreated         => 'Brand created successfully';
+  @override String get brandDeleted         => 'Brand removed';
+  @override String get deleteBrand          => 'Remove Brand';
+  @override String get deleteBrandConfirm   => 'Are you sure you want to remove this brand?';
+  @override String get verifyPhone          => 'Verify Phone';
+  @override String get verifyPhoneSubtitle  => 'Enter the code sent to your brand phone number.';
+  @override String get otpSentTo            => 'Code sent to';
+  @override String get verifyAndCreate      => 'Verify & Create';
+  @override String get editBrand            => 'Edit Brand';
+  @override String get brandUpdated         => 'Brand updated successfully';
+  @override String get phoneNotEditable     => 'Phone number cannot be changed after verification.';
+  @override String get brandDescription     => 'Description';
+  @override String get brandDescriptionHint => 'Tell customers about your brand…';
+  @override String get brandLocation        => 'Location';
+  @override String get brandLocationHint    => 'e.g. Baku, Azerbaijan';
+  @override String get brandWebsite         => 'Website';
+  @override String get brandWebsiteHint     => 'https://example.com';
+  @override String get invalidUrl           => 'Please enter a valid URL';
 }

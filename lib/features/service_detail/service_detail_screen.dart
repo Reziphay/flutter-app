@@ -185,8 +185,8 @@ class _ServiceDetailView extends StatelessWidget {
                       onTap: () => context.push('/brand/${service.brand!.id}'),
                     ),
 
-                  // Provider
-                  if (service.owner != null)
+                  // Provider — only shown when service has no brand
+                  if (service.owner != null && service.brand == null)
                     _ClickableEntityTile(
                       label: l10n.providerLabel,
                       name: service.owner!.fullName,
@@ -195,13 +195,14 @@ class _ServiceDetailView extends StatelessWidget {
                     ),
 
                   // Location
-                  if (service.address != null) ...[
+                  if (service.location != null || service.address != null) ...[
                     _InfoTile(
                       icon: Iconsax.location,
                       label: l10n.location,
-                      value: service.address!.city.isNotEmpty
-                          ? service.address!.city
-                          : service.address!.fullAddress,
+                      value: service.location ??
+                          (service.address!.city.isNotEmpty
+                              ? service.address!.city
+                              : service.address!.fullAddress),
                     ),
                     if (service.distanceKm != null)
                       Padding(

@@ -21,11 +21,20 @@ Future<bool> showCreateReservationSheet(
   BuildContext context,
   ServiceItem service,
 ) async {
+  final theme = Theme.of(context);
+  final locale = Localizations.localeOf(context);
   final result = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _CreateReservationSheet(service: service),
+    builder: (_) => Theme(
+      data: theme,
+      child: Localizations.override(
+        context: context,
+        locale: locale,
+        child: _CreateReservationSheet(service: service),
+      ),
+    ),
   );
   return result ?? false;
 }

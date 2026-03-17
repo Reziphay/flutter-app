@@ -96,7 +96,9 @@ class User {
       activeRole:       json['activeRole'] as String?,
       roles:            rolesList,
       isNewUser:        json['isNewUser'] as bool? ?? false,
-      avatarUrl:        json['avatarUrl'] as String?,
+      // Support both flat "avatarUrl" and nested "avatar.url" formats
+      avatarUrl: json['avatarUrl'] as String? ??
+          (json['avatar'] as Map<String, dynamic>?)?['url'] as String?,
     );
   }
 

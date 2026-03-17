@@ -48,6 +48,9 @@ dependencies:
   # Persistent key-value storage (settings)
   shared_preferences: ^2.3.2
 
+  # URL / phone launcher
+  url_launcher: ^6.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

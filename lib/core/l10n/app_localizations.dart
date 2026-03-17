@@ -89,6 +89,9 @@ abstract class AppLocalizations {
   // ── Brand Detail ─────────────────────────────────────────────────────────────
   String get brandServices;
   String get brandNoServices;
+  String get showMore;
+  String get showLess;
+  String get brandOwnerLabel;
 
   // ── Common Actions ───────────────────────────────────────────────────────────
   String get cancel;
@@ -264,7 +267,38 @@ abstract class AppLocalizations {
   String get navProfile;
   String get navIncoming;
   String get navMyServices;
+  String get navMyBrands;
   String get notificationsComingSoon;
+
+  // ── My Brands (USO) ──────────────────────────────────────────────────────────
+  String get myBrands;
+  String get noBrandsTitle;
+  String get noBrandsSubtitle;
+  String get createBrand;
+  String get brandName;
+  String get brandNameHint;
+  String get brandEmail;
+  String get brandEmailHint;
+  String get brandPhone;
+  String get brandPhoneHint;
+  String get brandCreated;
+  String get brandDeleted;
+  String get deleteBrand;
+  String get deleteBrandConfirm;
+  String get verifyPhone;
+  String get verifyPhoneSubtitle;
+  String get otpSentTo;
+  String get verifyAndCreate;
+  String get editBrand;
+  String get brandUpdated;
+  String get phoneNotEditable;
+  String get brandDescription;
+  String get brandDescriptionHint;
+  String get brandLocation;
+  String get brandLocationHint;
+  String get brandWebsite;
+  String get brandWebsiteHint;
+  String get invalidUrl;
 }
 
 // ── Delegate ──────────────────────────────────────────────────────────────────

@@ -229,7 +229,7 @@ class _FullCard extends StatelessWidget {
                         style: TextStyle(fontSize: 12, color: dc.textSecondary),
                       ),
                     ],
-                    if (service.address != null) ...[
+                    if (service.location != null || service.address?.city != null) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
@@ -237,7 +237,7 @@ class _FullCard extends StatelessWidget {
                           const SizedBox(width: 2),
                           Expanded(
                             child: Text(
-                              service.address!.city,
+                              service.location ?? service.address!.city,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 11, color: dc.textTertiary),

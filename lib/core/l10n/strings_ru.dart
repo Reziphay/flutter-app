@@ -80,6 +80,9 @@ class StringsRu implements AppLocalizations {
   // ── Brand Detail ─────────────────────────────────────────────────────────────
   @override String get brandServices        => 'Услуги';
   @override String get brandNoServices      => 'Услуг пока нет';
+  @override String get showMore             => 'Подробнее';
+  @override String get showLess             => 'Свернуть';
+  @override String get brandOwnerLabel      => 'Владелец';
 
   // ── Common Actions ───────────────────────────────────────────────────────────
   @override String get cancel               => 'Отмена';
@@ -255,5 +258,36 @@ class StringsRu implements AppLocalizations {
   @override String get navProfile              => 'Профиль';
   @override String get navIncoming             => 'Входящие';
   @override String get navMyServices           => 'Мои услуги';
+  @override String get navMyBrands             => 'Мои бренды';
   @override String get notificationsComingSoon => 'Скоро…';
+
+  // ── My Brands (USO) ──────────────────────────────────────────────────────────
+  @override String get myBrands             => 'Мои бренды';
+  @override String get noBrandsTitle        => 'Брендов пока нет';
+  @override String get noBrandsSubtitle     => 'Создайте бренд для управления услугами под единым именем.';
+  @override String get createBrand          => 'Создать бренд';
+  @override String get brandName            => 'Название бренда';
+  @override String get brandNameHint        => 'напр. Bella Studio';
+  @override String get brandEmail           => 'Email бренда';
+  @override String get brandEmailHint       => 'contact@brand.com (необязательно)';
+  @override String get brandPhone           => 'Телефон бренда';
+  @override String get brandPhoneHint       => '+994 50 000 00 00';
+  @override String get brandCreated         => 'Бренд успешно создан';
+  @override String get brandDeleted         => 'Бренд удалён';
+  @override String get deleteBrand          => 'Удалить бренд';
+  @override String get deleteBrandConfirm   => 'Вы уверены, что хотите удалить этот бренд?';
+  @override String get verifyPhone          => 'Подтвердить телефон';
+  @override String get verifyPhoneSubtitle  => 'Введите код, отправленный на телефон бренда.';
+  @override String get otpSentTo            => 'Код отправлен на';
+  @override String get verifyAndCreate      => 'Подтвердить и создать';
+  @override String get editBrand            => 'Редактировать бренд';
+  @override String get brandUpdated         => 'Бренд успешно обновлён';
+  @override String get phoneNotEditable     => 'Номер телефона нельзя изменить после верификации.';
+  @override String get brandDescription     => 'Описание';
+  @override String get brandDescriptionHint => 'Расскажите клиентам о вашем бренде…';
+  @override String get brandLocation        => 'Местоположение';
+  @override String get brandLocationHint    => 'напр. Баку, Азербайджан';
+  @override String get brandWebsite         => 'Сайт';
+  @override String get brandWebsiteHint     => 'https://example.com';
+  @override String get invalidUrl           => 'Введите корректный URL';
 }

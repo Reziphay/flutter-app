@@ -80,6 +80,9 @@ class StringsAz implements AppLocalizations {
   // ── Brand Detail ─────────────────────────────────────────────────────────────
   @override String get brandServices        => 'Xidmətlər';
   @override String get brandNoServices      => 'Hələ xidmət yoxdur';
+  @override String get showMore             => 'Daha çox';
+  @override String get showLess             => 'Daha az';
+  @override String get brandOwnerLabel      => 'Sahibi';
 
   // ── Common Actions ───────────────────────────────────────────────────────────
   @override String get cancel               => 'İmtina';
@@ -255,5 +258,36 @@ class StringsAz implements AppLocalizations {
   @override String get navProfile              => 'Profil';
   @override String get navIncoming             => 'Daxil olan';
   @override String get navMyServices           => 'Xidmətlərim';
+  @override String get navMyBrands             => 'Brandlərim';
   @override String get notificationsComingSoon => 'Tezliklə…';
+
+  // ── My Brands (USO) ──────────────────────────────────────────────────────────
+  @override String get myBrands             => 'Brandlərim';
+  @override String get noBrandsTitle        => 'Hələ Brand Yoxdur';
+  @override String get noBrandsSubtitle     => 'Xidmətlərinizi vahid bir ad altında idarə etmək üçün brand yaradın.';
+  @override String get createBrand          => 'Brand Yarat';
+  @override String get brandName            => 'Brand Adı';
+  @override String get brandNameHint        => 'məs. Bella Studio';
+  @override String get brandEmail           => 'Brand E-poçtu';
+  @override String get brandEmailHint       => 'elesimac@brand.com (istəyə görə)';
+  @override String get brandPhone           => 'Brand Telefonu';
+  @override String get brandPhoneHint       => '+994 50 000 00 00';
+  @override String get brandCreated         => 'Brand uğurla yaradıldı';
+  @override String get brandDeleted         => 'Brand silindi';
+  @override String get deleteBrand          => 'Brandu Sil';
+  @override String get deleteBrandConfirm   => 'Bu brandu silmək istədiyinizə əminsiniz?';
+  @override String get verifyPhone          => 'Telefonu Doğrula';
+  @override String get verifyPhoneSubtitle  => 'Brand telefon nömrəsinə göndərilən kodu daxil edin.';
+  @override String get otpSentTo            => 'Kod göndərildi:';
+  @override String get verifyAndCreate      => 'Doğrula və Yarat';
+  @override String get editBrand            => 'Brandu Redaktə Et';
+  @override String get brandUpdated         => 'Brand uğurla yeniləndi';
+  @override String get phoneNotEditable     => 'Telefon nömrəsi doğrulamadan sonra dəyişdirilə bilməz.';
+  @override String get brandDescription     => 'Təsvir';
+  @override String get brandDescriptionHint => 'Brendiniz haqqında müştərilərə məlumat verin…';
+  @override String get brandLocation        => 'Ünvan';
+  @override String get brandLocationHint    => 'məs. Bakı, Azərbaycan';
+  @override String get brandWebsite         => 'Vebsayt';
+  @override String get brandWebsiteHint     => 'https://nümunə.com';
+  @override String get invalidUrl           => 'Düzgün URL daxil edin';
 }

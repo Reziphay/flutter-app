@@ -210,12 +210,15 @@ class ApiClient {
         data: {'refreshToken': refresh},
       );
       final body = response.data;
-      final data = (body is Map && body.containsKey('data'))
+      // Unwrap top-level { data: { ... } } envelope if present
+      final payload = (body is Map<String, dynamic> && body.containsKey('data'))
           ? body['data'] as Map<String, dynamic>
           : body as Map<String, dynamic>;
 
-      final accessToken  = data['accessToken']  as String?;
-      final refreshToken = data['refreshToken'] as String?;
+      // Tokens are nested under 'tokens' key: { tokens: { accessToken, refreshToken } }
+      final tokensMap = payload['tokens'] as Map<String, dynamic>?;
+      final accessToken  = tokensMap?['accessToken']  as String?;
+      final refreshToken = tokensMap?['refreshToken'] as String?;
 
       if (accessToken != null && refreshToken != null) {
         await _storage.saveTokens(

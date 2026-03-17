@@ -174,6 +174,7 @@ class ServiceItem {
     required this.id,
     required this.name,
     this.description,
+    this.location,
     this.category,
     this.address,
     this.brand,
@@ -192,6 +193,7 @@ class ServiceItem {
   final String id;
   final String name;
   final String? description;
+  final String? location;
   final DiscoveryCategoryRef? category;
   final AddressItem? address;
   final DiscoveryBrandRef? brand;
@@ -230,6 +232,7 @@ class ServiceItem {
       id:                 json['id']           as String? ?? '',
       name:               json['name']         as String? ?? '',
       description:        json['description']  as String?,
+      location:           json['location']     as String?,
       priceAmount:        json['priceAmount'] != null
           ? double.tryParse(json['priceAmount'].toString())
           : null,
@@ -269,6 +272,10 @@ class BrandItem {
     required this.id,
     required this.name,
     this.description,
+    this.logoUrl,
+    this.phone,
+    this.location,
+    this.website,
     this.address,
     this.owner,
     this.ratingStats,
@@ -280,6 +287,10 @@ class BrandItem {
   final String id;
   final String name;
   final String? description;
+  final String? logoUrl;
+  final String? phone;
+  final String? location;
+  final String? website;
   final AddressItem? address;
   final DiscoveryOwner? owner;
   final RatingStats? ratingStats;
@@ -294,10 +305,15 @@ class BrandItem {
             ?.map((l) => VisibilityLabel.fromJson(l as Map<String, dynamic>))
             .toList() ??
         [];
+    final logoFile = json['logoFile'] as Map<String, dynamic>?;
     return BrandItem(
       id:                 json['id']           as String? ?? '',
       name:               json['name']         as String? ?? '',
       description:        json['description']  as String?,
+      logoUrl:            logoFile?['url']     as String?,
+      phone:              json['phone']        as String?,
+      location:           json['location']     as String?,
+      website:            json['website']      as String?,
       distanceKm:         (json['distanceKm'] as num?)?.toDouble(),
       visibilityPriority: (json['visibilityPriority'] as num?)?.toInt() ?? 0,
       visibilityLabels:   labels,

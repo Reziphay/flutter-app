@@ -73,6 +73,7 @@ class _CreateEditServiceScreenState
   // Basic info
   final _nameCtrl        = TextEditingController();
   final _descCtrl        = TextEditingController();
+  final _locationCtrl    = TextEditingController();
 
   // Pricing
   final _priceCtrl       = TextEditingController();
@@ -128,6 +129,7 @@ class _CreateEditServiceScreenState
   void dispose() {
     _nameCtrl.dispose();
     _descCtrl.dispose();
+    _locationCtrl.dispose();
     _priceCtrl.dispose();
     _waitingCtrl.dispose();
     _minAdvCtrl.dispose();
@@ -184,8 +186,9 @@ class _CreateEditServiceScreenState
   }
 
   void _populateFromJson(Map<String, dynamic> json) {
-    _nameCtrl.text  = json['name']        as String? ?? '';
-    _descCtrl.text  = json['description'] as String? ?? '';
+    _nameCtrl.text     = json['name']        as String? ?? '';
+    _descCtrl.text     = json['description'] as String? ?? '';
+    _locationCtrl.text = json['location']    as String? ?? '';
     _priceCtrl.text = json['priceAmount'] != null
         ? json['priceAmount'].toString()
         : '';
@@ -264,6 +267,9 @@ class _CreateEditServiceScreenState
         'name':                            _nameCtrl.text.trim(),
         if (_descCtrl.text.trim().isNotEmpty)
           'description':                   _descCtrl.text.trim(),
+        'location': _locationCtrl.text.trim().isEmpty
+            ? null
+            : _locationCtrl.text.trim(),
         if (_selectedBrandId != null)
           'brandId':                       _selectedBrandId,
         if (_selectedCategoryId != null)
@@ -582,6 +588,12 @@ class _CreateEditServiceScreenState
                 label: l10n.descriptionLabel.toUpperCase(),
                 hint: l10n.descriptionHint,
                 maxLines: 3,
+              ),
+              const SizedBox(height: 12),
+              _FormField(
+                controller: _locationCtrl,
+                label: l10n.location.toUpperCase(),
+                hint: 'e.g. Bakı, Neftçilər pr.',
               ),
             ]),
 

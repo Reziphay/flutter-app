@@ -5,7 +5,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../models/discovery.dart';
@@ -37,24 +36,38 @@ class BrandCard extends StatelessWidget {
         child: Column(
           children: [
             // Logo
-            Container(
-              height: 80,
-              decoration: BoxDecoration(
+            ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Container(
+                height: 80,
                 color: dc.secondaryBackground,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(Iconsax.shop, size: 32, color: dc.textTertiary),
-                  ),
-                  if (brand.isVip)
-                    Positioned(
-                      top: 6,
-                      right: 6,
-                      child: _VipBadge(),
-                    ),
-                ],
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Logo image or fallback icon
+                    if (brand.logoUrl != null && brand.logoUrl!.isNotEmpty)
+                      Image.network(
+                        brand.logoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Icon(Iconsax.shop,
+                              size: 32, color: dc.textTertiary),
+                        ),
+                      )
+                    else
+                      Center(
+                        child:
+                            Icon(Iconsax.shop, size: 32, color: dc.textTertiary),
+                      ),
+                    if (brand.isVip)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: _VipBadge(),
+                      ),
+                  ],
+                ),
               ),
             ),
             Padding(
@@ -72,10 +85,14 @@ class BrandCard extends StatelessWidget {
                       color: dc.textPrimary,
                     ),
                   ),
-                  if (brand.address != null) ...[
+                  // Show location string first, fall back to address city
+                  if ((brand.location != null && brand.location!.isNotEmpty) ||
+                      brand.address != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      brand.address!.city,
+                      brand.location?.isNotEmpty == true
+                          ? brand.location!
+                          : brand.address!.city,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

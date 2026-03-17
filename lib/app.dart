@@ -29,6 +29,9 @@ import 'features/settings/settings_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/ucr/favorites/favorites_screen.dart';
 import 'features/uso/incoming_reservations/incoming_reservations_screen.dart';
+import 'features/uso/my_brands/create_brand_screen.dart';
+import 'features/uso/my_brands/edit_brand_screen.dart';
+import 'features/uso/my_brands/my_brands_screen.dart';
 import 'features/uso/my_services/create_edit_service_screen.dart';
 import 'features/uso/my_services/my_services_screen.dart';
 import 'core/l10n/app_localizations.dart';
@@ -155,6 +158,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const MyServicesScreen(),
           ),
           GoRoute(
+            path: '/uso/brands',
+            builder: (_, __) => const MyBrandsScreen(),
+          ),
+          GoRoute(
             path: '/uso/notifications',
             builder: (_, __) => const UsoNotificationsPlaceholder(),
           ),
@@ -174,6 +181,17 @@ final _routerProvider = Provider<GoRouter>((ref) {
         path: '/uso/services/:id/edit',
         builder: (_, state) =>
             CreateEditServiceScreen(serviceId: state.pathParameters['id']),
+      ),
+
+      // ── USO Brand CRUD ────────────────────────────────────────────────
+      GoRoute(
+        path: '/uso/brands/new',
+        builder: (_, __) => const CreateBrandScreen(),
+      ),
+      GoRoute(
+        path: '/uso/brands/:id/edit',
+        builder: (_, state) =>
+            EditBrandScreen(brandId: state.pathParameters['id']!),
       ),
 
       // ── Settings (shared — UCR & USO) ──────────────────────────────────

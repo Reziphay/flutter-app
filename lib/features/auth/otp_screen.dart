@@ -438,6 +438,7 @@ class _OtpDigitCellState extends State<_OtpDigitCell> {
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               textAlign: TextAlign.center,
+              autofillHints: const [AutofillHints.oneTimeCode],
               onChanged: widget.onChanged,
               onSubmitted: (_) {},
             ),

@@ -3,14 +3,18 @@
 //
 // Author: Vugar Safarzada (@vugarsafarzada)
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
+import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
 import '../explore/widgets/rating_row.dart';
 import '../explore/widgets/service_card.dart';
@@ -26,7 +30,8 @@ class BrandDetailScreen extends ConsumerWidget {
     final servicesAsync = ref.watch(brandServicesProvider(brandId));
 
     final l10n = context.l10n;
-    final dc = context.dc;
+    final dc   = context.dc;
+
     return Scaffold(
       backgroundColor: dc.secondaryBackground,
       body: brandAsync.when(
@@ -37,30 +42,41 @@ class BrandDetailScreen extends ConsumerWidget {
         ),
         data: (brand) => CustomScrollView(
           slivers: [
-            // App Bar
+            // ── App Bar with logo ──────────────────────────────────────
             SliverAppBar(
-              expandedHeight: 200,
+              expandedHeight: 220,
               backgroundColor: dc.background,
               pinned: true,
               leading: _BackButton(),
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   color: dc.secondaryBackground,
-                  child: Center(
-                    child: Icon(Iconsax.shop, size: 72, color: dc.textTertiary),
-                  ),
+                  child: brand.logoUrl != null && brand.logoUrl!.isNotEmpty
+                      ? Image.network(
+                          brand.logoUrl!,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Icon(Iconsax.shop,
+                                size: 72, color: dc.textTertiary),
+                          ),
+                        )
+                      : Center(
+                          child: Icon(Iconsax.shop,
+                              size: 72, color: dc.textTertiary),
+                        ),
                 ),
               ),
             ),
 
-            // Brand Info
+            // ── Brand Info card ────────────────────────────────────────
             SliverToBoxAdapter(
               child: Container(
                 color: dc.background,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Name + VIP
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -80,38 +96,38 @@ class BrandDetailScreen extends ConsumerWidget {
                         ],
                       ],
                     ),
+
+                    // Rating
                     if (brand.ratingStats != null) ...[
                       const SizedBox(height: 8),
                       RatingRow(stats: brand.ratingStats!),
                     ],
-                    if (brand.address != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Iconsax.location,
-                              size: 14, color: dc.textTertiary),
-                          const SizedBox(width: 4),
-                          Text(
-                            brand.address!.city.isNotEmpty
-                                ? '${brand.address!.city}, ${brand.address!.country}'
-                                : brand.address!.fullAddress,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: dc.textSecondary,
-                            ),
-                          ),
-                        ],
+
+                    // Meta row: location / phone / website
+                    if (_hasAnyMeta(brand)) ...[
+                      const SizedBox(height: 12),
+                      _MetaInfoSection(brand: brand),
+                    ],
+
+                    // Owner
+                    if (brand.owner != null) ...[
+                      const SizedBox(height: 12),
+                      _OwnerRow(
+                        owner: brand.owner!,
+                        dc: dc,
+                        l10n: l10n,
+                        onTap: () => context.push('/provider/${brand.owner!.id}'),
                       ),
                     ],
-                    if (brand.description != null && brand.description!.isNotEmpty) ...[
+
+                    // Description with show-more
+                    if (brand.description != null &&
+                        brand.description!.isNotEmpty) ...[
                       const SizedBox(height: 16),
-                      Text(
-                        brand.description!,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: dc.textSecondary,
-                          height: 1.5,
-                        ),
+                      _ExpandableDescription(
+                        text: brand.description!,
+                        dc: dc,
+                        l10n: l10n,
                       ),
                     ],
                   ],
@@ -119,10 +135,14 @@ class BrandDetailScreen extends ConsumerWidget {
               ),
             ),
 
-            // Services section
+            // ── Gap between card and services ──────────────────────────
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+            // ── Services header ────────────────────────────────────────
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+              child: Container(
+                color: dc.background,
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                 child: Text(
                   l10n.brandServices,
                   style: TextStyle(
@@ -134,6 +154,7 @@ class BrandDetailScreen extends ConsumerWidget {
               ),
             ),
 
+            // ── Services list ──────────────────────────────────────────
             servicesAsync.when(
               loading: () => const SliverToBoxAdapter(
                 child: Center(
@@ -143,11 +164,13 @@ class BrandDetailScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+              error: (_, __) =>
+                  const SliverToBoxAdapter(child: SizedBox.shrink()),
               data: (result) {
                 if (result.items.isEmpty) {
                   return SliverToBoxAdapter(
-                    child: Padding(
+                    child: Container(
+                      color: dc.background,
                       padding: const EdgeInsets.all(24),
                       child: Center(
                         child: Text(
@@ -164,7 +187,8 @@ class BrandDetailScreen extends ConsumerWidget {
                     delegate: SliverChildBuilderDelegate(
                       (_, i) => ServiceCard(
                         service: result.items[i],
-                        onTap: () => context.push('/service/${result.items[i].id}'),
+                        onTap: () =>
+                            context.push('/service/${result.items[i].id}'),
                       ),
                       childCount: result.items.length,
                     ),
@@ -179,7 +203,267 @@ class BrandDetailScreen extends ConsumerWidget {
       ),
     );
   }
+
+  bool _hasAnyMeta(BrandItem brand) =>
+      (brand.location != null && brand.location!.isNotEmpty) ||
+      (brand.phone != null && brand.phone!.isNotEmpty) ||
+      (brand.website != null && brand.website!.isNotEmpty) ||
+      brand.address != null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Meta info rows (location / phone / website)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _MetaInfoSection extends StatelessWidget {
+  const _MetaInfoSection({required this.brand});
+
+  final BrandItem brand;
+
+  Future<void> _launch(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dc = context.dc;
+    final primary = context.palette.primary;
+
+    // Determine location string: prefer brand.location string, else address
+    String? locationText = brand.location;
+    if ((locationText == null || locationText.isEmpty) &&
+        brand.address != null) {
+      final addr = brand.address!;
+      locationText = addr.city.isNotEmpty
+          ? '${addr.city}, ${addr.country}'
+          : addr.fullAddress;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (locationText != null && locationText.isNotEmpty)
+          _MetaRow(
+            icon: Iconsax.location,
+            label: locationText,
+            dc: dc,
+            iconColor: dc.textSecondary,
+          ),
+        if (brand.phone != null && brand.phone!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          _MetaRow(
+            icon: Iconsax.call,
+            label: brand.phone!,
+            dc: dc,
+            iconColor: primary,
+            onTap: () => _launch('tel:${brand.phone!}'),
+          ),
+        ],
+        if (brand.website != null && brand.website!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          _MetaRow(
+            icon: Iconsax.global,
+            label: brand.website!,
+            dc: dc,
+            iconColor: primary,
+            onTap: () => _launch(brand.website!),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({
+    required this.icon,
+    required this.label,
+    required this.dc,
+    required this.iconColor,
+    this.onTap,
+  });
+
+  final IconData         icon;
+  final String           label;
+  final AppDynamicColors dc;
+  final Color            iconColor;
+  final VoidCallback?    onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(icon, size: 15, color: iconColor),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: onTap != null ? iconColor : dc.textSecondary,
+              decoration: onTap != null ? TextDecoration.underline : null,
+              decorationColor: iconColor,
+            ),
+          ),
+        ),
+      ],
+    );
+    if (onTap == null) return row;
+    return GestureDetector(onTap: onTap, child: row);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Owner row
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _OwnerRow extends StatelessWidget {
+  const _OwnerRow({
+    required this.owner,
+    required this.dc,
+    required this.l10n,
+    required this.onTap,
+  });
+
+  final DiscoveryOwner owner;
+  final AppDynamicColors dc;
+  final AppLocalizations l10n;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAvatar = owner.avatarUrl != null && owner.avatarUrl!.isNotEmpty;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: dc.secondaryBackground,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: hasAvatar
+                ? CachedNetworkImage(
+                    imageUrl: owner.avatarUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) =>
+                        Icon(Iconsax.user, size: 20, color: dc.textTertiary),
+                    errorWidget: (_, __, ___) =>
+                        Icon(Iconsax.user, size: 20, color: dc.textTertiary),
+                  )
+                : Icon(Iconsax.user, size: 20, color: dc.textTertiary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.brandOwnerLabel.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  owner.fullName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.blue,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Iconsax.arrow_right_3, size: 16, color: dc.textTertiary),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Expandable description
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ExpandableDescription extends StatefulWidget {
+  const _ExpandableDescription({
+    required this.text,
+    required this.dc,
+    required this.l10n,
+  });
+
+  final String text;
+  final AppDynamicColors dc;
+  final AppLocalizations l10n;
+
+  @override
+  State<_ExpandableDescription> createState() => _ExpandableDescriptionState();
+}
+
+class _ExpandableDescriptionState extends State<_ExpandableDescription> {
+  static const _collapseThreshold = 150;
+  bool _expanded = false;
+
+  bool get _needsToggle => widget.text.length > _collapseThreshold;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = context.palette.primary;
+    final displayText = _needsToggle && !_expanded
+        ? '${widget.text.substring(0, _collapseThreshold)}…'
+        : widget.text;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          displayText,
+          style: TextStyle(
+            fontSize: 15,
+            color: widget.dc.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        if (_needsToggle) ...[
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Text(
+              _expanded ? widget.l10n.showLess : widget.l10n.showMore,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: primary,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Back button
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _BackButton extends StatelessWidget {
   @override
@@ -203,13 +487,18 @@ class _BackButton extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// VIP chip
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _VipChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFFFFB800), Color(0xFFFF8C00)]),
+        gradient: const LinearGradient(
+            colors: [Color(0xFFFFB800), Color(0xFFFF8C00)]),
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Text(

@@ -80,6 +80,9 @@ class StringsTr implements AppLocalizations {
   // ── Brand Detail ─────────────────────────────────────────────────────────────
   @override String get brandServices        => 'Hizmetler';
   @override String get brandNoServices      => 'Henüz hizmet yok';
+  @override String get showMore             => 'Daha fazla';
+  @override String get showLess             => 'Daha az';
+  @override String get brandOwnerLabel      => 'Sahip';
 
   // ── Common Actions ───────────────────────────────────────────────────────────
   @override String get cancel               => 'İptal';
@@ -255,5 +258,36 @@ class StringsTr implements AppLocalizations {
   @override String get navProfile              => 'Profil';
   @override String get navIncoming             => 'Gelen';
   @override String get navMyServices           => 'Hizmetlerim';
+  @override String get navMyBrands             => 'Markalarım';
   @override String get notificationsComingSoon => 'Yakında…';
+
+  // ── My Brands (USO) ──────────────────────────────────────────────────────────
+  @override String get myBrands             => 'Markalarım';
+  @override String get noBrandsTitle        => 'Henüz Marka Yok';
+  @override String get noBrandsSubtitle     => 'Hizmetlerinizi birleşik bir kimlik altında yönetmek için marka oluşturun.';
+  @override String get createBrand          => 'Marka Oluştur';
+  @override String get brandName            => 'Marka Adı';
+  @override String get brandNameHint        => 'örn. Bella Studio';
+  @override String get brandEmail           => 'Marka E-postası';
+  @override String get brandEmailHint       => 'iletisim@marka.com (isteğe bağlı)';
+  @override String get brandPhone           => 'Marka Telefonu';
+  @override String get brandPhoneHint       => '+994 50 000 00 00';
+  @override String get brandCreated         => 'Marka başarıyla oluşturuldu';
+  @override String get brandDeleted         => 'Marka kaldırıldı';
+  @override String get deleteBrand          => 'Markayı Kaldır';
+  @override String get deleteBrandConfirm   => 'Bu markayı kaldırmak istediğinizden emin misiniz?';
+  @override String get verifyPhone          => 'Telefonu Doğrula';
+  @override String get verifyPhoneSubtitle  => 'Marka telefon numaranıza gönderilen kodu girin.';
+  @override String get otpSentTo            => 'Kod gönderildi:';
+  @override String get verifyAndCreate      => 'Doğrula ve Oluştur';
+  @override String get editBrand            => 'Markayı Düzenle';
+  @override String get brandUpdated         => 'Marka başarıyla güncellendi';
+  @override String get phoneNotEditable     => 'Telefon numarası doğrulamadan sonra değiştirilemez.';
+  @override String get brandDescription     => 'Açıklama';
+  @override String get brandDescriptionHint => 'Müşterilere markanız hakkında bilgi verin…';
+  @override String get brandLocation        => 'Konum';
+  @override String get brandLocationHint    => 'örn. Bakü, Azerbaycan';
+  @override String get brandWebsite         => 'Web sitesi';
+  @override String get brandWebsiteHint     => 'https://ornek.com';
+  @override String get invalidUrl           => 'Geçerli bir URL girin';
 }
