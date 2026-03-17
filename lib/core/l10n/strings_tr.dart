@@ -133,6 +133,9 @@ class StringsTr implements AppLocalizations {
   @override String get reservationReminders => 'Rezervasyon Hatırlatıcıları';
   @override String get enableReminders      => 'Hatırlatıcıları Etkinleştir';
   @override String get remindMe             => 'Hatırlat';
+  @override String get minuteAbbr          => 'dk';
+  @override String get hourAbbr            => 'sa';
+  @override String get timePastError       => 'Geçmiş saat seçilemez. Lütfen gelecekteki bir saat seçin.';
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   @override String get reservationsTitle       => 'Rezervasyonlar';

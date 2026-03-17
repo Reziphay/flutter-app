@@ -60,6 +60,7 @@ class _CreateReservationSheetState
   );
   final _noteController = TextEditingController();
   bool _loading = false;
+  String? _timeError;
 
   @override
   void dispose() {
@@ -79,26 +80,64 @@ class _CreateReservationSheetState
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
+    final l10n = context.l10n;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: now,
       lastDate: now.add(const Duration(days: 90)),
     );
-    if (picked != null) setState(() => _selectedDate = picked);
+    if (picked == null || !mounted) return;
+
+    // Re-validate existing time against the newly picked date
+    final combined = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+    setState(() {
+      _selectedDate = picked;
+      _timeError = combined.isBefore(DateTime.now()) ? l10n.timePastError : null;
+    });
   }
 
   Future<void> _pickTime() async {
+    // Capture l10n before async gap
+    final l10n = context.l10n;
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
     );
-    if (picked != null) setState(() => _selectedTime = picked);
+    if (picked == null || !mounted) return;
+
+    final combined = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      picked.hour,
+      picked.minute,
+    );
+    if (combined.isBefore(DateTime.now())) {
+      setState(() => _timeError = l10n.timePastError);
+      return;
+    }
+    setState(() {
+      _selectedTime = picked;
+      _timeError = null;
+    });
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
+    // Guard: reject if requested time is already in the past
+    if (_requestedStartAt.isBefore(DateTime.now())) {
+      setState(() => _timeError = context.l10n.timePastError);
+      return;
+    }
+
     setState(() => _loading = true);
     try {
       await ReservationService.instance.createReservation(
@@ -191,7 +230,30 @@ class _CreateReservationSheetState
             label: l10n.sheetTime,
             value: _selectedTime.format(context),
             onTap: _pickTime,
+            hasError: _timeError != null,
           ),
+          if (_timeError != null) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      size: 14, color: AppColors.error),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _timeError!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
 
           // Note field
@@ -228,7 +290,7 @@ class _CreateReservationSheetState
             width: double.infinity,
             height: 52,
             child: FilledButton(
-              onPressed: _loading ? null : _submit,
+              onPressed: (_loading || _timeError != null) ? null : _submit,
               child: _loading
                   ? const SizedBox(
                       width: 20,
@@ -271,12 +333,14 @@ class _PickerTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onTap,
+    this.hasError = false,
   });
 
   final IconData icon;
   final String label;
   final String value;
   final VoidCallback onTap;
+  final bool hasError;
 
   @override
   Widget build(BuildContext context) {
@@ -288,6 +352,9 @@ class _PickerTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: dc.secondaryBackground,
           borderRadius: BorderRadius.circular(12),
+          border: hasError
+              ? Border.all(color: AppColors.error, width: 1.5)
+              : null,
         ),
         child: Row(
           children: [

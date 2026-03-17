@@ -133,6 +133,9 @@ class StringsRu implements AppLocalizations {
   @override String get reservationReminders => 'Напоминания о бронировании';
   @override String get enableReminders      => 'Включить напоминания';
   @override String get remindMe             => 'Напомнить';
+  @override String get minuteAbbr          => 'мин';
+  @override String get hourAbbr            => 'ч';
+  @override String get timePastError       => 'Нельзя выбрать прошедшее время. Пожалуйста, выберите будущее время.';
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   @override String get reservationsTitle       => 'Бронирования';

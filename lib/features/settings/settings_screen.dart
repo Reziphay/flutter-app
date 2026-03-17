@@ -145,6 +145,7 @@ class SettingsScreen extends ConsumerWidget {
                         current: settings.reminderMinutes,
                         primary: primary,
                         dc:      dc,
+                        l10n:    l10n,
                         onChanged: notifier.setReminderMinutes,
                       ),
                     ],
@@ -295,19 +296,21 @@ class _ReminderMinutesPicker extends StatelessWidget {
     required this.current,
     required this.primary,
     required this.dc,
+    required this.l10n,
     required this.onChanged,
   });
 
   final int                 current;
   final Color               primary;
   final AppDynamicColors    dc;
+  final AppLocalizations    l10n;
   final ValueChanged<int>   onChanged;
 
   static const _options = [10, 15, 30, 60, 120];
 
-  static String _label(int min) {
-    if (min < 60) return '${min}m';
-    return '${min ~/ 60}h';
+  String _label(int min) {
+    if (min < 60) return '$min${l10n.minuteAbbr}';
+    return '${min ~/ 60}${l10n.hourAbbr}';
   }
 
   @override

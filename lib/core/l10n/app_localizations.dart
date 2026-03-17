@@ -142,6 +142,9 @@ abstract class AppLocalizations {
   String get reservationReminders;
   String get enableReminders;
   String get remindMe;
+  String get minuteAbbr;
+  String get hourAbbr;
+  String get timePastError;
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   String get reservationsTitle;

@@ -159,15 +159,15 @@ class _FullCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: dc.divider, width: 1),
         ),
-        child: Row(
+        child: IntrinsicHeight(
+          child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Photo
             // Photo
             ClipRRect(
               borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
               child: SizedBox(
                 width: 90,
-                height: 90,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -268,6 +268,7 @@ class _FullCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

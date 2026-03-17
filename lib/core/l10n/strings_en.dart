@@ -133,6 +133,9 @@ class StringsEn implements AppLocalizations {
   @override String get reservationReminders => 'Reservation Reminders';
   @override String get enableReminders      => 'Enable Reminders';
   @override String get remindMe             => 'Remind me';
+  @override String get minuteAbbr          => 'm';
+  @override String get hourAbbr            => 'h';
+  @override String get timePastError       => 'Cannot select a past time. Please choose a future time.';
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   @override String get reservationsTitle       => 'Reservations';

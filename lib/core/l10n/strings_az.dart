@@ -133,6 +133,9 @@ class StringsAz implements AppLocalizations {
   @override String get reservationReminders => 'Rezervasiya Xatırlatmaları';
   @override String get enableReminders      => 'Xatırlatmaları Aktivləşdir';
   @override String get remindMe             => 'Xatırlat';
+  @override String get minuteAbbr          => 'dəq';
+  @override String get hourAbbr            => 'saat';
+  @override String get timePastError       => 'Keçmiş vaxt seçilə bilməz. Zəhmət olmasa gələcək vaxt seçin.';
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   @override String get reservationsTitle       => 'Rezervasiyalar';
