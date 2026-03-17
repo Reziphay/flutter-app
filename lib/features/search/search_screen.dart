@@ -5,6 +5,7 @@
 
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,9 +22,10 @@ import '../explore/widgets/service_card.dart';
 import 'search_filters_sheet.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key, this.initialTab});
+  const SearchScreen({super.key, this.initialTab, this.showAll = false});
 
   final String? initialTab;
+  final bool showAll;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -43,6 +45,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     _tabController = TabController(length: 3, vsync: this);
     if (widget.initialTab == 'brands') _tabController.index = 1;
     if (widget.initialTab == 'providers') _tabController.index = 2;
+    // Always reset query state on open, then apply showAll if needed.
+    // This ensures reopening normal search clears any previous showAll=true.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(searchQueryProvider.notifier).state =
+          SearchQuery(showAll: widget.showAll);
+    });
   }
 
   @override
@@ -355,17 +364,22 @@ class _ProviderCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: dc.secondaryBackground,
-                child: Text(
-                  provider.name.isNotEmpty ? provider.name[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: dc.secondaryBackground,
                 ),
+                clipBehavior: Clip.antiAlias,
+                child: provider.avatarUrl != null && provider.avatarUrl!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: provider.avatarUrl!,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => _InitialAvatar(name: provider.name, dc: dc),
+                        errorWidget: (_, __, ___) => _InitialAvatar(name: provider.name, dc: dc),
+                      )
+                    : _InitialAvatar(name: provider.name, dc: dc),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -431,6 +445,27 @@ class _ProviderCard extends StatelessWidget {
 }
 
 // MARK: - Utils
+
+class _InitialAvatar extends StatelessWidget {
+  const _InitialAvatar({required this.name, required this.dc});
+
+  final String name;
+  final AppDynamicColors dc;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+}
 
 class _NoResults extends StatelessWidget {
   const _NoResults({required this.label});

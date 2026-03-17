@@ -179,7 +179,7 @@ class _ServicesPoolSection extends ConsumerWidget {
         children: [
           SectionHeader(
             title: l10n.exploreFeatured,
-            onSeeAll: () => context.push('/search'),
+            onSeeAll: () => context.push('/search?showAll=true'),
           ),
           const _ListShimmer(),
         ],
@@ -206,7 +206,7 @@ class _ServicesPoolSection extends ConsumerWidget {
           children: [
             SectionHeader(
               title: l10n.exploreFeatured,
-              onSeeAll: () => context.push('/search'),
+              onSeeAll: () => context.push('/search?showAll=true'),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -250,7 +250,7 @@ class _PopularBrandsSection extends ConsumerWidget {
           children: [
             SectionHeader(
               title: l10n.explorePopularBrands,
-              onSeeAll: () => context.push('/search?tab=brands'),
+              onSeeAll: () => context.push('/search?tab=brands&showAll=true'),
             ),
             SizedBox(
               height: 170,

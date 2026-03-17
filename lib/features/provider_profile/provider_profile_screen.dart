@@ -14,6 +14,7 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
+import '../../widgets/bookmark_button.dart';
 import '../explore/widgets/rating_row.dart';
 import '../explore/widgets/service_card.dart';
 
@@ -112,6 +113,12 @@ class _ProviderView extends StatelessWidget {
                 color: dc.textPrimary,
               ),
             ),
+            actions: [
+              if (owner != null) ...[
+                BookmarkButton(entityType: 'owners', entityId: owner.id),
+                const SizedBox(width: 4),
+              ],
+            ],
           ),
 
           // MARK: - Provider Header

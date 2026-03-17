@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../core/network/api_client.dart';
@@ -247,7 +248,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
         padding: const EdgeInsets.all(16),
         itemCount: _brands.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (_, i) => _BrandCard(brand: _brands[i], dc: dc),
+        itemBuilder: (_, i) => GestureDetector(
+          onTap: () => context.push('/brand/${_brands[i].id}'),
+          child: _BrandCard(brand: _brands[i], dc: dc),
+        ),
       ),
     );
   }
@@ -276,7 +280,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
         padding: const EdgeInsets.all(16),
         itemCount: _owners.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (_, i) => _OwnerCard(owner: _owners[i], dc: dc),
+        itemBuilder: (_, i) => GestureDetector(
+          onTap: () => context.push('/provider/${_owners[i].id}'),
+          child: _OwnerCard(owner: _owners[i], dc: dc),
+        ),
       ),
     );
   }
@@ -305,7 +312,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
         padding: const EdgeInsets.all(16),
         itemCount: _services.length,
         separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (_, i) => _ServiceCard(service: _services[i], dc: dc),
+        itemBuilder: (_, i) => GestureDetector(
+          onTap: () => context.push('/service/${_services[i].id}'),
+          child: _ServiceCard(service: _services[i], dc: dc),
+        ),
       ),
     );
   }

@@ -80,8 +80,11 @@ abstract final class Endpoints {
   static const String favoriteServices = '/users/me/favorites/services';
   static String addFavoriteBrand(String id)      => '/users/me/favorites/brands/$id';
   static String removeFavoriteBrand(String id)   => '/users/me/favorites/brands/$id';
+  static String favoriteBrandStatus(String id)   => '/users/me/favorites/brands/$id/status';
   static String addFavoriteOwner(String id)      => '/users/me/favorites/owners/$id';
   static String removeFavoriteOwner(String id)   => '/users/me/favorites/owners/$id';
+  static String favoriteOwnerStatus(String id)   => '/users/me/favorites/owners/$id/status';
   static String addFavoriteService(String id)    => '/users/me/favorites/services/$id';
   static String removeFavoriteService(String id) => '/users/me/favorites/services/$id';
+  static String favoriteServiceStatus(String id) => '/users/me/favorites/services/$id/status';
 }

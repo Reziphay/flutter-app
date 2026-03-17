@@ -14,6 +14,7 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
+import '../../widgets/bookmark_button.dart';
 import '../explore/widgets/rating_row.dart';
 import '../reservations/create_reservation_sheet.dart';
 
@@ -90,7 +91,7 @@ class _ServiceDetailView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Name + VIP
+                  // Name + VIP + Bookmark
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -104,8 +105,9 @@ class _ServiceDetailView extends StatelessWidget {
                           ),
                         ),
                       ),
+                      BookmarkButton(entityType: 'services', entityId: service.id),
                       if (service.isVip) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         const _VipChip(),
                       ],
                     ],

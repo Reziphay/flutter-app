@@ -16,6 +16,7 @@ import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
+import '../../widgets/bookmark_button.dart';
 import '../explore/widgets/rating_row.dart';
 import '../explore/widgets/service_card.dart';
 
@@ -52,10 +53,16 @@ class BrandDetailScreen extends ConsumerWidget {
                 background: Container(
                   color: dc.secondaryBackground,
                   child: brand.logoUrl != null && brand.logoUrl!.isNotEmpty
-                      ? Image.network(
-                          brand.logoUrl!,
+                      ? CachedNetworkImage(
+                          imageUrl: brand.logoUrl!,
                           fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Center(
+                          width: double.infinity,
+                          height: double.infinity,
+                          placeholder: (_, __) => Center(
+                            child: Icon(Iconsax.shop,
+                                size: 72, color: dc.textTertiary),
+                          ),
+                          errorWidget: (_, __, ___) => Center(
                             child: Icon(Iconsax.shop,
                                 size: 72, color: dc.textTertiary),
                           ),
@@ -72,13 +79,13 @@ class BrandDetailScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Container(
                 color: dc.background,
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name + VIP
+                    // Name + Bookmark + VIP
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
                           child: Text(
@@ -90,28 +97,30 @@ class BrandDetailScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
+                        BookmarkButton(entityType: 'brands', entityId: brand.id),
                         if (brand.isVip) ...[
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           _VipChip(),
+                          const SizedBox(width: 4),
                         ],
                       ],
                     ),
 
                     // Rating
                     if (brand.ratingStats != null) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       RatingRow(stats: brand.ratingStats!),
                     ],
 
-                    // Meta row: location / phone / website
+                    // Meta: location / phone / website
                     if (_hasAnyMeta(brand)) ...[
-                      const SizedBox(height: 12),
+                      Divider(color: dc.divider, height: 28),
                       _MetaInfoSection(brand: brand),
                     ],
 
                     // Owner
                     if (brand.owner != null) ...[
-                      const SizedBox(height: 12),
+                      Divider(color: dc.divider, height: 28),
                       _OwnerRow(
                         owner: brand.owner!,
                         dc: dc,
@@ -120,10 +129,19 @@ class BrandDetailScreen extends ConsumerWidget {
                       ),
                     ],
 
-                    // Description with show-more
+                    // Description
                     if (brand.description != null &&
                         brand.description!.isNotEmpty) ...[
-                      const SizedBox(height: 16),
+                      Divider(color: dc.divider, height: 28),
+                      Text(
+                        l10n.about,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: dc.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       _ExpandableDescription(
                         text: brand.description!,
                         dc: dc,

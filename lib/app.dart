@@ -216,8 +216,9 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/search',
         builder: (_, state) {
-          final tab = state.uri.queryParameters['tab'];
-          return SearchScreen(initialTab: tab);
+          final tab     = state.uri.queryParameters['tab'];
+          final showAll = state.uri.queryParameters['showAll'] == 'true';
+          return SearchScreen(initialTab: tab, showAll: showAll);
         },
       ),
       GoRoute(

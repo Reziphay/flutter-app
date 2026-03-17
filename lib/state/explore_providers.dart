@@ -79,6 +79,7 @@ class SearchQuery {
     this.lat,
     this.lng,
     this.radiusKm,
+    this.showAll = false,
   });
 
   final String query;
@@ -89,6 +90,7 @@ class SearchQuery {
   final double? lat;
   final double? lng;
   final double? radiusKm;
+  final bool showAll;
 
   SearchQuery copyWith({
     String? query,
@@ -103,6 +105,7 @@ class SearchQuery {
     double? lng,
     double? radiusKm,
     bool clearRadius = false,
+    bool? showAll,
   }) {
     return SearchQuery(
       query:      query      ?? this.query,
@@ -113,10 +116,11 @@ class SearchQuery {
       lat:        lat    ?? this.lat,
       lng:        lng    ?? this.lng,
       radiusKm:   clearRadius ? null : (radiusKm ?? this.radiusKm),
+      showAll:    showAll ?? this.showAll,
     );
   }
 
-  bool get isEmpty => query.isEmpty && categoryId == null && minPrice == null && maxPrice == null;
+  bool get isEmpty => query.isEmpty && !showAll && categoryId == null && minPrice == null && maxPrice == null;
   bool get hasFilters => categoryId != null || minPrice != null || maxPrice != null || radiusKm != null;
 }
 
@@ -133,7 +137,7 @@ final searchResultsProvider = FutureProvider<SearchResults>((ref) async {
     lng:        q.lng,
     radiusKm:   q.radiusKm,
     sortBy:     q.sortBy,
-    limit:      10,
+    limit:      25,
   );
 });
 

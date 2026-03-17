@@ -381,6 +381,7 @@ class ProviderItem {
   const ProviderItem({
     required this.id,
     required this.name,
+    this.avatarUrl,
     this.ratingStats,
     this.distanceKm,
     this.featuredServices = const [],
@@ -391,6 +392,7 @@ class ProviderItem {
 
   final String id;
   final String name;
+  final String? avatarUrl;
   final RatingStats? ratingStats;
   final double? distanceKm;
   final List<FeaturedService> featuredServices;
@@ -413,9 +415,11 @@ class ProviderItem {
             ?.map((b) => ProviderBrandRef.fromJson(b as Map<String, dynamic>))
             .toList() ??
         [];
+    final avatar = json['avatar'] as Map<String, dynamic>?;
     return ProviderItem(
       id:                 json['id']   as String? ?? '',
       name:               json['name'] as String? ?? '',
+      avatarUrl:          avatar?['url'] as String?,
       distanceKm:         (json['distanceKm'] as num?)?.toDouble(),
       visibilityPriority: (json['visibilityPriority'] as num?)?.toInt() ?? 0,
       visibilityLabels:   labels,
