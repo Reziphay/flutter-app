@@ -77,11 +77,18 @@ class ReservationServiceRef {
         id: json['id'] as String,
         name: json['name'] as String,
         approvalMode: json['approvalMode'] as String? ?? 'MANUAL',
-        priceAmount: (json['priceAmount'] as num?)?.toDouble(),
+        priceAmount: json['priceAmount'] != null
+            ? double.tryParse(json['priceAmount'].toString())
+            : null,
         priceCurrency: json['priceCurrency'] as String?,
-        waitingTimeMinutes: json['waitingTimeMinutes'] as int?,
+        waitingTimeMinutes: json['waitingTimeMinutes'] != null
+            ? int.tryParse(json['waitingTimeMinutes'].toString())
+            : null,
         freeCancellationDeadlineMinutes:
-            json['freeCancellationDeadlineMinutes'] as int?,
+            json['freeCancellationDeadlineMinutes'] != null
+                ? int.tryParse(
+                    json['freeCancellationDeadlineMinutes'].toString())
+                : null,
       );
 }
 
