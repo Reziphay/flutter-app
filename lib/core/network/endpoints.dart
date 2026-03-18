@@ -47,7 +47,10 @@ abstract final class Endpoints {
   static const String reservations          = '/reservations';
   static const String myReservations        = '/reservations/my';
   static String reservationById(String id)  => '/reservations/$id';
-  static String cancelReservation(String id)=> '/reservations/$id/cancel-by-customer';
+  static String cancelReservation(String id)      => '/reservations/$id/cancel-by-customer';
+  static String createChangeRequest(String id)    => '/reservations/$id/change-requests';
+  static String acceptChangeRequest(String crId)  => '/reservations/change-requests/$crId/accept';
+  static String rejectChangeRequest(String crId)  => '/reservations/change-requests/$crId/reject';
 
   // Reservations — USO
   static const String incomingReservations      = '/reservations/incoming';

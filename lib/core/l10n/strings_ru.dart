@@ -30,7 +30,7 @@ class StringsRu implements AppLocalizations {
   @override String otpSubtitle(String p)    => 'Введите 6-значный код, отправленный на $p';
   @override String get otpVerify            => 'Подтвердить';
   @override String get otpResend            => 'Отправить код повторно';
-  @override String otpResendIn(int s)       => 'Повторная отправка через ${s}с';
+  @override String otpResendIn(int s)       => 'Повторная отправка через $sс';
   @override String get otpInvalidCode       => 'Неверный код. Попробуйте снова.';
   @override String get otpResendFailed      => 'Не удалось отправить код. Попробуйте снова.';
 
@@ -178,9 +178,11 @@ class StringsRu implements AppLocalizations {
   @override String get incomingSubtitle        => 'Управляйте записями';
   @override String get tabPending              => 'В ожидании';
   @override String get tabConfirmed            => 'Подтверждённые';
+  @override String get tabHistory              => 'История';
   @override String get noPendingRequests       => 'Нет ожидающих запросов';
   @override String get noConfirmedBookings     => 'Нет подтверждённых записей';
-  @override String get reservationAccepted     => 'Бронирование принято ✓';
+  @override String get noHistoryItems          => 'История пуста';
+  @override String get reservationAccepted     => 'Бронирование принято';
   @override String get rejectReservationTitle  => 'Отклонить бронирование';
   @override String get reservationRejected     => 'Бронирование отклонено';
 
@@ -241,6 +243,13 @@ class StringsRu implements AppLocalizations {
   @override String get bookNow                 => 'Забронировать';
   @override String get requestBooking          => 'Запросить запись';
   @override String get reservationCreated      => 'Бронирование создано!';
+  @override String get awaitingApproval        => 'Ожидание ответа';
+  @override String get ownerChangeRequest      => 'Запрос изменения';
+  @override String get changeRequestDetails    => 'Мастер предлагает новое время';
+  @override String get acceptChange            => 'Принять';
+  @override String get rejectChange            => 'Отклонить';
+  @override String get changeRequestAccepted   => 'Изменение принято';
+  @override String get changeRequestRejected   => 'Изменение отклонено';
 
   // ── Create Reservation Sheet ─────────────────────────────────────────────────
   @override String get sheetBookNow            => 'Забронировать';

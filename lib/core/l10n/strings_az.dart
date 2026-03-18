@@ -178,9 +178,11 @@ class StringsAz implements AppLocalizations {
   @override String get incomingSubtitle        => 'Sifarişlərinizi idarə edin';
   @override String get tabPending              => 'Gözləyən';
   @override String get tabConfirmed            => 'Təsdiqlənmiş';
+  @override String get tabHistory              => 'Tarixçə';
   @override String get noPendingRequests       => 'Gözləyən sorğu yoxdur';
   @override String get noConfirmedBookings     => 'Təsdiqlənmiş sifariş yoxdur';
-  @override String get reservationAccepted     => 'Rezervasiya qəbul edildi ✓';
+  @override String get noHistoryItems          => 'Tarixçə boşdur';
+  @override String get reservationAccepted     => 'Rezervasiya qəbul edildi';
   @override String get rejectReservationTitle  => 'Rezervasiyanı Rədd et';
   @override String get reservationRejected     => 'Rezervasiya rədd edildi';
 
@@ -241,6 +243,13 @@ class StringsAz implements AppLocalizations {
   @override String get bookNow                 => 'İndi Sifariş Et';
   @override String get requestBooking          => 'Sifariş Et';
   @override String get reservationCreated      => 'Rezervasiya yaradıldı!';
+  @override String get awaitingApproval        => 'Cavab gözlənir';
+  @override String get ownerChangeRequest      => 'Dəyişiklik tələbi';
+  @override String get changeRequestDetails    => 'USO yeni vaxt təklif edir';
+  @override String get acceptChange            => 'Qəbul et';
+  @override String get rejectChange            => 'Rədd et';
+  @override String get changeRequestAccepted   => 'Dəyişiklik qəbul edildi';
+  @override String get changeRequestRejected   => 'Dəyişiklik rədd edildi';
 
   // ── Create Reservation Sheet ─────────────────────────────────────────────────
   @override String get sheetBookNow            => 'İndi Sifariş Et';

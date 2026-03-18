@@ -187,8 +187,10 @@ abstract class AppLocalizations {
   String get incomingSubtitle;
   String get tabPending;
   String get tabConfirmed;
+  String get tabHistory;
   String get noPendingRequests;
   String get noConfirmedBookings;
+  String get noHistoryItems;
   String get reservationAccepted;
   String get rejectReservationTitle;
   String get reservationRejected;
@@ -250,6 +252,13 @@ abstract class AppLocalizations {
   String get bookNow;
   String get requestBooking;
   String get reservationCreated;
+  String get awaitingApproval;
+  String get ownerChangeRequest;
+  String get changeRequestDetails;
+  String get acceptChange;
+  String get rejectChange;
+  String get changeRequestAccepted;
+  String get changeRequestRejected;
 
   // ── Create Reservation Sheet ─────────────────────────────────────────────────
   String get sheetBookNow;

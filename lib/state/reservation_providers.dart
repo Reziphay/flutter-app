@@ -42,3 +42,16 @@ final reservationDetailProvider =
     FutureProvider.family<ReservationItem, String>((ref, id) {
   return ReservationService.instance.fetchReservationDetail(id);
 });
+
+// ── Active reservation for a specific service (UCR button state) ────────────
+
+/// Returns the most recent ACTIVE reservation for [serviceId], or null if none.
+/// Active = PENDING | CONFIRMED | CHANGE_REQUESTED_BY_CUSTOMER | CHANGE_REQUESTED_BY_OWNER
+final serviceActiveReservationProvider =
+    Provider.family<ReservationItem?, String>((ref, serviceId) {
+  final reservations =
+      ref.watch(myReservationsProvider).valueOrNull ?? [];
+  return reservations
+      .where((r) => r.service.id == serviceId && r.status.isActive)
+      .lastOrNull;
+});

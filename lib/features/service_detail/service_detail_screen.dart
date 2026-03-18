@@ -13,10 +13,13 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../models/discovery.dart';
+import '../../models/reservation.dart';
 import '../../state/explore_providers.dart';
+import '../../state/reservation_providers.dart';
 import '../../widgets/bookmark_button.dart';
 import '../explore/widgets/rating_row.dart';
 import '../reservations/create_reservation_sheet.dart';
+import '../reservations/owner_change_request_sheet.dart';
 
 class ServiceDetailScreen extends ConsumerWidget {
   const ServiceDetailScreen({super.key, required this.serviceId});
@@ -451,38 +454,172 @@ class _AvatarInitial extends StatelessWidget {
   }
 }
 
-class _BookButton extends StatelessWidget {
+class _BookButton extends ConsumerWidget {
   const _BookButton({required this.service});
 
   final ServiceItem service;
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
+  Widget build(BuildContext context, WidgetRef ref) {
     final dc = context.dc;
+    final l10n = context.l10n;
+    final reservation = ref.watch(serviceActiveReservationProvider(service.id));
+
     return Container(
       color: dc.background,
-      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
+      padding: EdgeInsets.fromLTRB(
+          20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
       child: SizedBox(
         height: 52,
-        child: FilledButton(
-          onPressed: () async {
-            final booked = await showCreateReservationSheet(context, service);
-            if (booked && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(context.l10n.reservationCreated),
-                  backgroundColor: AppPalette.success,
-                ),
-              );
-            }
-          },
-          child: Text(
-            service.approvalMode == 'AUTO' ? l10n.bookNow : l10n.requestBooking,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-        ),
+        child: _buildButton(context, ref, l10n, reservation),
       ),
     );
+  }
+
+  Widget _buildButton(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ReservationItem? reservation,
+  ) {
+    // ── No active reservation ─────────────────────────────────────────────────
+    if (reservation == null) {
+      return FilledButton(
+        onPressed: () async {
+          final booked = await showCreateReservationSheet(context, service);
+          if (booked) ref.invalidate(myReservationsProvider);
+        },
+        child: Text(
+          service.approvalMode == 'AUTO' ? l10n.bookNow : l10n.requestBooking,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      );
+    }
+
+    switch (reservation.status) {
+      // ── Pending ─────────────────────────────────────────────────────────────
+      case ReservationStatus.pending:
+        return FilledButton.tonal(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppPalette.warning.withValues(alpha: 0.12),
+            disabledBackgroundColor: AppPalette.warning.withValues(alpha: 0.12),
+          ),
+          onPressed: null,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Iconsax.timer_1, color: AppPalette.warning, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                l10n.awaitingApproval,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppPalette.warning,
+                ),
+              ),
+            ],
+          ),
+        );
+
+      // ── Confirmed ────────────────────────────────────────────────────────────
+      case ReservationStatus.confirmed:
+        return FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppPalette.success),
+          onPressed: () => context.push('/reservation/${reservation.id}'),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.check_circle_outline_rounded,
+                  color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                _formatDateTime(reservation.requestedStartAt),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        );
+
+      // ── Change requested by owner (UCR must respond) ──────────────────────────
+      case ReservationStatus.changeRequestedByOwner:
+        return FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppPalette.warning),
+          onPressed: () =>
+              showOwnerChangeRequestSheet(context, ref, reservation),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.swap_horiz_rounded,
+                  color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                l10n.ownerChangeRequest,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        );
+
+      // ── Change requested by customer (waiting for owner) ──────────────────────
+      case ReservationStatus.changeRequestedByCustomer:
+        return FilledButton.tonal(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppPalette.warning.withValues(alpha: 0.12),
+            disabledBackgroundColor: AppPalette.warning.withValues(alpha: 0.12),
+          ),
+          onPressed: null,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Iconsax.timer_1, color: AppPalette.warning, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                l10n.awaitingApproval,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppPalette.warning,
+                ),
+              ),
+            ],
+          ),
+        );
+
+      // ── All other statuses (should not normally reach here) ───────────────────
+      default:
+        return FilledButton(
+          onPressed: () async {
+            final booked = await showCreateReservationSheet(context, service);
+            if (booked) ref.invalidate(myReservationsProvider);
+          },
+          child: Text(
+            service.approvalMode == 'AUTO'
+                ? l10n.bookNow
+                : l10n.requestBooking,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        );
+    }
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final local = dt.toLocal();
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final date = '${local.day} ${months[local.month - 1]}';
+    final hour = local.hour.toString().padLeft(2, '0');
+    final min = local.minute.toString().padLeft(2, '0');
+    return '$date · $hour:$min';
   }
 }

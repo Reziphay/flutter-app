@@ -37,6 +37,10 @@ class _IncomingNotifier extends AsyncNotifier<List<ReservationItem>> {
   }
 }
 
+// ── Tab kind ───────────────────────────────────────────────────────────────
+
+enum _TabKind { pending, confirmed, history }
+
 // ── Screen ─────────────────────────────────────────────────────────────────
 
 class IncomingReservationsScreen extends ConsumerStatefulWidget {
@@ -55,7 +59,7 @@ class _IncomingReservationsScreenState
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -78,8 +82,9 @@ class _IncomingReservationsScreenState
               child: TabBarView(
                 controller: _tabs,
                 children: const [
-                  _IncomingList(pending: true),
-                  _IncomingList(pending: false),
+                  _IncomingList(kind: _TabKind.pending),
+                  _IncomingList(kind: _TabKind.confirmed),
+                  _IncomingList(kind: _TabKind.history),
                 ],
               ),
             ),
@@ -163,6 +168,7 @@ class _Header extends ConsumerWidget {
           tabs: [
             Tab(text: l10n.tabPending),
             Tab(text: l10n.tabConfirmed),
+            Tab(text: l10n.tabHistory),
           ],
         ),
       ],
@@ -173,9 +179,9 @@ class _Header extends ConsumerWidget {
 // ── Tab list ───────────────────────────────────────────────────────────────
 
 class _IncomingList extends ConsumerWidget {
-  const _IncomingList({required this.pending});
+  const _IncomingList({required this.kind});
 
-  final bool pending;
+  final _TabKind kind;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -204,25 +210,27 @@ class _IncomingList extends ConsumerWidget {
       },
       data: (items) {
         final dc = context.dc;
-        final filtered = pending
-            ? items.where((r) => r.status == ReservationStatus.pending).toList()
-            : items.where((r) => r.status == ReservationStatus.confirmed).toList();
+        final l10n = context.l10n;
+
+        final filtered = switch (kind) {
+          _TabKind.pending   => items.where((r) => r.status == ReservationStatus.pending).toList(),
+          _TabKind.confirmed => items.where((r) => r.status == ReservationStatus.confirmed).toList(),
+          _TabKind.history   => items.where((r) => r.status.isFinished).toList(),
+        };
 
         if (filtered.isEmpty) {
+          final (icon, label) = switch (kind) {
+            _TabKind.pending   => (Iconsax.clock,           l10n.noPendingRequests),
+            _TabKind.confirmed => (Iconsax.calendar_tick,   l10n.noConfirmedBookings),
+            _TabKind.history   => (Iconsax.document_text,   l10n.noHistoryItems),
+          };
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  pending ? Iconsax.clock : Iconsax.calendar_tick,
-                  size: 56,
-                  color: dc.textTertiary,
-                ),
+                Icon(icon, size: 56, color: dc.textTertiary),
                 const SizedBox(height: 12),
-                Text(
-                  pending ? context.l10n.noPendingRequests : context.l10n.noConfirmedBookings,
-                  style: TextStyle(color: dc.textSecondary),
-                ),
+                Text(label, style: TextStyle(color: dc.textSecondary)),
               ],
             ),
           );
@@ -299,10 +307,7 @@ class _IncomingCard extends ConsumerWidget {
                   const SizedBox(width: 6),
                   Text(
                     r.customer.fullName,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: dc.textSecondary,
-                    ),
+                    style: TextStyle(fontSize: 13, color: dc.textSecondary),
                   ),
                 ],
               ),
@@ -313,11 +318,8 @@ class _IncomingCard extends ConsumerWidget {
                   Icon(Iconsax.calendar, size: 14, color: dc.textSecondary),
                   const SizedBox(width: 6),
                   Text(
-                  _formatDateTime(r.requestedStartAt),
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: dc.textSecondary,
-                    ),
+                    _formatDateTime(r.requestedStartAt),
+                    style: TextStyle(fontSize: 13, color: dc.textSecondary),
                   ),
                 ],
               ),
@@ -330,15 +332,12 @@ class _IncomingCard extends ConsumerWidget {
                     const SizedBox(width: 6),
                     Text(
                       r.service.priceDisplay,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: dc.textSecondary,
-                      ),
+                      style: TextStyle(fontSize: 13, color: dc.textSecondary),
                     ),
                   ],
                 ),
               ],
-              // Action buttons for PENDING
+              // Action buttons — only for PENDING
               if (isPending) ...[
                 const SizedBox(height: 12),
                 Row(
@@ -352,10 +351,11 @@ class _IncomingCard extends ConsumerWidget {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          textStyle: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                         onPressed: () => _showRejectDialog(context, ref),
-                        child: Text(context.l10n.rejectReservationTitle),
+                        child: Text(context.l10n.rejectChange),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -368,11 +368,12 @@ class _IncomingCard extends ConsumerWidget {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          textStyle: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600),
                           elevation: 0,
                         ),
                         onPressed: () => _accept(context, ref),
-                        child: Text(context.l10n.reservationAccepted),
+                        child: Text(context.l10n.acceptChange),
                       ),
                     ),
                   ],
@@ -398,6 +399,7 @@ class _IncomingCard extends ConsumerWidget {
         );
       }
     } catch (e) {
+      onUpdated(); // refresh list — reservation may have expired/changed
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),
@@ -407,35 +409,17 @@ class _IncomingCard extends ConsumerWidget {
   }
 
   Future<void> _showRejectDialog(BuildContext context, WidgetRef ref) async {
-    final reasonController = TextEditingController();
-    final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
+    // Dialog owns the controller — disposed in its State.dispose(),
+    // safely after the closing animation completes.
+    final reason = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.rejectReservationTitle),
-        content: TextField(
-          controller: reasonController,
-          autofocus: true,
-          decoration: InputDecoration(hintText: l10n.cancelReasonHint),
-          maxLines: 2,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.rejectReservationTitle, style: const TextStyle(color: AppPalette.error)),
-          ),
-        ],
-      ),
+      builder: (ctx) => _RejectDialog(l10n: context.l10n),
     );
 
-    if (confirmed == true && context.mounted) {
+    if (reason != null && context.mounted) {
       try {
         await ReservationService.instance
-            .rejectReservation(reservation.id, reasonController.text.trim());
+            .rejectReservation(reservation.id, reason);
         onUpdated();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -443,6 +427,7 @@ class _IncomingCard extends ConsumerWidget {
           );
         }
       } catch (e) {
+        onUpdated(); // refresh list — reservation may have expired/changed
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(e.toString())),
@@ -450,11 +435,13 @@ class _IncomingCard extends ConsumerWidget {
         }
       }
     }
-    reasonController.dispose();
   }
 
   String _formatDateTime(DateTime dt) {
-    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
     final hour   = dt.hour.toString().padLeft(2, '0');
     final minute = dt.minute.toString().padLeft(2, '0');
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $hour:$minute';
@@ -489,6 +476,54 @@ class _StatusBadge extends StatelessWidget {
         label,
         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
       ),
+    );
+  }
+}
+
+// ── Reject dialog (owns its TextEditingController) ─────────────────────────
+
+class _RejectDialog extends StatefulWidget {
+  const _RejectDialog({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  State<_RejectDialog> createState() => _RejectDialogState();
+}
+
+class _RejectDialogState extends State<_RejectDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    return AlertDialog(
+      title: Text(l10n.rejectReservationTitle),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(hintText: l10n.cancelReasonHint),
+        maxLines: 2,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: Text(
+            l10n.rejectChange,
+            style: const TextStyle(color: AppPalette.error),
+          ),
+        ),
+      ],
     );
   }
 }

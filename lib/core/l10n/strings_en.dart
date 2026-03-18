@@ -178,9 +178,11 @@ class StringsEn implements AppLocalizations {
   @override String get incomingSubtitle        => 'Manage your bookings';
   @override String get tabPending              => 'Pending';
   @override String get tabConfirmed            => 'Confirmed';
+  @override String get tabHistory              => 'History';
   @override String get noPendingRequests       => 'No pending requests';
   @override String get noConfirmedBookings     => 'No confirmed bookings';
-  @override String get reservationAccepted     => 'Reservation accepted ✓';
+  @override String get noHistoryItems          => 'No history yet';
+  @override String get reservationAccepted     => 'Reservation accepted';
   @override String get rejectReservationTitle  => 'Reject Reservation';
   @override String get reservationRejected     => 'Reservation rejected';
 
@@ -241,6 +243,13 @@ class StringsEn implements AppLocalizations {
   @override String get bookNow                 => 'Book Now';
   @override String get requestBooking          => 'Request Booking';
   @override String get reservationCreated      => 'Reservation created!';
+  @override String get awaitingApproval        => 'Awaiting Approval';
+  @override String get ownerChangeRequest      => 'Change Request';
+  @override String get changeRequestDetails    => 'Owner proposed a new time';
+  @override String get acceptChange            => 'Accept';
+  @override String get rejectChange            => 'Reject';
+  @override String get changeRequestAccepted   => 'Change accepted';
+  @override String get changeRequestRejected   => 'Change rejected';
 
   // ── Create Reservation Sheet ─────────────────────────────────────────────────
   @override String get sheetBookNow            => 'Book Now';

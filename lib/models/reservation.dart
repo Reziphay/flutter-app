@@ -124,6 +124,42 @@ class ReservationUserRef {
       );
 }
 
+// ── Change Request ──────────────────────────────────────────────────────────────
+
+class ReservationChangeRequest {
+  const ReservationChangeRequest({
+    required this.id,
+    required this.requestedStartAt,
+    this.requestedEndAt,
+    required this.reason,
+    required this.status,
+    required this.previousStatus,
+    required this.createdAt,
+  });
+
+  final String id;
+  final DateTime requestedStartAt;
+  final DateTime? requestedEndAt;
+  final String reason;
+  final String status; // PENDING | ACCEPTED | REJECTED | CANCELLED
+  final String previousStatus;
+  final DateTime createdAt;
+
+  factory ReservationChangeRequest.fromJson(Map<String, dynamic> json) =>
+      ReservationChangeRequest(
+        id: json['id'] as String,
+        requestedStartAt:
+            DateTime.parse(json['requestedStartAt'] as String),
+        requestedEndAt: json['requestedEndAt'] != null
+            ? DateTime.parse(json['requestedEndAt'] as String)
+            : null,
+        reason: json['reason'] as String? ?? '',
+        status: json['status'] as String? ?? 'PENDING',
+        previousStatus: json['previousStatus'] as String? ?? 'CONFIRMED',
+        createdAt: DateTime.parse(json['createdAt'] as String),
+      );
+}
+
 // ── Main model ─────────────────────────────────────────────────────────────────
 
 class ReservationItem {
@@ -146,6 +182,7 @@ class ReservationItem {
     required this.customer,
     required this.owner,
     this.completionQrPayload,
+    this.changeRequests = const [],
   });
 
   final String id;
@@ -166,6 +203,15 @@ class ReservationItem {
   final ReservationUserRef customer;
   final ReservationUserRef owner;
   final String? completionQrPayload;
+  final List<ReservationChangeRequest> changeRequests;
+
+  /// The PENDING change request awaiting UCR response (created by owner).
+  ReservationChangeRequest? get pendingOwnerChangeRequest =>
+      status == ReservationStatus.changeRequestedByOwner
+          ? changeRequests
+              .where((cr) => cr.status == 'PENDING')
+              .lastOrNull
+          : null;
 
   factory ReservationItem.fromJson(Map<String, dynamic> json) =>
       ReservationItem(
@@ -202,6 +248,10 @@ class ReservationItem {
         owner: ReservationUserRef.fromJson(
             json['owner'] as Map<String, dynamic>),
         completionQrPayload: json['completionQrPayload'] as String?,
+        changeRequests: (json['changeRequests'] as List<dynamic>? ?? [])
+            .map((e) => ReservationChangeRequest.fromJson(
+                e as Map<String, dynamic>))
+            .toList(),
       );
 }
 

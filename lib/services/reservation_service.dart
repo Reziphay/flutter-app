@@ -123,4 +123,20 @@ class ReservationService {
         fromJson: (json) => ReservationItem.fromJson(
             json['reservation'] as Map<String, dynamic>),
       );
+
+  // ── Change Requests (UCR) ──────────────────────────────────────────────────
+
+  Future<ReservationItem> acceptChangeRequest(String changeRequestId) =>
+      _client.post(
+        Endpoints.acceptChangeRequest(changeRequestId),
+        fromJson: (json) => ReservationItem.fromJson(
+            json['reservation'] as Map<String, dynamic>),
+      );
+
+  Future<ReservationItem> rejectChangeRequest(String changeRequestId) =>
+      _client.post(
+        Endpoints.rejectChangeRequest(changeRequestId),
+        fromJson: (json) => ReservationItem.fromJson(
+            json['reservation'] as Map<String, dynamic>),
+      );
 }
