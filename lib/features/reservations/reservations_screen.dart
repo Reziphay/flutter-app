@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/network/network_exception.dart';
 import '../../core/theme/app_dynamic_colors.dart';
@@ -266,8 +265,8 @@ class _ReservationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = reservation.status;
     final l10n = context.l10n;
-    final (statusLabel, statusColor) = _statusDisplay(l10n, status);
     final dc = context.dc;
+    final (statusLabel, statusColor) = _statusDisplay(l10n, status, dc);
 
     return GestureDetector(
       onTap: onTap,
@@ -320,14 +319,14 @@ class _ReservationCard extends StatelessWidget {
               // Date/time row
               Row(
                 children: [
-                  const Icon(Iconsax.calendar,
-                      size: 14, color: AppColors.textTertiary),
+                  Icon(Iconsax.calendar,
+                      size: 14, color: dc.textTertiary),
                   const SizedBox(width: 6),
                   Text(
                     _formatDateTime(reservation.requestedStartAt),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: dc.textSecondary,
                     ),
                   ),
                   const Spacer(),
@@ -358,18 +357,18 @@ class _ReservationCard extends StatelessWidget {
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $h:$m';
   }
 
-  (String, Color) _statusDisplay(AppLocalizations l10n, ReservationStatus s) => switch (s) {
-        ReservationStatus.pending              => (l10n.statusPending, AppColors.warning),
-        ReservationStatus.confirmed            => (l10n.statusConfirmed, AppColors.success),
-        ReservationStatus.rejected             => (l10n.statusRejected, AppColors.error),
-        ReservationStatus.cancelledByCustomer  => (l10n.statusCancelled, AppColors.textSecondary),
-        ReservationStatus.cancelledByOwner     => (l10n.statusCancelled, AppColors.textSecondary),
+  (String, Color) _statusDisplay(AppLocalizations l10n, ReservationStatus s, AppDynamicColors dc) => switch (s) {
+        ReservationStatus.pending              => (l10n.statusPending, AppPalette.warning),
+        ReservationStatus.confirmed            => (l10n.statusConfirmed, AppPalette.success),
+        ReservationStatus.rejected             => (l10n.statusRejected, AppPalette.error),
+        ReservationStatus.cancelledByCustomer  => (l10n.statusCancelled, dc.textSecondary),
+        ReservationStatus.cancelledByOwner     => (l10n.statusCancelled, dc.textSecondary),
         ReservationStatus.changeRequestedByCustomer ||
         ReservationStatus.changeRequestedByOwner =>
-          (l10n.statusChangeReq, AppColors.warning),
-        ReservationStatus.completed            => (l10n.statusCompleted, AppColors.success),
-        ReservationStatus.noShow               => (l10n.statusNoShow, AppColors.error),
-        ReservationStatus.expired              => (l10n.statusExpired, AppColors.textTertiary),
+          (l10n.statusChangeReq, AppPalette.warning),
+        ReservationStatus.completed            => (l10n.statusCompleted, AppPalette.success),
+        ReservationStatus.noShow               => (l10n.statusNoShow, AppPalette.error),
+        ReservationStatus.expired              => (l10n.statusExpired, dc.textTertiary),
       };
 }
 

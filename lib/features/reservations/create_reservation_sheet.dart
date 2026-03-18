@@ -7,9 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../models/discovery.dart';
 import '../../models/reservation.dart';
 import '../../services/reservation_service.dart';
@@ -39,6 +39,10 @@ Future<bool> showCreateReservationSheet(
   return result ?? false;
 }
 
+/// Minimum lead time (minutes) for MANUAL approval services.
+/// Must match backend RESERVATION_APPROVAL_TTL_MINUTES env var.
+const int _kManualApprovalLeadMinutes = 5;
+
 // ── Sheet widget ────────────────────────────────────────────────────────────
 
 class _CreateReservationSheet extends ConsumerStatefulWidget {
@@ -61,6 +65,7 @@ class _CreateReservationSheetState
   final _noteController = TextEditingController();
   bool _loading = false;
   String? _timeError;
+  String? _submitError;
 
   @override
   void dispose() {
@@ -76,11 +81,25 @@ class _CreateReservationSheetState
         _selectedTime.minute,
       );
 
+  // ── Validation ────────────────────────────────────────────────────────────
+
+  /// Returns a localised error string if [dt] is invalid, otherwise null.
+  String? _validateDateTime(DateTime dt) {
+    final now = DateTime.now();
+    if (dt.isBefore(now)) return context.l10n.timePastError;
+    if (widget.service.approvalMode == 'MANUAL') {
+      final leadMinutes = dt.difference(now).inMinutes;
+      if (leadMinutes < _kManualApprovalLeadMinutes) {
+        return context.l10n.manualApprovalLeadTimeError(_kManualApprovalLeadMinutes);
+      }
+    }
+    return null;
+  }
+
   // ── Pickers ───────────────────────────────────────────────────────────────
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
-    final l10n = context.l10n;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -89,7 +108,6 @@ class _CreateReservationSheetState
     );
     if (picked == null || !mounted) return;
 
-    // Re-validate existing time against the newly picked date
     final combined = DateTime(
       picked.year,
       picked.month,
@@ -99,13 +117,11 @@ class _CreateReservationSheetState
     );
     setState(() {
       _selectedDate = picked;
-      _timeError = combined.isBefore(DateTime.now()) ? l10n.timePastError : null;
+      _timeError = _validateDateTime(combined);
     });
   }
 
   Future<void> _pickTime() async {
-    // Capture l10n before async gap
-    final l10n = context.l10n;
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
@@ -119,8 +135,9 @@ class _CreateReservationSheetState
       picked.hour,
       picked.minute,
     );
-    if (combined.isBefore(DateTime.now())) {
-      setState(() => _timeError = l10n.timePastError);
+    final error = _validateDateTime(combined);
+    if (error != null) {
+      setState(() => _timeError = error);
       return;
     }
     setState(() {
@@ -132,13 +149,14 @@ class _CreateReservationSheetState
   // ── Submit ────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
-    // Guard: reject if requested time is already in the past
-    if (_requestedStartAt.isBefore(DateTime.now())) {
-      setState(() => _timeError = context.l10n.timePastError);
+    // Guard: full client-side validation before hitting the API
+    final validationError = _validateDateTime(_requestedStartAt);
+    if (validationError != null) {
+      setState(() => _timeError = validationError);
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() { _loading = true; _submitError = null; });
     try {
       await ReservationService.instance.createReservation(
         CreateReservationDto(
@@ -153,14 +171,11 @@ class _CreateReservationSheetState
       ref.invalidate(myReservationsProvider);
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
-      setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        setState(() {
+          _loading = false;
+          _submitError = e.toString();
+        });
       }
     }
   }
@@ -215,6 +230,45 @@ class _CreateReservationSheetState
           ),
           const SizedBox(height: 24),
 
+          // Submit error banner
+          if (_submitError != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: AppPalette.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppPalette.error.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      size: 18, color: AppPalette.error),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _submitError!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppPalette.error,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _submitError = null),
+                    child: const Icon(Icons.close_rounded,
+                        size: 16, color: AppPalette.error),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Date row
           _PickerTile(
             icon: Iconsax.calendar,
@@ -239,14 +293,14 @@ class _CreateReservationSheetState
               child: Row(
                 children: [
                   const Icon(Icons.error_outline_rounded,
-                      size: 14, color: AppColors.error),
+                      size: 14, color: AppPalette.error),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       _timeError!,
                       style: const TextStyle(
                         fontSize: 12,
-                        color: AppColors.error,
+                        color: AppPalette.error,
                       ),
                     ),
                   ),
@@ -279,7 +333,7 @@ class _CreateReservationSheetState
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                    color: AppColors.primary.withValues(alpha: 0.5), width: 1),
+                    color: context.palette.primary.withValues(alpha: 0.5), width: 1),
               ),
             ),
           ),
@@ -353,12 +407,12 @@ class _PickerTile extends StatelessWidget {
           color: dc.secondaryBackground,
           borderRadius: BorderRadius.circular(12),
           border: hasError
-              ? Border.all(color: AppColors.error, width: 1.5)
+              ? Border.all(color: AppPalette.error, width: 1.5)
               : null,
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: AppColors.primary),
+            Icon(icon, size: 20, color: context.palette.primary),
             const SizedBox(width: 12),
             Text(
               label,

@@ -136,6 +136,7 @@ class StringsEn implements AppLocalizations {
   @override String get minuteAbbr          => 'm';
   @override String get hourAbbr            => 'h';
   @override String get timePastError       => 'Cannot select a past time. Please choose a future time.';
+  @override String manualApprovalLeadTimeError(int minutes) => 'This service requires manual approval. Please book at least $minutes min in advance.';
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   @override String get reservationsTitle       => 'Reservations';

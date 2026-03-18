@@ -12,10 +12,10 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/network/network_exception.dart';
 import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../services/auth_service.dart';
 import '../../state/app_state.dart';
 
@@ -166,7 +166,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+      SnackBar(content: Text(msg), backgroundColor: AppPalette.error),
     );
   }
 
@@ -175,7 +175,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     final l10n    = context.l10n;
     final user    = ref.watch(appStateProvider).currentUser;
     final dc      = context.dc;
-    const primary = AppColors.primary;
+    final primary = context.palette.primary;
     final topPad  = MediaQuery.of(context).padding.top;
 
     return Scaffold(

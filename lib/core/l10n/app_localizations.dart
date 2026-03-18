@@ -145,6 +145,7 @@ abstract class AppLocalizations {
   String get minuteAbbr;
   String get hourAbbr;
   String get timePastError;
+  String manualApprovalLeadTimeError(int minutes);
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   String get reservationsTitle;

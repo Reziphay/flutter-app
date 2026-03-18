@@ -9,9 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../state/app_state.dart';
 import '../../state/explore_providers.dart';
 import 'widgets/brand_card.dart';
@@ -36,7 +36,7 @@ class ExploreScreen extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: dc.secondaryBackground,
         body: RefreshIndicator(
-          color: AppColors.primary,
+          color: context.palette.primary,
           displacement: topPadding + 60,
           onRefresh: () async {
             ref.invalidate(servicesPoolProvider);

@@ -9,9 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
 import '../../widgets/bookmark_button.dart';
@@ -307,7 +307,7 @@ class _BrandTile extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.blue,
+                      color: AppPalette.blue,
                     ),
                   ),
                   if (brand.ratingStats != null) ...[
@@ -396,7 +396,7 @@ class _InitialAvatar extends StatelessWidget {
         style: TextStyle(
           fontSize: large ? 36 : 18,
           fontWeight: FontWeight.w700,
-          color: AppColors.primary,
+          color: context.palette.primary,
         ),
       ),
     );

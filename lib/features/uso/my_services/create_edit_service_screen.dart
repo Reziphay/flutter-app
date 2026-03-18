@@ -13,7 +13,6 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
@@ -352,7 +351,7 @@ class _CreateEditServiceScreenState
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+      SnackBar(content: Text(msg), backgroundColor: AppPalette.error),
     );
   }
 
@@ -476,11 +475,11 @@ class _CreateEditServiceScreenState
                 ListTile(
                   leading: const Icon(
                     Iconsax.trash,
-                    color: AppColors.error,
+                    color: AppPalette.error,
                   ),
                   title: Text(
                     context.l10n.removePhoto,
-                    style: const TextStyle(color: AppColors.error),
+                    style: const TextStyle(color: AppPalette.error),
                   ),
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -933,11 +932,11 @@ class _FormField extends StatelessWidget {
             ),
             errorBorder: const OutlineInputBorder(
               borderRadius: _radius,
-              borderSide: BorderSide(color: AppColors.error, width: 1.5),
+              borderSide: BorderSide(color: AppPalette.error, width: 1.5),
             ),
             focusedErrorBorder: const OutlineInputBorder(
               borderRadius: _radius,
-              borderSide: BorderSide(color: AppColors.error, width: 1.5),
+              borderSide: BorderSide(color: AppPalette.error, width: 1.5),
             ),
             hintStyle: TextStyle(
               fontSize: 15,
@@ -945,7 +944,7 @@ class _FormField extends StatelessWidget {
             ),
             errorStyle: const TextStyle(
               fontSize: 11,
-              color: AppColors.error,
+              color: AppPalette.error,
             ),
           ),
           style: TextStyle(
@@ -1482,7 +1481,7 @@ class _PickerSheet<T> extends StatelessWidget {
                     ),
                   ),
                   trailing: isSelected
-                      ? const Icon(Icons.check, color: AppColors.success)
+                      ? const Icon(Icons.check, color: AppPalette.success)
                       : null,
                   onTap: () => Navigator.of(context).pop(item),
                 );

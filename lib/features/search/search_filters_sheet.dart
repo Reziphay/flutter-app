@@ -6,9 +6,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../state/explore_providers.dart';
 
 List<_SortOption> _buildSortOptions(AppLocalizations l10n) => [
@@ -71,6 +71,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
   Widget build(BuildContext context) {
     final dc = context.dc;
     final l10n = context.l10n;
+    final primary = context.palette.primary;
     final sortOptions = _buildSortOptions(l10n);
     return Container(
       decoration: BoxDecoration(
@@ -109,7 +110,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                   const Spacer(),
                   TextButton(
                     onPressed: _reset,
-                    child: Text(l10n.filtersReset, style: const TextStyle(color: AppColors.primary)),
+                    child: Text(l10n.filtersReset, style: TextStyle(color: primary)),
                   ),
                 ],
               ),
@@ -142,13 +143,13 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                           label: Text(opt.label),
                           selected: selected,
                           onSelected: (_) => setState(() => _sortBy = opt.value),
-                          selectedColor: AppColors.primary.withValues(alpha: 0.12),
+                          selectedColor: primary.withValues(alpha: 0.12),
                           labelStyle: TextStyle(
-                            color: selected ? AppColors.primary : dc.textPrimary,
+                            color: selected ? primary : dc.textPrimary,
                             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                           ),
                           side: BorderSide(
-                            color: selected ? AppColors.primary : dc.divider,
+                            color: selected ? primary : dc.divider,
                           ),
                           backgroundColor: dc.background,
                         );
@@ -171,7 +172,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                         const Spacer(),
                         Switch(
                           value: _hasPriceFilter,
-                          activeThumbColor: AppColors.primary,
+                          activeThumbColor: primary,
                           onChanged: (v) => setState(() => _hasPriceFilter = v),
                         ),
                       ],
@@ -190,7 +191,7 @@ class _SearchFiltersSheetState extends ConsumerState<SearchFiltersSheet> {
                         min: 0,
                         max: 1000,
                         divisions: 20,
-                        activeColor: AppColors.primary,
+                        activeColor: primary,
                         inactiveColor: dc.divider,
                         onChanged: (v) => setState(() => _priceRange = v),
                       ),

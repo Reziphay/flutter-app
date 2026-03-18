@@ -6,9 +6,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../models/discovery.dart';
 import 'rating_row.dart';
 
@@ -214,9 +214,9 @@ class _FullCard extends StatelessWidget {
                         service.brand!.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.primary,
+                          color: context.palette.primary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

@@ -10,7 +10,6 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
@@ -391,9 +390,9 @@ class _OwnerRow extends StatelessWidget {
               children: [
                 Text(
                   l10n.brandOwnerLabel.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.primary,
+                    color: context.palette.primary,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.6,
                   ),
@@ -404,7 +403,7 @@ class _OwnerRow extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.blue,
+                    color: AppPalette.blue,
                   ),
                 ),
               ],

@@ -11,9 +11,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
 import '../explore/widgets/brand_card.dart';
@@ -127,8 +127,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                               child: Container(
                                 width: 7,
                                 height: 7,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primary,
+                                decoration: BoxDecoration(
+                                  color: context.palette.primary,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -142,9 +142,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                 // Tab bar
                 TabBar(
                   controller: _tabController,
-                  labelColor: AppColors.primary,
+                  labelColor: context.palette.primary,
                   unselectedLabelColor: dc.textSecondary,
-                  indicatorColor: AppColors.primary,
+                  indicatorColor: context.palette.primary,
                   indicatorSize: TabBarIndicatorSize.label,
                   dividerColor: dc.divider,
                   tabs: [
@@ -400,9 +400,9 @@ class _ProviderCard extends StatelessWidget {
                         provider.brands.map((b) => b.name).join(', '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.primary,
+                          color: context.palette.primary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -457,10 +457,10 @@ class _InitialAvatar extends StatelessWidget {
     return Center(
       child: Text(
         name.isNotEmpty ? name[0].toUpperCase() : '?',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
-          color: AppColors.primary,
+          color: context.palette.primary,
         ),
       ),
     );

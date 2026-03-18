@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
@@ -186,8 +185,8 @@ class MyBrandsScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Iconsax.warning_2,
-                          size: 48, color: AppColors.textTertiary),
+                      Icon(Iconsax.warning_2,
+                          size: 48, color: dc.textTertiary),
                       const SizedBox(height: 12),
                       Text(l10n.somethingWentWrong),
                       const SizedBox(height: 8),
@@ -349,7 +348,7 @@ class _BrandCard extends ConsumerWidget {
                 onPressed: () => Navigator.of(ctx).pop(true),
                 child: Text(
                   l10n.deleteBrand,
-                  style: const TextStyle(color: AppColors.error),
+                  style: const TextStyle(color: AppPalette.error),
                 ),
               ),
             ],
@@ -370,7 +369,7 @@ class _BrandCard extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.l10n.somethingWentWrong),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppPalette.error,
         ),
       );
     }
@@ -393,19 +392,19 @@ class _BrandCard extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.1),
+          color: AppPalette.error.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Iconsax.trash, color: AppColors.error, size: 22),
+            const Icon(Iconsax.trash, color: AppPalette.error, size: 22),
             const SizedBox(height: 4),
             Text(
               context.l10n.deleteBrand,
               style: const TextStyle(
                 fontSize: 11,
-                color: AppColors.error,
+                color: AppPalette.error,
                 fontWeight: FontWeight.w600,
               ),
             ),

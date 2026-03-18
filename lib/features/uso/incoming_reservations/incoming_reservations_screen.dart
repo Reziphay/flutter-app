@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../core/theme/app_palette.dart';
@@ -347,8 +346,8 @@ class _IncomingCard extends ConsumerWidget {
                     Expanded(
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: const BorderSide(color: AppColors.error),
+                          foregroundColor: AppPalette.error,
+                          side: const BorderSide(color: AppPalette.error),
                           minimumSize: const Size.fromHeight(40),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -394,7 +393,7 @@ class _IncomingCard extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(context.l10n.reservationAccepted),
-            backgroundColor: AppColors.success,
+            backgroundColor: AppPalette.success,
           ),
         );
       }
@@ -427,7 +426,7 @@ class _IncomingCard extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.rejectReservationTitle, style: const TextStyle(color: AppColors.error)),
+            child: Text(l10n.rejectReservationTitle, style: const TextStyle(color: AppPalette.error)),
           ),
         ],
       ),
@@ -474,10 +473,10 @@ class _StatusBadge extends StatelessWidget {
     final l10n = context.l10n;
     final (label, color) = switch (status) {
       ReservationStatus.pending   => (l10n.statusPending,   const Color(0xFFFF9500)),
-      ReservationStatus.confirmed => (l10n.statusConfirmed, AppColors.success),
-      ReservationStatus.rejected  => (l10n.statusRejected,  AppColors.error),
-      ReservationStatus.completed => (l10n.statusCompleted, AppColors.textSecondary),
-      _                           => ('•',                  AppColors.textTertiary),
+      ReservationStatus.confirmed => (l10n.statusConfirmed, AppPalette.success),
+      ReservationStatus.rejected  => (l10n.statusRejected,  AppPalette.error),
+      ReservationStatus.completed => (l10n.statusCompleted, context.dc.textSecondary),
+      _                           => ('•',                  context.dc.textTertiary),
     };
 
     return Container(

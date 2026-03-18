@@ -15,7 +15,6 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
@@ -222,7 +221,7 @@ class _EditBrandScreenState extends ConsumerState<EditBrandScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.message),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppPalette.error,
         ),
       );
     } catch (_) {
@@ -230,7 +229,7 @@ class _EditBrandScreenState extends ConsumerState<EditBrandScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.l10n.genericError),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppPalette.error,
         ),
       );
     } finally {
@@ -591,12 +590,12 @@ class _FormTextField extends StatelessWidget {
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
-              const BorderSide(color: AppColors.error, width: 1.5),
+              const BorderSide(color: AppPalette.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
-              const BorderSide(color: AppColors.error, width: 1.5),
+              const BorderSide(color: AppPalette.error, width: 1.5),
         ),
       ),
     );

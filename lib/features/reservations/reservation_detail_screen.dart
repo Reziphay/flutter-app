@@ -8,8 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
+import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
 import '../../models/reservation.dart';
 import '../../services/reservation_service.dart';
@@ -26,24 +26,24 @@ class ReservationDetailScreen extends ConsumerWidget {
 
     return asyncVal.when(
       loading: () => Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.dc.background,
         appBar: AppBar(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.dc.background,
           elevation: 0,
           leading: _BackButton(),
         ),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.dc.background,
         appBar: AppBar(
-          backgroundColor: AppColors.background,
+          backgroundColor: context.dc.background,
           elevation: 0,
           leading: _BackButton(),
         ),
         body: Center(
           child: Text(e.toString(),
-              style: const TextStyle(color: AppColors.textSecondary)),
+              style: TextStyle(color: context.dc.textSecondary)),
         ),
       ),
       data: (reservation) =>
@@ -81,8 +81,8 @@ class _ReservationDetailViewState
           children: [
             Text(
               l10n.cancelReservationContent,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 14),
+              style: TextStyle(
+                  color: context.dc.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -91,9 +91,9 @@ class _ReservationDetailViewState
               decoration: InputDecoration(
                 hintText: l10n.cancelReasonHint,
                 hintStyle:
-                    const TextStyle(color: AppColors.textTertiary),
+                    TextStyle(color: context.dc.textTertiary),
                 filled: true,
-                fillColor: AppColors.secondaryBackground,
+                fillColor: context.dc.secondaryBackground,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
@@ -109,7 +109,7 @@ class _ReservationDetailViewState
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: AppPalette.error),
             child: Text(l10n.cancelBooking),
           ),
         ],
@@ -139,7 +139,7 @@ class _ReservationDetailViewState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
-            backgroundColor: AppColors.error,
+            backgroundColor: AppPalette.error,
           ),
         );
       }
@@ -150,20 +150,21 @@ class _ReservationDetailViewState
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final r = widget.reservation;
-    final (statusLabel, statusColor) = _statusDisplay(l10n, r.status);
+    final dc = context.dc;
+    final (statusLabel, statusColor) = _statusDisplay(l10n, r.status, dc);
 
     return Scaffold(
-      backgroundColor: AppColors.secondaryBackground,
+      backgroundColor: dc.secondaryBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: dc.background,
         elevation: 0,
         leading: _BackButton(),
         title: Text(
           l10n.reservationTitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: dc.textPrimary,
           ),
         ),
         centerTitle: true,
@@ -181,10 +182,10 @@ class _ReservationDetailViewState
                     Expanded(
                       child: Text(
                         r.service.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          color: dc.textPrimary,
                         ),
                       ),
                     ),
@@ -248,7 +249,7 @@ class _ReservationDetailViewState
               icon: Iconsax.close_circle,
               title: l10n.rejectionReason,
               body: r.rejectionReason!,
-              iconColor: AppColors.error,
+              iconColor: AppPalette.error,
             ),
           ],
 
@@ -259,7 +260,7 @@ class _ReservationDetailViewState
               icon: Iconsax.close_circle,
               title: l10n.cancellationReason,
               body: r.cancellationReason!,
-              iconColor: AppColors.error,
+              iconColor: AppPalette.error,
             ),
           ],
 
@@ -270,20 +271,20 @@ class _ReservationDetailViewState
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
+                color: AppPalette.success.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
                   const Icon(Iconsax.tick_circle,
-                      size: 18, color: AppColors.success),
+                      size: 18, color: AppPalette.success),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       l10n.freeCancellation,
                       style: const TextStyle(
                         fontSize: 13,
-                        color: AppColors.success,
+                        color: AppPalette.success,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -307,10 +308,10 @@ class _ReservationDetailViewState
                       SizedBox(width: 8),
                       Text(
                         l10n.checkinQr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: dc.textPrimary,
                         ),
                       ),
                     ],
@@ -320,16 +321,16 @@ class _ReservationDetailViewState
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.secondaryBackground,
+                      color: dc.secondaryBackground,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       r.completionQrPayload!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontFamily: 'monospace',
-                        color: AppColors.textSecondary,
+                        color: dc.textSecondary,
                       ),
                     ),
                   ),
@@ -364,7 +365,7 @@ class _ReservationDetailViewState
       // Cancel button
       bottomNavigationBar: r.status.isCancellable
           ? Container(
-              color: AppColors.background,
+              color: dc.background,
               padding: EdgeInsets.fromLTRB(
                   20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
               child: SizedBox(
@@ -372,8 +373,8 @@ class _ReservationDetailViewState
                 child: OutlinedButton(
                   onPressed: _cancelling ? null : _showCancelDialog,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error),
+                    foregroundColor: AppPalette.error,
+                    side: const BorderSide(color: AppPalette.error),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -384,7 +385,7 @@ class _ReservationDetailViewState
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.error,
+                            color: AppPalette.error,
                           ),
                         )
                       : Text(
@@ -411,18 +412,18 @@ class _ReservationDetailViewState
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $h:$m';
   }
 
-  (String, Color) _statusDisplay(AppLocalizations l10n, ReservationStatus s) => switch (s) {
-        ReservationStatus.pending              => (l10n.statusPending, AppColors.warning),
-        ReservationStatus.confirmed            => (l10n.statusConfirmed, AppColors.success),
-        ReservationStatus.rejected             => (l10n.statusRejected, AppColors.error),
-        ReservationStatus.cancelledByCustomer  => (l10n.statusCancelled, AppColors.textSecondary),
-        ReservationStatus.cancelledByOwner     => (l10n.statusCancelled, AppColors.textSecondary),
+  (String, Color) _statusDisplay(AppLocalizations l10n, ReservationStatus s, AppDynamicColors dc) => switch (s) {
+        ReservationStatus.pending              => (l10n.statusPending, AppPalette.warning),
+        ReservationStatus.confirmed            => (l10n.statusConfirmed, AppPalette.success),
+        ReservationStatus.rejected             => (l10n.statusRejected, AppPalette.error),
+        ReservationStatus.cancelledByCustomer  => (l10n.statusCancelled, dc.textSecondary),
+        ReservationStatus.cancelledByOwner     => (l10n.statusCancelled, dc.textSecondary),
         ReservationStatus.changeRequestedByCustomer ||
         ReservationStatus.changeRequestedByOwner =>
-          (l10n.statusChangeReq, AppColors.warning),
-        ReservationStatus.completed            => (l10n.statusCompleted, AppColors.success),
-        ReservationStatus.noShow               => (l10n.statusNoShow, AppColors.error),
-        ReservationStatus.expired              => (l10n.statusExpired, AppColors.textTertiary),
+          (l10n.statusChangeReq, AppPalette.warning),
+        ReservationStatus.completed            => (l10n.statusCompleted, AppPalette.success),
+        ReservationStatus.noShow               => (l10n.statusNoShow, AppPalette.error),
+        ReservationStatus.expired              => (l10n.statusExpired, dc.textTertiary),
       };
 }
 
@@ -447,8 +448,8 @@ class _BackButton extends StatelessWidget {
             ],
           ),
           padding: const EdgeInsets.all(6),
-          child: const Icon(Iconsax.arrow_left_2,
-              size: 20, color: AppColors.textPrimary),
+          child: Icon(Iconsax.arrow_left_2,
+              size: 20, color: context.dc.textPrimary),
         ),
       ),
     );
@@ -466,7 +467,7 @@ class _Card extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: context.dc.background,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -502,18 +503,18 @@ class _DetailRow extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppColors.textSecondary,
+              color: context.dc.textSecondary,
             ),
           ),
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: context.dc.textPrimary,
             ),
           ),
         ],
@@ -527,30 +528,31 @@ class _InfoCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.body,
-    this.iconColor = AppColors.primary,
+    this.iconColor,
   });
 
   final IconData icon;
   final String title;
   final String body;
-  final Color iconColor;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveIconColor = iconColor ?? context.palette.primary;
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: iconColor),
+              Icon(icon, size: 16, color: effectiveIconColor),
               const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: context.dc.textPrimary,
                 ),
               ),
             ],
@@ -558,9 +560,9 @@ class _InfoCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             body,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: context.dc.textSecondary,
               height: 1.5,
             ),
           ),

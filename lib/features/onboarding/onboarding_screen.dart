@@ -6,8 +6,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../models/user.dart';
 import '../../state/app_state.dart';
 import '../../state/settings_provider.dart';
@@ -30,7 +30,7 @@ class OnboardingScreen extends ConsumerWidget {
             right: -80,
             child: _Blob(
               size: 300,
-              color: const Color(0xFFC71F37).withValues(alpha: isDark ? 0.08 : 0.10),
+              color: AppPalette.ucr.primary.withValues(alpha: isDark ? 0.08 : 0.10),
             ),
           ),
           Positioned(
@@ -38,7 +38,7 @@ class OnboardingScreen extends ConsumerWidget {
             left: -100,
             child: _Blob(
               size: 340,
-              color: const Color(0xFF0466C8).withValues(alpha: isDark ? 0.07 : 0.09),
+              color: AppPalette.uso.primary.withValues(alpha: isDark ? 0.07 : 0.09),
             ),
           ),
           Positioned(
@@ -46,7 +46,7 @@ class OnboardingScreen extends ConsumerWidget {
             left: -60,
             child: _Blob(
               size: 180,
-              color: const Color(0xFFC71F37).withValues(alpha: isDark ? 0.04 : 0.05),
+              color: AppPalette.ucr.primary.withValues(alpha: isDark ? 0.04 : 0.05),
             ),
           ),
           // ── Content ─────────────────────────────────────────────────
@@ -230,11 +230,11 @@ class _LangSheet extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                    color: selected ? AppColors.primary : dc.textPrimary,
+                    color: selected ? context.palette.primary : dc.textPrimary,
                   ),
                 ),
                 trailing: selected
-                    ? const Icon(Icons.check_rounded, color: AppColors.primary, size: 20)
+                    ? Icon(Icons.check_rounded, color: context.palette.primary, size: 20)
                     : null,
               );
             }),
@@ -347,7 +347,7 @@ class _RoleCardsSection extends StatelessWidget {
           icon: Icons.person_rounded,
           title: l10n.roleCustomer,
           subtitle: l10n.roleCustomerDesc,
-          color: const Color(0xFFC71F37),
+          color: AppPalette.ucr.primary,
           onTap: () => onRoleSelected(UserRole.ucr),
         ),
         const SizedBox(height: 12),
@@ -355,7 +355,7 @@ class _RoleCardsSection extends StatelessWidget {
           icon: Icons.work_rounded,
           title: l10n.roleProvider,
           subtitle: l10n.roleProviderDesc,
-          color: const Color(0xFF0466C8),
+          color: AppPalette.uso.primary,
           onTap: () => onRoleSelected(UserRole.uso),
         ),
       ],

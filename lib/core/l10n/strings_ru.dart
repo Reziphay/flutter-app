@@ -136,6 +136,7 @@ class StringsRu implements AppLocalizations {
   @override String get minuteAbbr          => 'мин';
   @override String get hourAbbr            => 'ч';
   @override String get timePastError       => 'Нельзя выбрать прошедшее время. Пожалуйста, выберите будущее время.';
+  @override String manualApprovalLeadTimeError(int minutes) => 'Эта услуга требует ручного подтверждения. Бронируйте минимум за $minutes мин.';
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   @override String get reservationsTitle       => 'Бронирования';

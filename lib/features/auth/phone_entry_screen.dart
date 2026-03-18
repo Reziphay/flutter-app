@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/network/endpoints.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
@@ -237,12 +236,12 @@ class _PhoneEntryScreenState extends ConsumerState<PhoneEntryScreen> {
   Widget _buildError() {
     return Row(
       children: [
-        const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 16),
+        const Icon(Icons.error_outline_rounded, color: AppPalette.error, size: 16),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             _error!,
-            style: const TextStyle(fontSize: 13, color: AppColors.error),
+            style: const TextStyle(fontSize: 13, color: AppPalette.error),
           ),
         ),
       ],

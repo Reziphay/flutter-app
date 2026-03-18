@@ -136,6 +136,7 @@ class StringsAz implements AppLocalizations {
   @override String get minuteAbbr          => 'dəq';
   @override String get hourAbbr            => 'saat';
   @override String get timePastError       => 'Keçmiş vaxt seçilə bilməz. Zəhmət olmasa gələcək vaxt seçin.';
+  @override String manualApprovalLeadTimeError(int minutes) => 'Bu xidmət manual təsdiq tələb edir. Minimum $minutes dəq qabaqcadan vaxt seçin.';
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   @override String get reservationsTitle       => 'Rezervasiyalar';

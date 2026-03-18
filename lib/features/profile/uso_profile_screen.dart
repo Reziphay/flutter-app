@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/network/network_exception.dart';
 import '../../core/theme/app_dynamic_colors.dart';
@@ -47,7 +46,7 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+      SnackBar(content: Text(msg), backgroundColor: AppPalette.error),
     );
   }
 
@@ -167,7 +166,7 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
             _ActionRow(
               icon:  Iconsax.logout,
               label: l10n.logout,
-              color: AppColors.error,
+              color: AppPalette.error,
               dc:    dc,
               onTap: () async {
                 final confirmed = await showDialog<bool>(
@@ -187,7 +186,7 @@ class _UsoProfileScreenState extends ConsumerState<UsoProfileScreen> {
                         onPressed: () => Navigator.of(ctx).pop(true),
                         child: Text(
                           l10n.logout,
-                          style: const TextStyle(color: AppColors.error),
+                          style: const TextStyle(color: AppPalette.error),
                         ),
                       ),
                     ],

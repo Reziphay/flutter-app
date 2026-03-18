@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
-import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../state/app_state.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
@@ -43,12 +44,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         height: 60,
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onTabTapped,
-        backgroundColor: AppColors.background,
+        backgroundColor: context.dc.background,
         indicatorColor: Colors.transparent,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         destinations: _tabs.map((tab) => NavigationDestination(
-          icon: Icon(tab.icon, color: AppColors.textSecondary),
-          selectedIcon: Icon(tab.icon, color: AppColors.primary),
+          icon: Icon(tab.icon, color: context.dc.textSecondary),
+          selectedIcon: Icon(tab.icon, color: context.palette.primary),
           label: tab.label,
         )).toList(),
       ),
@@ -87,7 +88,7 @@ class ProfilePlaceholderScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.dc.background,
       appBar: AppBar(
         title: const Text('Profile'),
         actions: [
@@ -125,27 +126,27 @@ class _PlaceholderView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.dc.background,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 64, color: AppColors.textTertiary),
+            Icon(icon, size: 64, color: context.dc.textTertiary),
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: context.dc.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
-                color: AppColors.textSecondary,
+                color: context.dc.textSecondary,
               ),
             ),
           ],

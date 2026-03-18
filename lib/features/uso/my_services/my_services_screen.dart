@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../core/theme/app_palette.dart';
@@ -199,8 +198,8 @@ class MyServicesScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Iconsax.warning_2,
-                          size: 48, color: AppColors.textTertiary),
+                      Icon(Iconsax.warning_2,
+                          size: 48, color: dc.textTertiary),
                       const SizedBox(height: 12),
                       Text(l10n.somethingWentWrong),
                       const SizedBox(height: 8),
@@ -280,7 +279,7 @@ class _ServiceCard extends ConsumerWidget {
         title: Text(l10n.archiveServiceTitle),
         content: Text(
           l10n.archiveServiceContent,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          style: TextStyle(color: context.dc.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
@@ -291,7 +290,7 @@ class _ServiceCard extends ConsumerWidget {
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
               l10n.archive,
-              style: const TextStyle(color: AppColors.error),
+              style: const TextStyle(color: AppPalette.error),
             ),
           ),
         ],
@@ -305,7 +304,7 @@ class _ServiceCard extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.l10n.failedToArchive),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppPalette.error,
         ),
       );
     }
@@ -329,19 +328,19 @@ class _ServiceCard extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.1),
+          color: AppPalette.error.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Iconsax.archive, color: AppColors.error, size: 22),
+            const Icon(Iconsax.archive, color: AppPalette.error, size: 22),
             const SizedBox(height: 4),
             Text(
               l10n.archive,
               style: const TextStyle(
                 fontSize: 11,
-                color: AppColors.error,
+                color: AppPalette.error,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -413,8 +412,8 @@ class _ServiceCard extends ConsumerWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: s.isActive
-                                  ? AppColors.success
-                                  : AppColors.textTertiary,
+                                  ? AppPalette.success
+                                  : dc.textTertiary,
                             ),
                           ),
                         ],

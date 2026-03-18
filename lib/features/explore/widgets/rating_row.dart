@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
 import '../../../models/discovery.dart';
 

@@ -14,7 +14,6 @@ import 'package:iconsax/iconsax.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
@@ -115,10 +114,10 @@ class _CreateBrandScreenState extends ConsumerState<CreateBrandScreen> {
             if (_pickedImage != null)
               ListTile(
                 leading: const Icon(
-                    Iconsax.trash, color: AppColors.error),
+                    Iconsax.trash, color: AppPalette.error),
                 title: Text(
                   context.l10n.removePhoto,
-                  style: const TextStyle(color: AppColors.error),
+                  style: const TextStyle(color: AppPalette.error),
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -148,7 +147,7 @@ class _CreateBrandScreenState extends ConsumerState<CreateBrandScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.message),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppPalette.error,
         ),
       );
       return null;
@@ -246,7 +245,7 @@ class _CreateBrandScreenState extends ConsumerState<CreateBrandScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.message),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppPalette.error,
         ),
       );
     } catch (_) {
@@ -254,7 +253,7 @@ class _CreateBrandScreenState extends ConsumerState<CreateBrandScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(context.l10n.genericError),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppPalette.error,
         ),
       );
     } finally {
@@ -675,13 +674,13 @@ class _OtpBottomSheetState extends State<_OtpBottomSheet> {
             Row(
               children: [
                 const Icon(Icons.error_outline_rounded,
-                    color: AppColors.error, size: 16),
+                    color: AppPalette.error, size: 16),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     _error!,
                     style: const TextStyle(
-                        fontSize: 13, color: AppColors.error),
+                        fontSize: 13, color: AppPalette.error),
                   ),
                 ),
               ],
@@ -903,12 +902,12 @@ class _FormTextField extends StatelessWidget {
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
-              const BorderSide(color: AppColors.error, width: 1.5),
+              const BorderSide(color: AppPalette.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
-              const BorderSide(color: AppColors.error, width: 1.5),
+              const BorderSide(color: AppPalette.error, width: 1.5),
         ),
       ),
     );

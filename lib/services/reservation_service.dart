@@ -19,7 +19,8 @@ class ReservationService {
       _client.post(
         Endpoints.reservations,
         data: dto.toJson(),
-        fromJson: (json) => ReservationItem.fromJson(json),
+        fromJson: (json) => ReservationItem.fromJson(
+            json['reservation'] as Map<String, dynamic>),
       );
 
   // ── List my reservations ───────────────────────────────────────────────────
@@ -47,7 +48,8 @@ class ReservationService {
   Future<ReservationItem> fetchReservationDetail(String id) =>
       _client.get(
         Endpoints.reservationById(id),
-        fromJson: (json) => ReservationItem.fromJson(json),
+        fromJson: (json) => ReservationItem.fromJson(
+            json['reservation'] as Map<String, dynamic>),
       );
 
   // ── Cancel (UCR) ──────────────────────────────────────────────────────────
@@ -56,7 +58,8 @@ class ReservationService {
       _client.post(
         Endpoints.cancelReservation(id),
         data: {'reason': reason},
-        fromJson: (json) => ReservationItem.fromJson(json),
+        fromJson: (json) => ReservationItem.fromJson(
+            json['reservation'] as Map<String, dynamic>),
       );
 
   // ── USO — Incoming reservations ────────────────────────────────────────
@@ -94,26 +97,30 @@ class ReservationService {
   Future<ReservationItem> acceptReservation(String id) =>
       _client.post(
         Endpoints.acceptReservation(id),
-        fromJson: (json) => ReservationItem.fromJson(json),
+        fromJson: (json) => ReservationItem.fromJson(
+            json['reservation'] as Map<String, dynamic>),
       );
 
   Future<ReservationItem> rejectReservation(String id, String reason) =>
       _client.post(
         Endpoints.rejectReservation(id),
         data: {'reason': reason},
-        fromJson: (json) => ReservationItem.fromJson(json),
+        fromJson: (json) => ReservationItem.fromJson(
+            json['reservation'] as Map<String, dynamic>),
       );
 
   Future<ReservationItem> cancelByOwner(String id, String reason) =>
       _client.post(
         Endpoints.cancelByOwner(id),
         data: {'reason': reason},
-        fromJson: (json) => ReservationItem.fromJson(json),
+        fromJson: (json) => ReservationItem.fromJson(
+            json['reservation'] as Map<String, dynamic>),
       );
 
   Future<ReservationItem> completeManually(String id) =>
       _client.post(
         Endpoints.completeManually(id),
-        fromJson: (json) => ReservationItem.fromJson(json),
+        fromJson: (json) => ReservationItem.fromJson(
+            json['reservation'] as Map<String, dynamic>),
       );
 }

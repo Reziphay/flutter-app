@@ -6,7 +6,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/network/network_exception.dart';
 import '../../core/theme/app_dynamic_colors.dart';
 import '../../core/theme/app_palette.dart';
@@ -151,12 +150,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: AppColors.success.withValues(alpha: 0.1),
+            color: AppPalette.success.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.check_circle_outline_rounded,
-            color: AppColors.success,
+            color: AppPalette.success,
             size: 28,
           ),
         ),
@@ -242,12 +241,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget _buildError() {
     return Row(
       children: [
-        const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 16),
+        const Icon(Icons.error_outline_rounded, color: AppPalette.error, size: 16),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             _error!,
-            style: const TextStyle(fontSize: 13, color: AppColors.error),
+            style: const TextStyle(fontSize: 13, color: AppPalette.error),
           ),
         ),
       ],

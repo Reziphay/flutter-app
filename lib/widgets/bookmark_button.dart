@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../core/constants/app_colors.dart';
 import '../core/network/api_client.dart';
+import '../core/theme/app_palette.dart';
 import '../core/network/endpoints.dart';
 import '../core/network/network_exception.dart';
 
@@ -156,7 +156,7 @@ class _BookmarkButtonState extends ConsumerState<BookmarkButton> {
     if (!_visible) return const SizedBox.shrink();
 
     final iconColor = _isFavorite
-        ? (widget.color ?? AppColors.primary)
+        ? (widget.color ?? context.palette.primary)
         : (widget.color ?? Theme.of(context).colorScheme.primary);
 
     return IconButton(

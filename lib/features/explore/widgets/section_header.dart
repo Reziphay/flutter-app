@@ -2,9 +2,9 @@
 // Reziphay
 
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_dynamic_colors.dart';
+import '../../../core/theme/app_palette.dart';
 
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
@@ -40,7 +40,7 @@ class SectionHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
+                  color: context.palette.primary,
                 ),
               ),
             ),

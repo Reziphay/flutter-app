@@ -136,6 +136,7 @@ class StringsTr implements AppLocalizations {
   @override String get minuteAbbr          => 'dk';
   @override String get hourAbbr            => 'sa';
   @override String get timePastError       => 'Geçmiş saat seçilemez. Lütfen gelecekteki bir saat seçin.';
+  @override String manualApprovalLeadTimeError(int minutes) => 'Bu hizmet manuel onay gerektiriyor. En az $minutes dk önceden rezervasyon yapın.';
 
   // ── Reservations ─────────────────────────────────────────────────────────────
   @override String get reservationsTitle       => 'Rezervasyonlar';

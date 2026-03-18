@@ -4,7 +4,6 @@
 // Author: Vugar Safarzada (@vugarsafarzada)
 
 import 'package:flutter/material.dart';
-import '../constants/app_colors.dart';
 import 'app_dynamic_colors.dart';
 import 'app_palette.dart';
 
@@ -36,7 +35,7 @@ abstract final class AppTheme {
         onPrimary:  Colors.white,
         surface:    dc.background,
         onSurface:  dc.textPrimary,
-        error:      AppColors.error,
+        error:      AppPalette.error,
       ),
       extensions: [palette, dc],
       scaffoldBackgroundColor: dc.background,
@@ -115,11 +114,11 @@ abstract final class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+          borderSide: const BorderSide(color: AppPalette.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+          borderSide: const BorderSide(color: AppPalette.error, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         labelStyle: TextStyle(color: dc.textSecondary),

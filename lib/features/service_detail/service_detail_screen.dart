@@ -9,9 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_dynamic_colors.dart';
+import '../../core/theme/app_palette.dart';
 import '../../models/discovery.dart';
 import '../../state/explore_providers.dart';
 import '../../widgets/bookmark_button.dart';
@@ -120,15 +120,15 @@ class _ServiceDetailView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
+                        color: context.palette.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         service.category!.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
+                          color: context.palette.primary,
                         ),
                       ),
                     ),
@@ -322,7 +322,7 @@ class _InfoTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: AppColors.primary),
+          Icon(icon, size: 20, color: context.palette.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -330,9 +330,9 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(
                   label.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.primary,
+                    color: context.palette.primary,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.6,
                   ),
@@ -403,9 +403,9 @@ class _ClickableEntityTile extends StatelessWidget {
                 children: [
                   Text(
                     label.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.primary,
+                      color: context.palette.primary,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.6,
                     ),
@@ -416,7 +416,7 @@ class _ClickableEntityTile extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.blue,
+                      color: AppPalette.blue,
                     ),
                   ),
                 ],
@@ -472,7 +472,7 @@ class _BookButton extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(context.l10n.reservationCreated),
-                  backgroundColor: AppColors.success,
+                  backgroundColor: AppPalette.success,
                 ),
               );
             }
